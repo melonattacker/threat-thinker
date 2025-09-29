@@ -1,0 +1,20 @@
+nodes:
+  user: { label: "User", type: actor, zone: Internet }
+  cf:   { label: "CloudFront", type: elb, zone: AWS-Managed }
+  alb:  { label: "Application Load Balancer", type: elb, zone: VPC-Public }
+  ecs:  { label: "ECS Service (Fargate)", type: service, zone: VPC-Private, auth: true, data: [Internal] }
+  rds:  { label: "Aurora (RDS)", type: database, zone: VPC-Private, data: [PII] }
+  s3:   { label: "S3 Bucket (assets)", type: s3, zone: AWS-Managed, data: [Internal] }
+  sqs:  { label: "SQS Queue (jobs)", type: queue, zone: AWS-Managed, data: [Internal] }
+  lambda: { label: "Lambda Worker", type: lambda, zone: VPC-Private, data: [Internal] }
+  sns:    { label: "SNS Topic (events)", type: service, zone: AWS-Managed, data: [Internal] }
+
+edges:
+  - { from: user, to: cf,   protocol: HTTPS, data: [Credentials] }
+  - { from: cf,   to: alb,  protocol: HTTPS }
+  - { from: alb,  to: ecs,  protocol: HTTP }      
+  - { from: ecs,  to: rds,  protocol: TCP,  data: [PII] }
+  - { from: ecs,  to: s3,   protocol: HTTPS, data: [Internal] }
+  - { from: ecs,  to: sqs,  protocol: HTTPS, data: [Internal] }
+  - { from: sns,  to: lambda, protocol: HTTPS, data: [Internal] }
+  - { from: sqs,  to: lambda, protocol: HTTPS, data: [Internal] }

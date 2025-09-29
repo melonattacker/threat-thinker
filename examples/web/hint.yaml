@@ -1,0 +1,10 @@
+nodes:
+  user: {label: "User", type: actor, zone: Internet}
+  api:  {label: "API Gateway", type: service, zone: DMZ, auth: false}
+  app:  {label: "App Service", type: service, zone: Private}
+  db:   {label: "Customer DB", type: database, zone: Private, data: [PII]}
+
+edges:
+  - {from: user, to: api, protocol: HTTP, data: [Credentials]}
+  - {from: api,  to: app, protocol: HTTP}
+  - {from: app,  to: db,  protocol: TCP,  data: [PII]}

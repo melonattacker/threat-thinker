@@ -1,0 +1,10 @@
+%% AWS example A
+graph LR
+  user[User] --> cf[CloudFront]
+  cf --> alb[ALB]
+  alb --> ecs[ECS Service]
+  ecs --> rds[(Customer RDS)]
+  ecs --> s3[S3 Bucket]
+  ecs --> sqs[(SQS Queue)]
+  sns[SNS Topic] --> lambda[Lambda Worker]
+  sqs --> lambda
