@@ -1,14 +1,14 @@
 # Threat Thinker Report
 
-Generated: 2025-09-29T14:44:09.168676Z
+Generated: 2025-10-26T12:01:30.550794Z
+Import Success: 100.0% (edges 6/6, labels 2/2)
 
-| Severity | Title | Why | Affected | STRIDE | References |
-|---|---|---|---|---|---|
-| High | Unencrypted Traffic between ALB and ECS | Using HTTP for internal communication can expose sensitive data to interception. | alb, ecs | Tampering, Information Disclosure | ASVS V5.1, ASVS V13.1 |
-| High | Insecure Communication between CloudFront and ALB | If HTTPS is misconfigured or not enforced, it could lead to data tampering or exposure. | cf, alb | Tampering, Information Disclosure | ASVS V5.1, ASVS V13.1 |
-| High | User Credential Exposure | If user credentials are not securely stored or transmitted, they could be compromised. | user | Spoofing, Information Disclosure | ASVS V5.1, ASVS V13.1 |
-| Medium | Insecure Access to S3 from ECS | Improperly configured permissions on S3 could allow ECS to access or modify sensitive data. | ecs, s3 | Information Disclosure, Tampering | ASVS V5.2, ASVS V13.2 |
-| Medium | Potential Database Exposure from ECS | If ECS is compromised, it could lead to unauthorized access to the RDS database. | ecs, rds | Information Disclosure, Elevation of Privilege | ASVS V5.2, ASVS V13.2 |
-| Medium | Unsecured Message Queue Access | If SQS permissions are not properly configured, it could allow unauthorized access to messages. | ecs, sqs | Tampering, Information Disclosure | ASVS V5.2, ASVS V13.2 |
-| Medium | Unsecured SNS Topic Access | If SNS topic permissions are not properly configured, it could expose sensitive notifications. | sns | Information Disclosure, Tampering | ASVS V5.2, ASVS V13.2 |
-| Medium | Potential Lambda Invocation Vulnerability | If SQS is misconfigured, it could allow unauthorized invocation of Lambda functions. | sqs, lambda | Denial of Service, Elevation of Privilege | ASVS V5.2, ASVS V13.2 |
+| Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |
+|---|---|---|---|---|---|---|---|
+| High | User Credential Exposure | If user credentials are compromised, attackers can impersonate legitimate users and access services. | User, Elastic Container Service | Spoofing, Information Disclosure | ASVS V5.1.3 | user, ecs | 9 |
+| High | Unencrypted Database Connection | Using unencrypted TCP for database connections can expose sensitive data and allow tampering. | Elastic Container Service, Relational Database Service | Tampering, Information Disclosure | ASVS V5.1.2 | ecs, rds, ecs->rds | 8 |
+| High | Insecure Transport Layer Security | If TLS is misconfigured or absent, data can be intercepted or altered during transmission. | CloudFront, Application Load Balancer | Tampering, Information Disclosure | ASVS V5.1.1 | cf, alb, cf->alb | 7 |
+| High | Insufficient Authentication for S3 Access | If S3 bucket policies are misconfigured, unauthorized users may gain access to sensitive data. | Simple Storage Service | Elevation of Privilege, Information Disclosure | ASVS V5.2.1 | s3 | 7 |
+| Medium | Insecure Internal Communication | Using HTTP for internal communication can expose sensitive data to internal threats. | Application Load Balancer, Elastic Container Service | Tampering, Information Disclosure | ASVS V5.1.2 | alb, ecs, alb->ecs | 6 |
+| Medium | Unrestricted Access to SQS and Lambda | If access controls are not properly configured, unauthorized users may invoke Lambda functions or read SQS messages. | Simple Queue Service, AWS Lambda | Elevation of Privilege, Information Disclosure | ASVS V5.2.2 | sqs, lambda, sqs->lambda | 5 |
+| Medium | Unsecured SNS Topic | If SNS topics are not secured, unauthorized users can publish or subscribe to sensitive notifications. | SNS Topic | Elevation of Privilege, Information Disclosure | ASVS V5.2.1 | sns | 5 |
