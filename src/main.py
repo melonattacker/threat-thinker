@@ -531,6 +531,11 @@ def main():
     p_diff.add_argument("--baseline", type=str, required=True)
     p_diff.add_argument("--out", type=str, help="Write diff JSON to file")
 
+    p_webui = sub.add_parser("webui", help="Launch the Gradio Web UI")
+    p_webui.add_argument("--host", type=str, default="127.0.0.1", help="Interface to bind (default: 127.0.0.1)")
+    p_webui.add_argument("--port", type=int, help="Port to bind")
+    p_webui.add_argument("--share", action="store_true", help="Enable public Gradio share URL")
+
     args = p.parse_args()
 
     if args.cmd == "think":
@@ -601,6 +606,13 @@ def main():
             with open(args.out, "w", encoding="utf-8") as f:
                 f.write(s)
         print(s)
+    elif args.cmd == "webui":
+        import webui
+        webui.launch_webui(
+            server_name=args.host,
+            server_port=args.port,
+            share=args.share,
+        )
 
 if __name__ == "__main__":
     main()
