@@ -40,12 +40,14 @@ class LLMProvider(ABC):
         pass
 
 
-def get_provider(api: str) -> LLMProvider:
+def get_provider(api: str, aws_profile: Optional[str] = None, aws_region: Optional[str] = None) -> LLMProvider:
     """
     Get the appropriate LLM provider instance.
     
     Args:
         api: LLM API provider name
+        aws_profile: AWS profile name (for bedrock provider only)
+        aws_region: AWS region (for bedrock provider only)
         
     Returns:
         LLMProvider instance
@@ -61,5 +63,8 @@ def get_provider(api: str) -> LLMProvider:
     elif api_normalized == "anthropic":
         from .anthropic import AnthropicProvider
         return AnthropicProvider()
+    elif api_normalized == "bedrock":
+        from .bedrock import BedrockProvider
+        return BedrockProvider(aws_profile=aws_profile, aws_region=aws_region)
     else:
         raise NotImplementedError(f"LLM api '{api}' is not supported yet.")

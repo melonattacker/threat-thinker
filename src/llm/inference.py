@@ -10,7 +10,7 @@ from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIO
 from .client import call_llm
 
 
-def llm_infer_hints(graph_skeleton_json: str, api: str, model: str) -> dict:
+def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile: str = None, aws_region: str = None) -> dict:
     """
     Use LLM to infer hints from graph skeleton.
     
@@ -18,6 +18,8 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str) -> dict:
         graph_skeleton_json: JSON representation of graph skeleton
         api: LLM API provider
         model: Model name
+        aws_profile: AWS profile name (for bedrock provider only)
+        aws_region: AWS region (for bedrock provider only)
         
     Returns:
         Dictionary of inferred hints
@@ -36,11 +38,13 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str) -> dict:
         response_format={"type": "json_object"},
         temperature=0.2,
         max_tokens=1400,
+        aws_profile=aws_profile,
+        aws_region=aws_region,
     )
     return json.loads(content)
 
 
-def llm_infer_threats(g: Graph, api: str, model: str) -> List[Threat]:
+def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, aws_region: str = None) -> List[Threat]:
     """
     Use LLM to infer threats from graph.
     
@@ -48,6 +52,8 @@ def llm_infer_threats(g: Graph, api: str, model: str) -> List[Threat]:
         g: Graph object
         api: LLM API provider
         model: Model name
+        aws_profile: AWS profile name (for bedrock provider only)
+        aws_region: AWS region (for bedrock provider only)
         
     Returns:
         List of Threat objects
@@ -76,6 +82,8 @@ def llm_infer_threats(g: Graph, api: str, model: str) -> List[Threat]:
         response_format={"type": "json_object"},
         temperature=0.2,
         max_tokens=1600,
+        aws_profile=aws_profile,
+        aws_region=aws_region,
     )
     data = json.loads(content)
 

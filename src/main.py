@@ -17,6 +17,16 @@ Examples:
     python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out report.json
   export ANTHROPIC_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out report.md
+  For AWS Bedrock:
+    # Option 1: Use AWS Profile
+    aws configure --profile my-profile
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
+    # Option 2: Use environment variables
+    export AWS_ACCESS_KEY_ID=***
+    export AWS_SECRET_ACCESS_KEY=***
+    export AWS_SESSION_TOKEN=***  # if using temporary credentials
+    export AWS_DEFAULT_REGION=us-east-1
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --out report.md
   python main.py diff --current report.json --baseline old.json
 """
 
@@ -47,8 +57,10 @@ def main():
                          help="Infer node/edge attributes from Mermaid via LLM (multilingual)")
     p_think.add_argument("--format", choices=["json", "md"], default="md")
     p_think.add_argument("--out", type=str, help="Write output to file")
-    p_think.add_argument("--llm-api", type=str, default="openai", help="LLM provider to use ('openai' or 'anthropic')")
+    p_think.add_argument("--llm-api", type=str, default="openai", help="LLM provider to use ('openai', 'anthropic', or 'bedrock')")
     p_think.add_argument("--llm-model", type=str, default="gpt-4o-mini", help="LLM model identifier")
+    p_think.add_argument("--aws-profile", type=str, help="AWS profile name (for bedrock provider only)")
+    p_think.add_argument("--aws-region", type=str, help="AWS region (for bedrock provider only, defaults to us-east-1)")
 
     p_think.add_argument("--topn", type=int, default=15, help="Keep top-N threats after de-noise")
     p_think.add_argument("--min-confidence", type=float, default=0.0, help="Drop threats below this confidence")
@@ -67,18 +79,23 @@ def main():
     args = p.parse_args()
 
     if args.cmd == "think":
-        supported_apis = ["openai", "anthropic"]
+        supported_apis = ["openai", "anthropic", "bedrock"]
         if args.llm_api.lower() not in supported_apis:
             print(f"ERROR: --llm-api must be one of {supported_apis}.", file=sys.stderr)
             sys.exit(2)
         
-        # Check for required API keys
+        # Check for required API keys/credentials
         if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
             print("ERROR: OPENAI_API_KEY is not set.", file=sys.stderr)
             sys.exit(2)
         elif args.llm_api.lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
             print("ERROR: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
             sys.exit(2)
+        elif args.llm_api.lower() == "bedrock":
+            # For bedrock, we check credentials later in the provider initialization
+            # Here we just validate that if aws-profile is provided, it's for bedrock
+            if not args.aws_profile and not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")):
+                print("WARNING: For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)", file=sys.stderr)
 
         # 1) Parse Mermaid to skeleton graph (+ metrics)
         g, metrics = parse_mermaid(args.mermaid)
@@ -95,7 +112,7 @@ def main():
                 "nodes": [{"id": n.id, "label": n.label} for n in g.nodes.values()],
                 "edges": [{"from": e.src, "to": e.dst, "label": e.label} for e in g.edges],
             }, ensure_ascii=False, indent=2)
-            inferred = llm_infer_hints(skeleton, args.llm_api, args.llm_model)
+            inferred = llm_infer_hints(skeleton, args.llm_api, args.llm_model, args.aws_profile, args.aws_region)
             g = merge_llm_hints(g, inferred)
         print("Graph after LLM-inferred hints:")
         print(g)
@@ -108,7 +125,7 @@ def main():
         print("\n")
 
         # 4) LLM-driven threat inference
-        threats = llm_infer_threats(g, args.llm_api, args.llm_model)
+        threats = llm_infer_threats(g, args.llm_api, args.llm_model, args.aws_profile, args.aws_region)
         print(f"LLM inferred {len(threats)} threats.")
         for t in threats:
             print(t)

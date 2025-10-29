@@ -72,6 +72,8 @@ def _generate_report(
     infer_hints: bool,
     llm_api: str,
     llm_model: str,
+    aws_profile: str,
+    aws_region: str,
     topn: int,
     min_confidence: float,
     require_asvs: bool,
@@ -83,6 +85,8 @@ def _generate_report(
 
     llm_api = (llm_api or "openai").strip().lower()
     llm_model = (llm_model or "").strip() or "gpt-4o-mini"
+    aws_profile = (aws_profile or "").strip() or None
+    aws_region = (aws_region or "").strip() or None
 
     mermaid_path = _write_temp_file(mermaid_text, ".mmd")
     hints_path = None
@@ -112,7 +116,7 @@ def _generate_report(
                 ensure_ascii=False,
                 indent=2,
             )
-            inferred = cli.llm_infer_hints(skeleton, llm_api, llm_model)
+            inferred = cli.llm_infer_hints(skeleton, llm_api, llm_model, aws_profile, aws_region)
             graph = cli.merge_llm_hints(graph, inferred)
             status_lines.append("Applied LLM-inferred hints.")
 
@@ -120,7 +124,7 @@ def _generate_report(
         if hints_path:
             status_lines.append("Applied user-provided hints.")
 
-        threats = cli.llm_infer_threats(graph, llm_api, llm_model)
+        threats = cli.llm_infer_threats(graph, llm_api, llm_model, aws_profile, aws_region)
         status_lines.append(f"LLM returned {len(threats)} threats before filtering.")
 
         filtered = cli.denoise_threats(
@@ -197,14 +201,24 @@ def launch_webui(
         with gr.Row():
             llm_api_input = gr.Dropdown(
                 label="LLM API",
-                choices=["openai", "anthropic"],
+                choices=["openai", "anthropic", "bedrock"],
                 value="openai",
                 interactive=True,
             )
             llm_model_input = gr.Textbox(
                 label="LLM Model",
                 value="gpt-4o-mini",
-                placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307",
+                placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
+            )
+            aws_profile_input = gr.Textbox(
+                label="AWS Profile (for Bedrock only)",
+                value="",
+                placeholder="e.g., my-profile (optional, leave empty to use default credentials)",
+            )
+            aws_region_input = gr.Textbox(
+                label="AWS Region (for Bedrock only)",
+                value="",
+                placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
             )
 
         with gr.Row():
@@ -265,6 +279,8 @@ def launch_webui(
                 infer_hints_input,
                 llm_api_input,
                 llm_model_input,
+                aws_profile_input,
+                aws_region_input,
                 topn_input,
                 min_confidence_input,
                 require_asvs_input,
