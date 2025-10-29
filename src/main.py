@@ -30,7 +30,7 @@ from openai import OpenAI
 
 from parsers.mermaid_parser import parse_mermaid
 from hint_processor import apply_hints, merge_llm_hints
-from llm.client import llm_infer_hints, llm_infer_threats
+from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
 from exporters import export_json, export_md, diff_reports
 
