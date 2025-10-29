@@ -70,7 +70,7 @@ def export_md(threats: List[Threat], out_path: Optional[str], metrics: Optional[
     lines = []
     lines.append("# Threat Thinker Report")
     lines.append("")
-    lines.append(f"Generated: {__import__('datetime').datetime.utcnow().isoformat()}Z")
+    lines.append(f"Generated: {__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()}Z")
     if metrics:
         lines.append("")
         lines.append(f"Import Success: {metrics.import_success_rate*100:.1f}% "

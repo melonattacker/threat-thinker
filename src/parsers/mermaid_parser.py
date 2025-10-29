@@ -10,7 +10,7 @@ from models import Graph, Node, Edge, ImportMetrics
 
 # tolerate variations: A->B, A-->B, A--->B |label|
 MERMAID_EDGE_RE = re.compile(
-    r'^\s*([A-Za-z0-9_]+)\s*-\s*-\s*>+\s*([A-Za-z0-9_]+)\s*(?:\|\s*([^|]+?)\s*\|)?'
+    r'^\s*([A-Za-z0-9_]+)\s*-\s*-*\s*>+\s*([A-Za-z0-9_]+)\s*(?:\|\s*([^|]+?)\s*\|)?'
 )
 
 NODE_LABEL_RE = re.compile(
