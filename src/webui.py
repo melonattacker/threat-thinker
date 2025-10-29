@@ -67,7 +67,8 @@ def _write_temp_file(content: str, suffix: str) -> str:
 
 
 def _generate_report(
-    mermaid_text: str,
+    diagram_text: str,
+    diagram_format: str,
     hints_text: str,
     infer_hints: bool,
     llm_api: str,
@@ -79,16 +80,28 @@ def _generate_report(
     require_asvs: bool,
     output_format: str,
 ) -> Tuple[str, dict, str, str, Optional[str]]:
-    mermaid_text = (mermaid_text or "").strip()
-    if not mermaid_text:
-        raise gr.Error("Mermaid diagram input is required.")
+    diagram_text = (diagram_text or "").strip()
+    if not diagram_text:
+        raise gr.Error("Diagram input is required.")
+
+    diagram_format = (diagram_format or "mermaid").strip().lower()
+    if diagram_format not in ["mermaid", "drawio"]:
+        raise gr.Error(f"Unsupported diagram format: {diagram_format}")
 
     llm_api = (llm_api or "openai").strip().lower()
     llm_model = (llm_model or "").strip() or "gpt-4o-mini"
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
 
-    mermaid_path = _write_temp_file(mermaid_text, ".mmd")
+    # Determine file extension based on format
+    if diagram_format == "mermaid":
+        file_suffix = ".mmd"
+    elif diagram_format == "drawio":
+        file_suffix = ".drawio"
+    else:
+        file_suffix = ".txt"
+
+    diagram_path = _write_temp_file(diagram_text, file_suffix)
     hints_path = None
     if hints_text and hints_text.strip():
         hints_path = _write_temp_file(hints_text, ".yaml")
@@ -97,9 +110,16 @@ def _generate_report(
     download_path: Optional[str] = None
 
     try:
-        graph, metrics = cli.parse_mermaid(mermaid_path)
+        # Parse diagram based on format
+        if diagram_format == "mermaid":
+            graph, metrics = cli.parse_mermaid(diagram_path)
+        elif diagram_format == "drawio":
+            graph, metrics = cli.parse_drawio(diagram_path)
+        else:
+            raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+            
         status_lines.append(
-            f"Parsed Mermaid: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+            f"Parsed {diagram_format.title()} diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
         )
         status_lines.append(
             f"Import success ~{metrics.import_success_rate * 100:.1f}% "
@@ -171,7 +191,7 @@ def _generate_report(
         raise gr.Error(f"Failed to generate report: {exc}")
     finally:
         # clean up intermediate files; keep the report download file around
-        for path in (mermaid_path, hints_path):
+        for path in (diagram_path, hints_path):
             if path and os.path.exists(path):
                 try:
                     os.unlink(path)
@@ -188,13 +208,18 @@ def launch_webui(
     """Launch the Gradio Web UI."""
     cleanup_temp_dir = _setup_gradio_temp_dir()
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
-        gr.Markdown("## Threat Thinker WebUI\nPaste your Mermaid diagram, optionally add YAML hints, and generate threat reports.")
+        gr.Markdown("## Threat Thinker WebUI\nUpload your diagram file (Mermaid or Draw.io), optionally add YAML hints, and generate threat reports.")
 
-        mermaid_input = gr.TextArea(
-            label="Mermaid Diagram",
-            placeholder="Paste your Mermaid diagram here...",
+        diagram_input = gr.TextArea(
+            label="Diagram Content",
+            placeholder="Paste your diagram content here (Mermaid or Draw.io XML)...",
             lines=20,
             autofocus=True,
+        )
+        diagram_format_input = gr.Radio(
+            label="Diagram Format",
+            choices=["mermaid", "drawio"],
+            value="mermaid",
         )
         hints_input = gr.TextArea(
             label="Hints YAML (optional)",
@@ -287,7 +312,8 @@ def launch_webui(
         generate_button.click(
             fn=_generate_report,
             inputs=[
-                mermaid_input,
+                diagram_input,
+                diagram_format_input,
                 hints_input,
                 infer_hints_input,
                 llm_api_input,

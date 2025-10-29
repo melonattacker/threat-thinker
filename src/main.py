@@ -41,6 +41,7 @@ from typing import Dict, List, Optional, Tuple
 from openai import OpenAI
 
 from parsers.mermaid_parser import parse_mermaid
+from parsers.drawio_parser import parse_drawio
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
@@ -51,7 +52,9 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_think = sub.add_parser("think", help="Parse diagram + hints, generate threats (LLM required)")
-    p_think.add_argument("--mermaid", type=str, required=True, help="Path to Mermaid (.mmd/.mermaid)")
+    p_think.add_argument("--mermaid", type=str, help="Path to Mermaid (.mmd/.mermaid)")
+    p_think.add_argument("--drawio", type=str, help="Path to Draw.io (.drawio/.xml)")
+    p_think.add_argument("--diagram", type=str, help="Path to diagram file (auto-detects format from extension)")
     p_think.add_argument("--hints", type=str, help="Optional YAML hints file")
     p_think.add_argument("--infer-hints", action="store_true",
                          help="Infer node/edge attributes from Mermaid via LLM (multilingual)")
@@ -79,6 +82,29 @@ def main():
     args = p.parse_args()
 
     if args.cmd == "think":
+        # Determine diagram file and format
+        diagram_file = None
+        diagram_format = None
+        
+        if args.diagram:
+            diagram_file = args.diagram
+            # Auto-detect format from extension
+            if diagram_file.lower().endswith(('.mmd', '.mermaid')):
+                diagram_format = 'mermaid'
+            elif diagram_file.lower().endswith(('.drawio', '.xml')):
+                diagram_format = 'drawio'
+            else:
+                print(f"ERROR: Unsupported diagram file format for {diagram_file}. Supported: .mmd, .mermaid, .drawio, .xml", file=sys.stderr)
+                sys.exit(2)
+        elif args.mermaid:
+            diagram_file = args.mermaid
+            diagram_format = 'mermaid'
+        elif args.drawio:
+            diagram_file = args.drawio
+            diagram_format = 'drawio'
+        else:
+            print("ERROR: Please specify a diagram file using --diagram, --mermaid, or --drawio", file=sys.stderr)
+            sys.exit(2)
         supported_apis = ["openai", "anthropic", "bedrock"]
         if args.llm_api.lower() not in supported_apis:
             print(f"ERROR: --llm-api must be one of {supported_apis}.", file=sys.stderr)
@@ -97,8 +123,14 @@ def main():
             if not args.aws_profile and not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")):
                 print("WARNING: For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)", file=sys.stderr)
 
-        # 1) Parse Mermaid to skeleton graph (+ metrics)
-        g, metrics = parse_mermaid(args.mermaid)
+        # 1) Parse diagram to skeleton graph (+ metrics)
+        if diagram_format == 'mermaid':
+            g, metrics = parse_mermaid(diagram_file)
+        elif diagram_format == 'drawio':
+            g, metrics = parse_drawio(diagram_file)
+        else:
+            print(f"ERROR: Unsupported diagram format: {diagram_format}", file=sys.stderr)
+            sys.exit(2)
         print("Parsed graph:")
         print(g)
         print("\n")

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    
+    <!-- User node -->
+    <mxCell id="user" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+      <mxGeometry x="60" y="200" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- CloudFront node -->
+    <mxCell id="cf" value="CloudFront" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ff9999;strokeColor=#cc0000;" parent="1" vertex="1">
+      <mxGeometry x="180" y="200" width="100" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- ALB node -->
+    <mxCell id="alb" value="Application&lt;br&gt;Load Balancer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcc99;strokeColor=#cc6600;" parent="1" vertex="1">
+      <mxGeometry x="320" y="200" width="100" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- ECS Service node -->
+    <mxCell id="ecs" value="ECS Service&lt;br&gt;(Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+      <mxGeometry x="460" y="200" width="100" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- RDS node -->
+    <mxCell id="rds" value="Aurora&lt;br&gt;(RDS)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+      <mxGeometry x="480" y="320" width="80" height="80" as="geometry"/>
+    </mxCell>
+    
+    <!-- S3 node -->
+    <mxCell id="s3" value="S3 Bucket&lt;br&gt;(assets)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+      <mxGeometry x="620" y="150" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- SQS node -->
+    <mxCell id="sqs" value="SQS Queue&lt;br&gt;(jobs)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+      <mxGeometry x="620" y="250" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- SNS node -->
+    <mxCell id="sns" value="SNS Topic&lt;br&gt;(events)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+      <mxGeometry x="620" y="350" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- Lambda node -->
+    <mxCell id="lambda" value="Lambda&lt;br&gt;Worker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccffcc;strokeColor=#009900;" parent="1" vertex="1">
+      <mxGeometry x="760" y="300" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- Edges -->
+    <!-- user -> cf -->
+    <mxCell id="edge1" value="HTTPS&lt;br&gt;Credentials" edge="1" parent="1" source="user" target="cf">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- cf -> alb -->
+    <mxCell id="edge2" value="HTTPS" edge="1" parent="1" source="cf" target="alb">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- alb -> ecs -->
+    <mxCell id="edge3" value="HTTP" edge="1" parent="1" source="alb" target="ecs">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- ecs -> rds -->
+    <mxCell id="edge4" value="TCP&lt;br&gt;PII Data" edge="1" parent="1" source="ecs" target="rds">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- ecs -> s3 -->
+    <mxCell id="edge5" value="HTTPS&lt;br&gt;Internal Data" edge="1" parent="1" source="ecs" target="s3">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- ecs -> sqs -->
+    <mxCell id="edge6" value="HTTPS&lt;br&gt;Internal Data" edge="1" parent="1" source="ecs" target="sqs">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- sns -> lambda -->
+    <mxCell id="edge7" value="HTTPS&lt;br&gt;Internal Data" edge="1" parent="1" source="sns" target="lambda">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- sqs -> lambda -->
+    <mxCell id="edge8" value="HTTPS&lt;br&gt;Internal Data" edge="1" parent="1" source="sqs" target="lambda">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>

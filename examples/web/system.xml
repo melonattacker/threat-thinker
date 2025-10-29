@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    
+    <!-- User node -->
+    <mxCell id="user" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+      <mxGeometry x="120" y="200" width="80" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- API Gateway node -->
+    <mxCell id="api" value="API Gateway" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+      <mxGeometry x="280" y="200" width="100" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- App Service node -->
+    <mxCell id="app" value="App Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+      <mxGeometry x="450" y="200" width="100" height="60" as="geometry"/>
+    </mxCell>
+    
+    <!-- Customer DB node -->
+    <mxCell id="db" value="Customer DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+      <mxGeometry x="620" y="190" width="80" height="80" as="geometry"/>
+    </mxCell>
+    
+    <!-- Edge: user -> api -->
+    <mxCell id="edge1" value="" edge="1" parent="1" source="user" target="api">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- Edge: api -> app -->
+    <mxCell id="edge2" value="" edge="1" parent="1" source="api" target="app">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- Edge: app -> db -->
+    <mxCell id="edge3" value="" edge="1" parent="1" source="app" target="db">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint"/>
+        <mxPoint x="420" y="350" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>
