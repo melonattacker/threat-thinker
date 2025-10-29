@@ -197,14 +197,14 @@ def launch_webui(
         with gr.Row():
             llm_api_input = gr.Dropdown(
                 label="LLM API",
-                choices=["openai"],
+                choices=["openai", "anthropic"],
                 value="openai",
-                interactive=False,
+                interactive=True,
             )
             llm_model_input = gr.Textbox(
                 label="LLM Model",
                 value="gpt-4o-mini",
-                placeholder="e.g., gpt-4o-mini",
+                placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307",
             )
 
         with gr.Row():

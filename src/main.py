@@ -15,6 +15,8 @@ Examples:
   export OPENAI_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out report.md
     python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out report.json
+  export ANTHROPIC_API_KEY=***
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out report.md
   python main.py diff --current report.json --baseline old.json
 """
 
@@ -45,7 +47,7 @@ def main():
                          help="Infer node/edge attributes from Mermaid via LLM (multilingual)")
     p_think.add_argument("--format", choices=["json", "md"], default="md")
     p_think.add_argument("--out", type=str, help="Write output to file")
-    p_think.add_argument("--llm-api", type=str, default="openai", help="LLM provider to use (currently only 'openai')")
+    p_think.add_argument("--llm-api", type=str, default="openai", help="LLM provider to use ('openai' or 'anthropic')")
     p_think.add_argument("--llm-model", type=str, default="gpt-4o-mini", help="LLM model identifier")
 
     p_think.add_argument("--topn", type=int, default=15, help="Keep top-N threats after de-noise")
@@ -65,11 +67,17 @@ def main():
     args = p.parse_args()
 
     if args.cmd == "think":
-        if args.llm_api.lower() != "openai":
-            print("ERROR: only --llm-api openai is supported right now.", file=sys.stderr)
+        supported_apis = ["openai", "anthropic"]
+        if args.llm_api.lower() not in supported_apis:
+            print(f"ERROR: --llm-api must be one of {supported_apis}.", file=sys.stderr)
             sys.exit(2)
-        if not os.getenv("OPENAI_API_KEY"):
+        
+        # Check for required API keys
+        if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
             print("ERROR: OPENAI_API_KEY is not set.", file=sys.stderr)
+            sys.exit(2)
+        elif args.llm_api.lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+            print("ERROR: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
             sys.exit(2)
 
         # 1) Parse Mermaid to skeleton graph (+ metrics)

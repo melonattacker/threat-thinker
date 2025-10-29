@@ -2,3 +2,4 @@ pyaml==25.7.0
 openai==1.109.1
 gradio==5.49.1
 pytest==8.4.2
+anthropic==0.72.0

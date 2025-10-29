@@ -58,5 +58,8 @@ def get_provider(api: str) -> LLMProvider:
     if api_normalized == "openai":
         from .openai import OpenAIProvider
         return OpenAIProvider()
+    elif api_normalized == "anthropic":
+        from .anthropic import AnthropicProvider
+        return AnthropicProvider()
     else:
         raise NotImplementedError(f"LLM api '{api}' is not supported yet.")
