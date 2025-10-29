@@ -78,7 +78,7 @@ def _generate_report(
     min_confidence: float,
     require_asvs: bool,
     output_format: str,
-) -> Tuple[str, dict, str, Optional[str]]:
+) -> Tuple[str, dict, str, str, Optional[str]]:
     mermaid_text = (mermaid_text or "").strip()
     if not mermaid_text:
         raise gr.Error("Mermaid diagram input is required.")
@@ -159,7 +159,11 @@ def _generate_report(
             "threats_initial": len(threats),
             "threats_final": len(filtered),
         }
-        return "\n".join(status_lines), metrics_json, report_text, download_path
+        
+        # For Markdown preview, use the markdown report regardless of output format
+        markdown_report = cli.export_md(filtered, None, metrics) if output_format == "json" else report_text
+        
+        return "\n".join(status_lines), metrics_json, markdown_report, report_text, download_path
     except gr.Error:
         raise
     except Exception as exc:
@@ -262,11 +266,20 @@ def launch_webui(
         metrics_output = gr.JSON(
             label="Import & Filtering Metrics",
         )
-        report_output = gr.TextArea(
-            label="Report Preview",
-            lines=20,
-            interactive=False,
-        )
+        
+        with gr.Tabs():
+            with gr.Tab("Markdown Preview"):
+                report_markdown_output = gr.Markdown(
+                    label="Report Preview (Markdown)",
+                    value="Generate a report to see the preview here...",
+                )
+            with gr.Tab("Raw Text"):
+                report_output = gr.TextArea(
+                    label="Report Preview (Raw)",
+                    lines=20,
+                    interactive=False,
+                )
+        
         download_output = gr.File(
             label="Download report",
         )
@@ -286,7 +299,7 @@ def launch_webui(
                 require_asvs_input,
                 format_input,
             ],
-            outputs=[status_output, metrics_output, report_output, download_output],
+            outputs=[status_output, metrics_output, report_markdown_output, report_output, download_output],
             api_name=False,
         )
 
