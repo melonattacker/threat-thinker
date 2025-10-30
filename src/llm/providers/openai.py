@@ -106,9 +106,6 @@ class OpenAIProvider(LLMProvider):
                 ],
             )
             content = response.output_text
-            print("media_type:", media_type)
-            print("base64_image:", base64_image)
-            print("content:", content)
             if not content:
                 raise RuntimeError("OpenAI Responses API returned empty content for image analysis")
             return content

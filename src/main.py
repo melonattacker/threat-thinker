@@ -90,7 +90,6 @@ def main():
     p_webui = sub.add_parser("webui", help="Launch the Gradio Web UI")
     p_webui.add_argument("--host", type=str, default="127.0.0.1", help="Interface to bind (default: 127.0.0.1)")
     p_webui.add_argument("--port", type=int, help="Port to bind")
-    p_webui.add_argument("--share", action="store_true", help="Enable public Gradio share URL")
 
     args = p.parse_args()
 
@@ -215,7 +214,6 @@ def main():
         webui.launch_webui(
             server_name=args.host,
             server_port=args.port,
-            share=args.share,
         )
 
 

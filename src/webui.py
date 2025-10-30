@@ -234,7 +234,6 @@ def launch_webui(
     *,
     server_name: str = "127.0.0.1",
     server_port: Optional[int] = None,
-    share: bool = False,
 ) -> None:
     """Launch the Gradio Web UI."""
     cleanup_temp_dir = _setup_gradio_temp_dir()
@@ -409,7 +408,7 @@ def launch_webui(
         )
 
     try:
-        demo.launch(server_name=server_name, server_port=server_port, share=share)
+        demo.launch(server_name=server_name, server_port=server_port, share=False)
     finally:
         cleanup_temp_dir()
 

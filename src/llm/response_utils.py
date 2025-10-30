@@ -115,9 +115,7 @@ def safe_json_loads(response: str) -> dict:
     Raises:
         json.JSONDecodeError: If JSON parsing fails after cleanup
     """
-    print("Raw response:", response)
     cleaned_response = clean_json_response(response)
-    print("Cleaned response:", cleaned_response)
     
     # First try to parse as-is
     try:

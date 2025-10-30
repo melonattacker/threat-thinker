@@ -75,7 +75,6 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile:
         temperature=0.2,
         max_tokens=1400
     )
-    print("content:", content)
     return safe_json_loads(content)
 
 
@@ -127,7 +126,6 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
         temperature=0.2,
         max_tokens=2500,  # Increased from 1600 to reduce truncation
     )
-    print("content:", content)
     data = safe_json_loads(content)
 
     threats_out: List[Threat] = []
