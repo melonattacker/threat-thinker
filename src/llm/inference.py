@@ -10,7 +10,33 @@ from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIO
 from .client import call_llm
 
 
-def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile: str = None, aws_region: str = None) -> dict:
+def _get_language_name(lang_code: str) -> str:
+    """
+    Get language name from language code.
+    
+    Args:
+        lang_code: ISO language code (ja, fr, de, etc.)
+        
+    Returns:
+        Language name in English
+    """
+    lang_names = {
+        "ja": "Japanese", "fr": "French", "de": "German", "es": "Spanish",
+        "ko": "Korean", "zh": "Chinese", "pt": "Portuguese", "it": "Italian",
+        "ru": "Russian", "ar": "Arabic", "hi": "Hindi", "th": "Thai",
+        "vi": "Vietnamese", "nl": "Dutch", "sv": "Swedish", "da": "Danish",
+        "no": "Norwegian", "fi": "Finnish", "pl": "Polish", "cs": "Czech",
+        "hu": "Hungarian", "tr": "Turkish", "he": "Hebrew", "id": "Indonesian",
+        "ms": "Malay", "tl": "Filipino", "bn": "Bengali", "ta": "Tamil",
+        "te": "Telugu", "ml": "Malayalam", "kn": "Kannada", "gu": "Gujarati",
+        "ur": "Urdu", "fa": "Persian", "uk": "Ukrainian", "bg": "Bulgarian",
+        "hr": "Croatian", "sr": "Serbian", "sk": "Slovak", "sl": "Slovenian",
+        "et": "Estonian", "lv": "Latvian", "lt": "Lithuanian", "mt": "Maltese"
+    }
+    return lang_names.get(lang_code, lang_code.upper())
+
+
+def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile: str = None, aws_region: str = None, lang: str = "en") -> dict:
     """
     Use LLM to infer hints from graph skeleton.
     
@@ -20,14 +46,22 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile:
         model: Model name
         aws_profile: AWS profile name (for bedrock provider only)
         aws_region: AWS region (for bedrock provider only)
+        lang: Language code for output (en, ja, fr, de, es, etc.)
         
     Returns:
         Dictionary of inferred hints
     """
+        # Language instruction - simple and universal approach
+    if lang == "en":
+        lang_instruction = ""
+    else:
+        lang_name = _get_language_name(lang)
+        lang_instruction = f"Please respond in {lang_name}. "
+    
     user_prompt = (
         "Graph skeleton (nodes with id/label; edges with from/to/label):\n"
         f"{graph_skeleton_json}\n\n"
-        "Infer attributes strictly following the output schema.\n"
+        f"{lang_instruction}Infer attributes strictly following the output schema.\n"
         f"{HINT_INSTRUCTIONS}"
     )
     content = call_llm(
@@ -44,7 +78,7 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile:
     return json.loads(content)
 
 
-def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, aws_region: str = None) -> List[Threat]:
+def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, aws_region: str = None, lang: str = "en") -> List[Threat]:
     """
     Use LLM to infer threats from graph.
     
@@ -54,6 +88,7 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
         model: Model name
         aws_profile: AWS profile name (for bedrock provider only)
         aws_region: AWS region (for bedrock provider only)
+        lang: Language code for output (en, ja, fr, de, es, etc.)
         
     Returns:
         List of Threat objects
@@ -69,9 +104,16 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
     edges = [asdict(e) for e in g.edges]
     payload = json.dumps({"nodes": nodes, "edges": edges}, ensure_ascii=False, indent=2)
     
+    # Simple language instruction approach
+    if lang == "en":
+        lang_instruction = ""
+    else:
+        lang_name = _get_language_name(lang)
+        lang_instruction = f"Please write threat titles, reasons, and descriptions in {lang_name}, but keep field names (id, title, why, etc.) in English. "
+    
     user_prompt = (
-        "System graph (JSON):\n"
-        f"{payload}\n\n"
+        f"System graph (JSON):\n{payload}\n\n"
+        f"{lang_instruction}Perform threat analysis following the instructions below.\n"
         f"{LLM_INSTRUCTIONS}"
     )
     content = call_llm(

@@ -79,6 +79,7 @@ def _generate_report(
     min_confidence: float,
     require_asvs: bool,
     output_format: str,
+    lang: str,
 ) -> Tuple[str, dict, str, str, Optional[str]]:
     diagram_text = (diagram_text or "").strip()
     if not diagram_text:
@@ -136,7 +137,7 @@ def _generate_report(
                 ensure_ascii=False,
                 indent=2,
             )
-            inferred = cli.llm_infer_hints(skeleton, llm_api, llm_model, aws_profile, aws_region)
+            inferred = cli.llm_infer_hints(skeleton, llm_api, llm_model, aws_profile, aws_region, lang)
             graph = cli.merge_llm_hints(graph, inferred)
             status_lines.append("Applied LLM-inferred hints.")
 
@@ -144,7 +145,7 @@ def _generate_report(
         if hints_path:
             status_lines.append("Applied user-provided hints.")
 
-        threats = cli.llm_infer_threats(graph, llm_api, llm_model, aws_profile, aws_region)
+        threats = cli.llm_infer_threats(graph, llm_api, llm_model, aws_profile, aws_region, lang)
         status_lines.append(f"LLM returned {len(threats)} threats before filtering.")
 
         filtered = cli.denoise_threats(
@@ -159,10 +160,10 @@ def _generate_report(
         _cleanup_downloads()
 
         if output_format == "json":
-            report_text = cli.export_json(filtered, None, metrics)
+            report_text = cli.export_json(filtered, None, metrics, lang)
             file_suffix = ".json"
         else:
-            report_text = cli.export_md(filtered, None, metrics)
+            report_text = cli.export_md(filtered, None, metrics, lang)
             file_suffix = ".md"
         status_lines.append("Report generated successfully.")
 
@@ -181,7 +182,7 @@ def _generate_report(
         }
         
         # For Markdown preview, use the markdown report regardless of output format
-        markdown_report = cli.export_md(filtered, None, metrics) if output_format == "json" else report_text
+        markdown_report = cli.export_md(filtered, None, metrics, lang) if output_format == "json" else report_text
         
         return "\n".join(status_lines), metrics_json, markdown_report, report_text, download_path
     except gr.Error:
@@ -280,6 +281,12 @@ def launch_webui(
                 choices=["md", "json"],
                 value="md",
             )
+            lang_input = gr.Textbox(
+                label="Output language (ISO code)",
+                value="en",
+                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
+                info="Enter any ISO language code. LLM will automatically translate UI elements to that language.",
+            )
 
         generate_button = gr.Button("Generate Report", variant="primary")
 
@@ -324,6 +331,7 @@ def launch_webui(
                 min_confidence_input,
                 require_asvs_input,
                 format_input,
+                lang_input,
             ],
             outputs=[status_output, metrics_output, report_markdown_output, report_output, download_output],
             api_name=False,

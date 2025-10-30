@@ -15,18 +15,25 @@ Examples:
   export OPENAI_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out report.md
     python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out report.json
+    python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ja --out report_ja.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ko --out report_ko.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang zh --out report_zh.md
   export ANTHROPIC_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out report.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang pt --out report_pt.md
+    python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang ru --out report_ru.md
   For AWS Bedrock:
     # Option 1: Use AWS Profile
     aws configure --profile my-profile
     python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
+    python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang ar --out report_ar.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang hi --out report_hi.md
     # Option 2: Use environment variables
     export AWS_ACCESS_KEY_ID=***
     export AWS_SECRET_ACCESS_KEY=***
     export AWS_SESSION_TOKEN=***  # if using temporary credentials
     export AWS_DEFAULT_REGION=us-east-1
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --out report.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --lang th --out report_th.md
   python main.py diff --current report.json --baseline old.json
 """
 
@@ -68,6 +75,7 @@ def main():
     p_think.add_argument("--topn", type=int, default=15, help="Keep top-N threats after de-noise")
     p_think.add_argument("--min-confidence", type=float, default=0.0, help="Drop threats below this confidence")
     p_think.add_argument("--require-asvs", action="store_true", help="Require at least one ASVS reference")
+    p_think.add_argument("--lang", type=str, default="en", help="Output language code (ISO 639-1, e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, etc.) - LLM will automatically translate UI elements")
 
     p_diff = sub.add_parser("diff", help="Diff two JSON reports")
     p_diff.add_argument("--current", type=str, required=True)
@@ -144,7 +152,7 @@ def main():
                 "nodes": [{"id": n.id, "label": n.label} for n in g.nodes.values()],
                 "edges": [{"from": e.src, "to": e.dst, "label": e.label} for e in g.edges],
             }, ensure_ascii=False, indent=2)
-            inferred = llm_infer_hints(skeleton, args.llm_api, args.llm_model, args.aws_profile, args.aws_region)
+            inferred = llm_infer_hints(skeleton, args.llm_api, args.llm_model, args.aws_profile, args.aws_region, args.lang)
             g = merge_llm_hints(g, inferred)
         print("Graph after LLM-inferred hints:")
         print(g)
@@ -157,7 +165,7 @@ def main():
         print("\n")
 
         # 4) LLM-driven threat inference
-        threats = llm_infer_threats(g, args.llm_api, args.llm_model, args.aws_profile, args.aws_region)
+        threats = llm_infer_threats(g, args.llm_api, args.llm_model, args.aws_profile, args.aws_region, args.lang)
         print(f"LLM inferred {len(threats)} threats.")
         for t in threats:
             print(t)
