@@ -48,7 +48,6 @@ LLM_INSTRUCTIONS = (
     "{\n"
     '  "threats": [\n'
     "    {\n"
-    '      "id": "short-stable-id",\n'
     '      "title": "string",\n'
     '      "stride": ["Spoofing","Tampering","Repudiation","Information Disclosure","Denial of Service","Elevation of Privilege"],\n'
     '      "severity": "High|Medium|Low",\n'
@@ -63,8 +62,9 @@ LLM_INSTRUCTIONS = (
     "}\n\n"
     "Rules:\n"
     "- Severity should be consistent with score (1..9 ~= impact*likelihood). Use integers for score.\n"
-    "- Create stable, readable ids (e.g., TLS-app-db-01). Avoid randomness.\n"
-    "- Prefer 5–15 high-signal threats; de-duplicate similar findings.\n"
+    "- Do NOT include 'id' field - IDs will be automatically assigned as TTP01, TTP02, etc.\n"
+    "- Return a MAXIMUM of 12 threats - prioritize the most critical findings.\n"
+    "- Prefer high-signal threats; de-duplicate similar findings.\n"
     "- If information is missing, make conservative assumptions and mention them in 'why'.\n"
     "- Each threat MUST include evidence (node/edge IDs) and at least one ASVS reference.\n"
     "- ENSURE the JSON is complete and properly closed - no truncated responses!\n"

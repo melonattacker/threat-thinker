@@ -77,11 +77,12 @@ def export_md(threats: List[Threat], out_path: Optional[str], metrics: Optional[
                      f"(edges {metrics.edges_parsed}/{metrics.edge_candidates}, "
                      f"labels {metrics.node_labels_parsed}/{metrics.node_label_candidates})")
     lines.append("")
-    lines.append("| Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |")
-    lines.append("|---|---|---|---|---|---|---|---|")
+    lines.append("| ID | Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
     for t in threats:
         ev = ", ".join([*t.evidence_nodes, *t.evidence_edges]).replace("|","/")
-        lines.append("| {sev} | {title} | {why} | {aff} | {stride} | {refs} | {ev} | {score} |".format(
+        lines.append("| {id} | {sev} | {title} | {why} | {aff} | {stride} | {refs} | {ev} | {score} |".format(
+            id=t.id,
             sev=t.severity,
             title=t.title.replace("|","/"),
             why=t.why.replace("|","/"),

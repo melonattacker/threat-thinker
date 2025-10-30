@@ -13,6 +13,7 @@ from typing import Callable, Optional, Tuple
 import gradio as gr
 
 import main as cli
+from parsers.image_parser import parse_image
 
 
 _DOWNLOAD_PATHS: set[str] = set()
@@ -67,8 +68,10 @@ def _write_temp_file(content: str, suffix: str) -> str:
 
 
 def _generate_report(
+    input_method: str,
     diagram_text: str,
     diagram_format: str,
+    image_file: str,
     hints_text: str,
     infer_hints: bool,
     llm_api: str,
@@ -81,28 +84,45 @@ def _generate_report(
     output_format: str,
     lang: str,
 ) -> Tuple[str, dict, str, str, Optional[str]]:
-    diagram_text = (diagram_text or "").strip()
-    if not diagram_text:
-        raise gr.Error("Diagram input is required.")
-
-    diagram_format = (diagram_format or "mermaid").strip().lower()
-    if diagram_format not in ["mermaid", "drawio"]:
-        raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+    # Validate input based on method
+    if input_method == "Text":
+        diagram_text = (diagram_text or "").strip()
+        if not diagram_text:
+            raise gr.Error("Diagram input is required.")
+        
+        diagram_format = (diagram_format or "mermaid").strip().lower()
+        if diagram_format not in ["mermaid", "drawio"]:
+            raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+    else:  # Image
+        if not image_file:
+            raise gr.Error("Image file is required when using image input method.")
+        
+        # Validate image file format
+        from pathlib import Path
+        ext = Path(image_file).suffix.lower()
+        supported_formats = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        if ext not in supported_formats:
+            raise gr.Error(f"Unsupported image format: {ext}. Supported formats: {', '.join(supported_formats)}")
 
     llm_api = (llm_api or "openai").strip().lower()
     llm_model = (llm_model or "").strip() or "gpt-4o-mini"
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
 
-    # Determine file extension based on format
-    if diagram_format == "mermaid":
-        file_suffix = ".mmd"
-    elif diagram_format == "drawio":
-        file_suffix = ".drawio"
-    else:
-        file_suffix = ".txt"
-
-    diagram_path = _write_temp_file(diagram_text, file_suffix)
+    # Prepare diagram file path
+    diagram_path = None
+    if input_method == "Text":
+        # Determine file extension based on format
+        if diagram_format == "mermaid":
+            file_suffix = ".mmd"
+        elif diagram_format == "drawio":
+            file_suffix = ".drawio"
+        else:
+            file_suffix = ".txt"
+        
+        diagram_path = _write_temp_file(diagram_text, file_suffix)
+    else:  # Image
+        diagram_path = image_file  # Use the uploaded file directly
     hints_path = None
     if hints_text and hints_text.strip():
         hints_path = _write_temp_file(hints_text, ".yaml")
@@ -111,17 +131,21 @@ def _generate_report(
     download_path: Optional[str] = None
 
     try:
-        # Parse diagram based on format
-        if diagram_format == "mermaid":
-            graph, metrics = cli.parse_mermaid(diagram_path)
-        elif diagram_format == "drawio":
-            graph, metrics = cli.parse_drawio(diagram_path)
-        else:
-            raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+        # Parse diagram based on input method and format
+        if input_method == "Text":
+            if diagram_format == "mermaid":
+                graph, metrics = cli.parse_mermaid(diagram_path)
+                status_lines.append(f"Parsed Mermaid diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
+            elif diagram_format == "drawio":
+                graph, metrics = cli.parse_drawio(diagram_path)
+                status_lines.append(f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
+            else:
+                raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+        else:  # Image
+            graph, metrics = parse_image(diagram_path, api=llm_api, model=llm_model, 
+                                       aws_profile=aws_profile, aws_region=aws_region)
+            status_lines.append(f"Parsed image diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
             
-        status_lines.append(
-            f"Parsed {diagram_format.title()} diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
-        )
         status_lines.append(
             f"Import success ~{metrics.import_success_rate * 100:.1f}% "
             f"(edges {metrics.edges_parsed}/{metrics.edge_candidates}, "
@@ -160,10 +184,10 @@ def _generate_report(
         _cleanup_downloads()
 
         if output_format == "json":
-            report_text = cli.export_json(filtered, None, metrics, lang)
+            report_text = cli.export_json(filtered, None, metrics)
             file_suffix = ".json"
         else:
-            report_text = cli.export_md(filtered, None, metrics, lang)
+            report_text = cli.export_md(filtered, None, metrics)
             file_suffix = ".md"
         status_lines.append("Report generated successfully.")
 
@@ -192,7 +216,13 @@ def _generate_report(
         raise gr.Error(f"Failed to generate report: {exc}")
     finally:
         # clean up intermediate files; keep the report download file around
-        for path in (diagram_path, hints_path):
+        cleanup_paths = []
+        if input_method == "Text" and diagram_path:
+            cleanup_paths.append(diagram_path)
+        if hints_path:
+            cleanup_paths.append(hints_path)
+            
+        for path in cleanup_paths:
             if path and os.path.exists(path):
                 try:
                     os.unlink(path)
@@ -209,19 +239,38 @@ def launch_webui(
     """Launch the Gradio Web UI."""
     cleanup_temp_dir = _setup_gradio_temp_dir()
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
-        gr.Markdown("## Threat Thinker WebUI\nUpload your diagram file (Mermaid or Draw.io), optionally add YAML hints, and generate threat reports.")
+        gr.Markdown("## Threat Thinker WebUI\nUpload your diagram file (Mermaid, Draw.io, or Image), optionally add YAML hints, and generate threat reports.")
 
+        # Input method selection
+        input_method = gr.Radio(
+            label="Input Method - Choose whether to input diagram as text or upload an image file",
+            choices=["Text", "Image"],
+            value="Text"
+        )
+        
+        # Text input (visible by default)
         diagram_input = gr.TextArea(
             label="Diagram Content",
             placeholder="Paste your diagram content here (Mermaid or Draw.io XML)...",
             lines=20,
             autofocus=True,
+            visible=True,
         )
         diagram_format_input = gr.Radio(
             label="Diagram Format",
             choices=["mermaid", "drawio"],
             value="mermaid",
+            visible=True,
         )
+        
+        # Image input (hidden by default)
+        image_input = gr.File(
+            label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
+            file_types=["image"],
+            type="filepath",
+            visible=False
+        )
+        
         hints_input = gr.TextArea(
             label="Hints YAML (optional)",
             placeholder="Paste YAML hints here to override attributes...",
@@ -265,7 +314,7 @@ def launch_webui(
             topn_input = gr.Slider(
                 label="Top N threats",
                 minimum=1,
-                maximum=50,
+                maximum=10,
                 step=1,
                 value=10,
             )
@@ -282,10 +331,9 @@ def launch_webui(
                 value="md",
             )
             lang_input = gr.Textbox(
-                label="Output language (ISO code)",
+                label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
                 value="en",
-                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
-                info="Enter any ISO language code. LLM will automatically translate UI elements to that language.",
+                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt"
             )
 
         generate_button = gr.Button("Generate Report", variant="primary")
@@ -319,8 +367,10 @@ def launch_webui(
         generate_button.click(
             fn=_generate_report,
             inputs=[
+                input_method,
                 diagram_input,
                 diagram_format_input,
+                image_input,
                 hints_input,
                 infer_hints_input,
                 llm_api_input,
@@ -335,6 +385,27 @@ def launch_webui(
             ],
             outputs=[status_output, metrics_output, report_markdown_output, report_output, download_output],
             api_name=False,
+        )
+
+        # Toggle visibility based on input method selection
+        def update_input_visibility(method):
+            if method == "Text":
+                return {
+                    diagram_input: gr.update(visible=True),
+                    diagram_format_input: gr.update(visible=True),
+                    image_input: gr.update(visible=False)
+                }
+            else:  # Image
+                return {
+                    diagram_input: gr.update(visible=False),
+                    diagram_format_input: gr.update(visible=False),
+                    image_input: gr.update(visible=True)
+                }
+
+        input_method.change(
+            fn=update_input_visibility,
+            inputs=[input_method],
+            outputs=[diagram_input, diagram_format_input, image_input]
         )
 
     try:

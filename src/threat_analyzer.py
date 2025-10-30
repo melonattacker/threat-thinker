@@ -69,5 +69,9 @@ def denoise_threats(threats: List[Threat],
             continue
         sig_seen.add(sig)
         uniq.append(t)
+    
+    # Assign TTP IDs after filtering and sorting to maintain consistent order
+    for index, threat in enumerate(uniq, 1):
+        threat.id = f"TTP{index:02d}"
         
     return uniq

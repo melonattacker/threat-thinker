@@ -7,7 +7,7 @@ from typing import Dict, List
 
 from models import Graph, Threat
 from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIONS
-from .client import call_llm, LLMClient
+from .client import LLMClient
 from .response_utils import safe_json_loads
 
 
@@ -131,11 +131,15 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
     data = safe_json_loads(content)
 
     threats_out: List[Threat] = []
-    for t in data.get("threats", []):
-        tid = (str(t.get("id") or "").strip())[:64]
-        if not tid:
-            import hashlib
-            tid = hashlib.sha1(str(t.get("title","")).encode("utf-8")).hexdigest()[:8]
+    threat_list = data.get("threats", [])
+    
+    # Limit to maximum 12 threats as instructed to LLM
+    if len(threat_list) > 12:
+        threat_list = threat_list[:12]
+    
+    for index, t in enumerate(threat_list):
+        # Don't assign ID here - will be assigned after filtering/sorting
+        
         severity = str(t.get("severity","Medium"))
         score = float(t.get("score", 4))
         ev = t.get("evidence") or {}
@@ -147,7 +151,7 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
         else:
             conf = None
         threats_out.append(Threat(
-            id=tid,
+            id="",  # Empty ID - will be assigned later
             title=str(t.get("title") or "Untitled"),
             stride=[str(s) for s in (t.get("stride") or [])],
             severity=severity,
@@ -161,6 +165,4 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
         ))
     if not threats_out:
         raise RuntimeError("LLM returned no threats")
-    # de-dup by stable id first
-    uniq = {t.id: t for t in threats_out}
-    return list(uniq.values())
+    return threats_out
