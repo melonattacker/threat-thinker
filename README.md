@@ -6,8 +6,8 @@ It analyzes diagrams written in **Mermaid**, **draw.io**, or extracted from **im
 
 Designed for **simplicity** and **low noise**, Threat Thinker enables teams to keep their **threat models up to date** with minimal manual effort.
 
-# Getting Started
-## Set Up API Keys
+## Getting Started
+### Set Up API Keys
 Threat Thinker uses LLM for extracting diagrams from images, extracting components, data flows, and trust boundaries from architecture diagrams, and for inferring threats.
 
 Threat Thinker supports OpenAI, Anthropic Claude and AWS Bedrock(only claude v3 or newer model) APIs.
@@ -32,7 +32,7 @@ export AWS_SECRET_ACCESS_KEY=...
 export AWS_SESSION_TOKEN=...
 ```
 
-## Installation
+### Installation
 
 ```bash
 git clone https://github.com/melonattacker/threat-thinker.git
@@ -45,7 +45,7 @@ source .venv/bin/activate
 uv pip install -e . -r requirements.txt
 ```
 
-## CLI Usage
+### CLI Usage
 Here is an example of command using CLI mode.
 
 ```bash
@@ -80,7 +80,7 @@ threat-thinker think \
     --out reports/web-report.md
 ```
 
-## Web UI
+### Web UI
 
 ```bash
 # Launch Web UI
