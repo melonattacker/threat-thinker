@@ -16,16 +16,19 @@ Examples:
     python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out report.md
     python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out report.json
     python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ja --out report_ja.md
+    python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --format md --out report.md
     python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ko --out report_ko.md
     python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang zh --out report_zh.md
   export ANTHROPIC_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out report.md
+    python main.py think --image examples/system_diagram.jpg --infer-hints --llm-api anthropic --llm-model claude-3-5-sonnet-20241022 --format md --out report.md
     python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang pt --out report_pt.md
     python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang ru --out report_ru.md
   For AWS Bedrock:
     # Option 1: Use AWS Profile
     aws configure --profile my-profile
     python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
+    python main.py think --image examples/architecture.png --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20241022-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
     python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang ar --out report_ar.md
     python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang hi --out report_hi.md
     # Option 2: Use environment variables
@@ -49,6 +52,7 @@ from openai import OpenAI
 
 from parsers.mermaid_parser import parse_mermaid
 from parsers.drawio_parser import parse_drawio
+from parsers.image_parser import parse_image
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
@@ -61,6 +65,7 @@ def main():
     p_think = sub.add_parser("think", help="Parse diagram + hints, generate threats (LLM required)")
     p_think.add_argument("--mermaid", type=str, help="Path to Mermaid (.mmd/.mermaid)")
     p_think.add_argument("--drawio", type=str, help="Path to Draw.io (.drawio/.xml)")
+    p_think.add_argument("--image", type=str, help="Path to image file (.jpg/.jpeg/.png/.gif/.bmp/.webp)")
     p_think.add_argument("--diagram", type=str, help="Path to diagram file (auto-detects format from extension)")
     p_think.add_argument("--hints", type=str, help="Optional YAML hints file")
     p_think.add_argument("--infer-hints", action="store_true",
@@ -72,8 +77,8 @@ def main():
     p_think.add_argument("--aws-profile", type=str, help="AWS profile name (for bedrock provider only)")
     p_think.add_argument("--aws-region", type=str, help="AWS region (for bedrock provider only, defaults to us-east-1)")
 
-    p_think.add_argument("--topn", type=int, default=15, help="Keep top-N threats after de-noise")
-    p_think.add_argument("--min-confidence", type=float, default=0.0, help="Drop threats below this confidence")
+    p_think.add_argument("--topn", type=int, default=10, help="Keep top-N threats after de-noise")
+    p_think.add_argument("--min-confidence", type=float, default=0.5, help="Drop threats below this confidence")
     p_think.add_argument("--require-asvs", action="store_true", help="Require at least one ASVS reference")
     p_think.add_argument("--lang", type=str, default="en", help="Output language code (ISO 639-1, e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, etc.) - LLM will automatically translate UI elements")
 
@@ -101,8 +106,10 @@ def main():
                 diagram_format = 'mermaid'
             elif diagram_file.lower().endswith(('.drawio', '.xml')):
                 diagram_format = 'drawio'
+            elif diagram_file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')):
+                diagram_format = 'image'
             else:
-                print(f"ERROR: Unsupported diagram file format for {diagram_file}. Supported: .mmd, .mermaid, .drawio, .xml", file=sys.stderr)
+                print(f"ERROR: Unsupported diagram file format for {diagram_file}. Supported: .mmd, .mermaid, .drawio, .xml, .jpg, .jpeg, .png, .gif, .bmp, .webp", file=sys.stderr)
                 sys.exit(2)
         elif args.mermaid:
             diagram_file = args.mermaid
@@ -110,8 +117,11 @@ def main():
         elif args.drawio:
             diagram_file = args.drawio
             diagram_format = 'drawio'
+        elif args.image:
+            diagram_file = args.image
+            diagram_format = 'image'
         else:
-            print("ERROR: Please specify a diagram file using --diagram, --mermaid, or --drawio", file=sys.stderr)
+            print("ERROR: Please specify a diagram file using --diagram, --mermaid, --drawio, or --image", file=sys.stderr)
             sys.exit(2)
         supported_apis = ["openai", "anthropic", "bedrock"]
         if args.llm_api.lower() not in supported_apis:
@@ -136,6 +146,9 @@ def main():
             g, metrics = parse_mermaid(diagram_file)
         elif diagram_format == 'drawio':
             g, metrics = parse_drawio(diagram_file)
+        elif diagram_format == 'image':
+            g, metrics = parse_image(diagram_file, api=args.llm_api, model=args.llm_model,
+                                   aws_profile=args.aws_profile, aws_region=args.aws_region)
         else:
             print(f"ERROR: Unsupported diagram format: {diagram_format}", file=sys.stderr)
             sys.exit(2)

@@ -27,7 +27,7 @@ class OpenAIProvider(LLMProvider):
                  *,
                  response_format: Optional[Dict[str, str]] = None,
                  temperature: float = 0.2,
-                 max_tokens: int = 1600) -> str:
+                 max_tokens: int = 10000) -> str:
         """
         Call OpenAI API with given parameters.
         
@@ -62,3 +62,58 @@ class OpenAIProvider(LLMProvider):
         if not content:
             raise RuntimeError("LLM returned empty content")
         return content
+    
+    def analyze_image(self,
+                     model: str,
+                     base64_image: str,
+                     media_type: str,
+                     system_prompt: str,
+                     user_prompt: str,
+                     temperature: float = 0.2,
+                     max_tokens: int = 10000) -> str:
+        """
+        Analyze an image using OpenAI's Responses API (required for image analysis).
+        
+        Args:
+            model: Model name (should be a vision-capable model like gpt-4o)
+            base64_image: Base64 encoded image data
+            media_type: MIME type of the image
+            system_prompt: System prompt for the analysis task
+            user_prompt: User prompt describing what to extract
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            
+        Returns:
+            String response from OpenAI Responses API
+            
+        Raises:
+            RuntimeError: If Responses API is not available or response is empty
+        """
+        try:
+            response = self.client.responses.create(
+                model=model,
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": f"{system_prompt}\n\n{user_prompt}"},
+                            {
+                                "type": "input_image",
+                                "image_url": f"data:{media_type};base64,{base64_image}",
+                            },
+                        ],
+                    }
+                ],
+            )
+            content = response.output_text
+            print("media_type:", media_type)
+            print("base64_image:", base64_image)
+            print("content:", content)
+            if not content:
+                raise RuntimeError("OpenAI Responses API returned empty content for image analysis")
+            return content
+            
+        except AttributeError:
+            raise RuntimeError("OpenAI Responses API is not available. Image analysis requires the Responses API.")
+        except Exception as e:
+            raise RuntimeError(f"OpenAI Responses API image analysis failed: {e}")

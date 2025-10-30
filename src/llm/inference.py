@@ -7,7 +7,8 @@ from typing import Dict, List
 
 from models import Graph, Threat
 from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIONS
-from .client import call_llm
+from .client import call_llm, LLMClient
+from .response_utils import safe_json_loads
 
 
 def _get_language_name(lang_code: str) -> str:
@@ -64,18 +65,18 @@ def llm_infer_hints(graph_skeleton_json: str, api: str, model: str, aws_profile:
         f"{lang_instruction}Infer attributes strictly following the output schema.\n"
         f"{HINT_INSTRUCTIONS}"
     )
-    content = call_llm(
-        api=api,
-        model=model,
+    
+    # Use LLMClient for better handling
+    llm_client = LLMClient(api=api, model=model, aws_profile=aws_profile, aws_region=aws_region)
+    content = llm_client.call_llm(
         system_prompt=HINT_SYSTEM,
         user_prompt=user_prompt,
         response_format={"type": "json_object"},
         temperature=0.2,
-        max_tokens=1400,
-        aws_profile=aws_profile,
-        aws_region=aws_region,
+        max_tokens=1400
     )
-    return json.loads(content)
+    print("content:", content)
+    return safe_json_loads(content)
 
 
 def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, aws_region: str = None, lang: str = "en") -> List[Threat]:
@@ -116,18 +117,18 @@ def llm_infer_threats(g: Graph, api: str, model: str, aws_profile: str = None, a
         f"{lang_instruction}Perform threat analysis following the instructions below.\n"
         f"{LLM_INSTRUCTIONS}"
     )
-    content = call_llm(
-        api=api,
-        model=model,
+    
+    # Use LLMClient for better handling
+    llm_client = LLMClient(api=api, model=model, aws_profile=aws_profile, aws_region=aws_region)
+    content = llm_client.call_llm(
         system_prompt=LLM_SYSTEM,
         user_prompt=user_prompt,
         response_format={"type": "json_object"},
         temperature=0.2,
-        max_tokens=1600,
-        aws_profile=aws_profile,
-        aws_region=aws_region,
+        max_tokens=2500,  # Increased from 1600 to reduce truncation
     )
-    data = json.loads(content)
+    print("content:", content)
+    data = safe_json_loads(content)
 
     threats_out: List[Threat] = []
     for t in data.get("threats", []):

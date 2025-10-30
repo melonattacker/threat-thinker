@@ -53,7 +53,7 @@ class BedrockProvider(LLMProvider):
                  *,
                  response_format: Optional[Dict[str, str]] = None,
                  temperature: float = 0.2,
-                 max_tokens: int = 1600) -> str:
+                 max_tokens: int = 10000) -> str:
         """
         Call AWS Bedrock API with given parameters.
         
@@ -122,3 +122,91 @@ class BedrockProvider(LLMProvider):
             raise RuntimeError(f"AWS Bedrock API call failed: {error_code} - {error_message}")
         except Exception as e:
             raise RuntimeError(f"Bedrock API call failed: {str(e)}")
+    
+    def analyze_image(self,
+                     model: str,
+                     base64_image: str,
+                     media_type: str,
+                     system_prompt: str,
+                     user_prompt: str,
+                     temperature: float = 0.2,
+                     max_tokens: int = 10000) -> str:
+        """
+        Analyze an image using Claude via AWS Bedrock.
+        
+        Args:
+            model: Model name (should be a vision-capable Claude model)
+            base64_image: Base64 encoded image data
+            media_type: MIME type of the image
+            system_prompt: System prompt for the analysis task
+            user_prompt: User prompt describing what to extract
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            
+        Returns:
+            String response from Bedrock API
+            
+        Raises:
+            RuntimeError: If response is empty or API call fails
+        """
+        try:
+            # Prepare the request body with image for Claude models via Bedrock
+            body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "system": system_prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image", 
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64_image
+                            }
+                        },
+                        {
+                            "type": "text", 
+                            "text": user_prompt
+                        }
+                    ]
+                }]
+            }
+            
+            # Convert body to JSON
+            body_json = json.dumps(body)
+            
+            # Call Bedrock API
+            response = self.client.invoke_model(
+                modelId=model,
+                contentType='application/json',
+                accept='application/json',
+                body=body_json
+            )
+            
+            # Parse response
+            response_body = json.loads(response['body'].read())
+            
+            # Extract content from response
+            if 'content' not in response_body or not response_body['content']:
+                raise RuntimeError("Bedrock returned empty content for image analysis")
+            
+            # Claude models return content as a list of content blocks
+            content = ""
+            for block in response_body['content']:
+                if 'text' in block:
+                    content += block['text']
+                    
+            if not content:
+                raise RuntimeError("Bedrock returned empty content for image analysis")
+                
+            return content
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            error_message = e.response['Error']['Message']
+            raise RuntimeError(f"AWS Bedrock image analysis failed: {error_code} - {error_message}")
+        except Exception as e:
+            raise RuntimeError(f"Bedrock image analysis failed: {str(e)}")

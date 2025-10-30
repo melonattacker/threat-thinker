@@ -38,6 +38,35 @@ class LLMProvider(ABC):
             RuntimeError: If API call fails or response is empty
         """
         pass
+    
+    def analyze_image(self,
+                     model: str,
+                     base64_image: str,
+                     media_type: str,
+                     system_prompt: str,
+                     user_prompt: str,
+                     temperature: float = 0.2,
+                     max_tokens: int = 2000) -> str:
+        """
+        Analyze an image using the LLM's vision capabilities.
+        Default implementation raises NotImplementedError.
+        
+        Args:
+            model: Model name
+            base64_image: Base64 encoded image data
+            media_type: MIME type of the image
+            system_prompt: System prompt for the analysis task
+            user_prompt: User prompt describing what to extract
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            
+        Returns:
+            String response from LLM
+            
+        Raises:
+            NotImplementedError: If provider doesn't support image analysis
+        """
+        raise NotImplementedError(f"Image analysis not implemented for this provider")
 
 
 def get_provider(api: str, aws_profile: Optional[str] = None, aws_region: Optional[str] = None) -> LLMProvider:

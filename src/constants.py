@@ -9,7 +9,7 @@ HINT_SYSTEM = (
 )
 
 HINT_INSTRUCTIONS = (
-    "Return a JSON object with EXACT shape:\n"
+    "Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers) with EXACT shape:\n"
     "{\n"
     '  \"nodes\": {\n'
     '    \"<nodeId>\": {\n'
@@ -29,6 +29,7 @@ HINT_INSTRUCTIONS = (
     "Rules:\n"
     "- Use null/unknown if unsure. Do not add or remove graph elements.\n"
     "- Keep arrays short and high-signal.\n"
+    "- Return ONLY the JSON object, no other text or formatting.\n"
 )
 
 # LLM-driven threat inference prompts
@@ -40,7 +41,10 @@ LLM_SYSTEM = (
 )
 
 LLM_INSTRUCTIONS = (
-    "Return a JSON object with this exact shape:\n"
+    "CRITICAL: Return ONLY a valid, complete JSON object that can be parsed with json.loads(). "
+    "Do NOT use markdown formatting, code blocks, or ```json markers. "
+    "MUST be a complete, well-formed JSON with proper closing braces and brackets.\n\n"
+    "Required JSON structure:\n"
     "{\n"
     '  "threats": [\n'
     "    {\n"
@@ -56,11 +60,13 @@ LLM_INSTRUCTIONS = (
     '      "confidence": 0.0\n'
     "    }\n"
     "  ]\n"
-    "}\n"
+    "}\n\n"
     "Rules:\n"
     "- Severity should be consistent with score (1..9 ~= impact*likelihood). Use integers for score.\n"
     "- Create stable, readable ids (e.g., TLS-app-db-01). Avoid randomness.\n"
     "- Prefer 5–15 high-signal threats; de-duplicate similar findings.\n"
     "- If information is missing, make conservative assumptions and mention them in 'why'.\n"
     "- Each threat MUST include evidence (node/edge IDs) and at least one ASVS reference.\n"
+    "- ENSURE the JSON is complete and properly closed - no truncated responses!\n"
+    "- Return ONLY the JSON object, no explanatory text before or after.\n"
 )
