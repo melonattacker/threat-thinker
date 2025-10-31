@@ -5,7 +5,7 @@ Threat Thinker is designed to make threat modeling lightweight and continuously 
 It automatically extracts components, data flows, and trust boundaries from system architecture diagrams and produces a prioritized list of threats with concise explanations and ASVS/CWE references.
 
 ## Architecture Overview
-Threat Thinker is composed of four major layers:
+Threat Thinker is composed of five major layers:
 
 1. **Parser Layer**  
    Converts diagrams (Mermaid, Draw.io, or image files via LLM vision) into a unified intermediate representation (`Graph` of `Node` and `Edge`). Supports multiple input formats including `.mmd/.mermaid`, `.drawio/.xml`, and image files (`.jpg/.jpeg/.png/.gif/.bmp/.webp`).
@@ -16,7 +16,10 @@ Threat Thinker is composed of four major layers:
 3. **Threat Generation Layer**  
    Uses LLM-based analysis to enumerate and score threats based on STRIDE categories, providing one-line rationales and references to OWASP ASVS and CWE. Supports multilingual output.
 
-4. **Reporting Layer**  
+4. **Threat Filtering & Denoising Layer**  
+   Applies sophisticated filtering algorithms to remove generic threats, enforce quality thresholds (ASVS references, confidence scores, evidence requirements), eliminate near-duplicates, and rank threats by score and severity.
+
+5. **Reporting Layer**  
    Outputs results as Markdown or JSON and supports incremental updates through diff comparison between versions. Includes Web UI interface powered by Gradio.
 
 ## Processing Flow
@@ -42,7 +45,7 @@ Diagram (.mmd/.mermaid, .drawio/.xml, or image files)
 - **Multilingual Support:** Both hint inference and threat generation support multiple languages through ISO language codes.  
 - **Multiple LLM Providers:** Supports OpenAI, Anthropic, and AWS Bedrock APIs with flexible configuration.  
 - **Hybrid Parsing:** Combines static syntax parsing with LLM completion to improve structure accuracy and reduce noise.  
-- **Low-Noise Threat Extraction:** Filters generalized findings and focuses on diagram-specific risks through denoising algorithms.  
+- **Low-Noise Threat Extraction:** Advanced filtering and denoising algorithms remove generalized findings and focus on diagram-specific risks through multiple quality gates including ASVS reference requirements, confidence thresholds, evidence validation, and near-duplicate detection.  
 - **Explainable Output:** Every threat includes a one-line reason and references to ASVS or CWE, plus evidence nodes/edges.  
 - **Incremental Analysis:** Supports differential updates when diagrams change.  
 - **Dual Interface:** CLI-based tool for automation and Gradio Web UI for interactive use.  
