@@ -96,3 +96,8 @@ Then visit http://localhost:7860 to use Threat Thinker interactively:
 - Generate a prioritized list of potential threats
 
 Here is the demo screen for the Web UI.
+
+## Tutorials
+You can see examples of using Threat Thinker to analyze potential threats of several system architecture diagrams.
+
+[docs/tutorials.md](./docs/tutorials.md)

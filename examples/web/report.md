@@ -1,14 +1,13 @@
 # Threat Thinker Report
 
-Generated: 2025-10-26T13:34:44.153533Z
+Generated: 2025-10-31T12:55:52.324146+00:00Z
 
 Import Success: 100.0% (edges 2/2, labels 1/1)
 
-| Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |
-|---|---|---|---|---|---|---|---|
-| High | Information Disclosure from API to Database | Sensitive data may be exposed through API responses if not properly filtered. | api, db | Information Disclosure | ASVS V5.1.3 | api, db, api->app | 9 |
-| High | Elevation of Privilege from App to Database | If the app has overly permissive access to the database, attackers could gain elevated privileges. | app, db | Elevation of Privilege | ASVS V5.2.2 | app, db, app->db | 8 |
-| High | Tampering with Database via App | Inadequate access controls may allow unauthorized modification of sensitive data in the database. | app, db | Tampering | ASVS V5.2.1 | app, db, app->db | 8 |
-| High | User Spoofing via API | Lack of proper authentication for users can allow attackers to impersonate legitimate users. | api, user | Spoofing | ASVS V5.1.1 | api, user | 7 |
-| Medium | Repudiation of Actions by Users | Insufficient logging may allow users to deny actions they performed within the app. | app, user | Repudiation | ASVS V5.3.1 | app, user | 5 |
-| Medium | Denial of Service via API | API endpoints may be vulnerable to abuse through excessive requests, leading to service unavailability. | api | Denial of Service | ASVS V5.4.1 | api | 4 |
+| ID | Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |
+|---|---|---|---|---|---|---|---|---|
+| TTP01 | High | API lacks authentication, allowing spoofing from Internet | API in DMZ has no authentication, so anyone on the Internet can impersonate users or services. | User, api | Spoofing, Elevation of Privilege | ASVS V2.1 - Authentication Architecture, CWE-287 | user, api | 8 |
+| TTP02 | High | Unencrypted HTTP between API and App exposes sensitive data | HTTP (not HTTPS) between DMZ API and Private App risks data interception or manipulation. | api, app | Information Disclosure, Tampering | ASVS V9.1 - Communications Security, CWE-319 | api, app, api->app | 7 |
+| TTP03 | Medium | API is exposed to Internet, increasing DoS risk | API in DMZ is directly reachable from Internet, making it a target for DoS attacks. | api | Denial of Service | ASVS V10.2 - Denial of Service, CWE-400 | user, api | 6 |
+| TTP04 | Medium | Internal data may be exposed via API due to lack of access controls | API may expose sensitive internal DB data to Internet users if access controls are missing. | api, db | Information Disclosure | ASVS V4.2 - Access Control, CWE-200 | api, db | 6 |
+| TTP05 | Medium | Lack of audit/logging enables repudiation | No evidence of logging or audit trails, making it hard to trace malicious or unauthorized actions. | api, app | Repudiation | ASVS V8.1 - Logging and Monitoring, CWE-778 | api, app, api->app | 5 |
