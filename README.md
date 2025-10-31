@@ -101,3 +101,8 @@ Here is the demo screen for the Web UI.
 You can see examples of using Threat Thinker to analyze potential threats of several system architecture diagrams.
 
 [docs/tutorials.md](./docs/tutorials.md)
+
+## Design & Architecture
+Learn about Threat Thinker's 5-layer architecture, processing flow, and key technical concepts.
+
+[docs/design.md](./docs/design.md)
