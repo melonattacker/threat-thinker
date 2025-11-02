@@ -38,7 +38,7 @@ Examples:
     export AWS_SESSION_TOKEN=***  # if using temporary credentials
     export AWS_DEFAULT_REGION=us-east-1
     python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --lang th --out-md report_th.md
-  python main.py diff --current report.json --baseline old.json
+  python main.py diff --after report.json --before old.json
 """
 
 import argparse
@@ -52,7 +52,7 @@ from parsers.image_parser import parse_image
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
-from exporters import export_json, export_md, diff_reports
+from exporters import export_json, export_md, diff_reports, export_diff_md
 
 
 def main():
@@ -121,9 +121,33 @@ def main():
     )
 
     p_diff = sub.add_parser("diff", help="Diff two JSON reports")
-    p_diff.add_argument("--current", type=str, required=True)
-    p_diff.add_argument("--baseline", type=str, required=True)
+    p_diff.add_argument("--after", type=str, required=True, help="Path to after report JSON")
+    p_diff.add_argument("--before", type=str, required=True, help="Path to before report JSON")
     p_diff.add_argument("--out", type=str, help="Write diff JSON to file")
+    p_diff.add_argument("--out-md", type=str, help="Write diff Markdown to file")
+    p_diff.add_argument(
+        "--llm-api",
+        type=str,
+        default="openai",
+        help="LLM provider to use ('openai', 'anthropic', or 'bedrock')",
+    )
+    p_diff.add_argument(
+        "--llm-model", type=str, default="gpt-4o-mini", help="LLM model identifier"
+    )
+    p_diff.add_argument(
+        "--aws-profile", type=str, help="AWS profile name (for bedrock provider only)"
+    )
+    p_diff.add_argument(
+        "--aws-region",
+        type=str,
+        help="AWS region (for bedrock provider only, defaults to us-east-1)",
+    )
+    p_diff.add_argument(
+        "--lang",
+        type=str,
+        default="en",
+        help="Output language code (ISO 639-1, e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, etc.) - LLM will automatically translate UI elements",
+    )
 
     p_webui = sub.add_parser("webui", help="Launch the Gradio Web UI")
     p_webui.add_argument(
@@ -295,11 +319,39 @@ def main():
             print(md_output)
 
     elif args.cmd == "diff":
-        d = diff_reports(args.current, args.baseline)
+        # Check for required API keys/credentials
+        if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
+            print("ERROR: OPENAI_API_KEY is not set.", file=sys.stderr)
+            sys.exit(2)
+        elif args.llm_api.lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+            print("ERROR: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
+            sys.exit(2)
+        elif args.llm_api.lower() == "bedrock":
+            if not args.aws_profile and not (
+                os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")
+            ):
+                print(
+                    "WARNING: For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
+                    file=sys.stderr,
+                )
+
+        d = diff_reports(
+            args.after, 
+            args.before,
+            args.llm_api,
+            args.llm_model,
+            args.aws_profile,
+            args.aws_region,
+            args.lang,
+        )
         s = json.dumps(d, ensure_ascii=False, indent=2)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f:
                 f.write(s)
+        if args.out_md:
+            md_output = export_diff_md(d, args.out_md)
+            print("Markdown diff output:")
+            print(md_output)
         print(s)
     elif args.cmd == "webui":
         import webui

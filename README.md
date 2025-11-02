@@ -58,8 +58,9 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format md \
-    --out reports/web-report.md
+    --format both \
+    --out-md reports/web-report.md \
+    --out-json reports/web-report.json
 
 # Think: Analyze a draw.io diagram
 threat-thinker think \
@@ -68,8 +69,9 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format md \
-    --out reports/web-report.md
+    --format both \
+    --out-md reports/web-report.md \
+    --out-json reports/web-report.json
 
 # Think: Analyze a image diagram
 threat-thinker think \
@@ -78,8 +80,18 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format md \
-    --out reports/web-report.md
+    --format both \
+    --out-md reports/web-report.md \
+    --out-json reports/web-report.json
+
+# Diff: Compare two threat reports and analyze changes
+threat-thinker diff \
+    --after reports/new-report.json \
+    --before reports/old-report.json \
+    --llm-api openai \
+    --llm-model gpt-4.1 \
+    --out-md reports/diff-analysis.md \
+    --lang en
 ```
 
 ### Web UI

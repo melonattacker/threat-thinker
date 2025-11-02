@@ -1,0 +1,13 @@
+%% Updated system with security improvements (Mermaid)
+graph LR
+  user[User] --> waf[WAF]
+  waf --> api((API Gateway))
+  api --> app[App Service]
+  api --> cache[(Redis Cache)]
+  app --> db[(Customer DB)]
+  app --> logs[Log Service]
+  logs --> analytics[Analytics DB]
+  
+  %% New monitoring component
+  app --> monitor[Monitoring Service]
+  monitor --> alerts[Alert Manager]
