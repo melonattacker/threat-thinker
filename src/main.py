@@ -13,30 +13,31 @@ Outputs:
 
 Examples:
   export OPENAI_API_KEY=***
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out report.md
-    python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out report.json
-    python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ja --out report_ja.md
-    python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --format md --out report.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ko --out report_ko.md
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang zh --out report_zh.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out-md report.md
+    python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out-json report.json
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format both --out-md report.md --out-json report.json
+    python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ja --out-md report_ja.md
+    python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --format md --out-md report.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ko --out-md report_ko.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang zh --out-md report_zh.md
   export ANTHROPIC_API_KEY=***
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out report.md
-    python main.py think --image examples/system_diagram.jpg --infer-hints --llm-api anthropic --llm-model claude-3-5-sonnet-20241022 --format md --out report.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang pt --out report_pt.md
-    python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang ru --out report_ru.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out-md report.md
+    python main.py think --image examples/system_diagram.jpg --infer-hints --llm-api anthropic --llm-model claude-3-5-sonnet-20241022 --format md --out-md report.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang pt --out-md report_pt.md
+    python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang ru --out-md report_ru.md
   For AWS Bedrock:
     # Option 1: Use AWS Profile
     aws configure --profile my-profile
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
-    python main.py think --image examples/architecture.png --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20241022-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out report.md
-    python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang ar --out report_ar.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang hi --out report_hi.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out-md report.md
+    python main.py think --image examples/architecture.png --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20241022-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out-md report.md
+    python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang ar --out-md report_ar.md
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang hi --out-md report_hi.md
     # Option 2: Use environment variables
     export AWS_ACCESS_KEY_ID=***
     export AWS_SECRET_ACCESS_KEY=***
     export AWS_SESSION_TOKEN=***  # if using temporary credentials
     export AWS_DEFAULT_REGION=us-east-1
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --lang th --out report_th.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --lang th --out-md report_th.md
   python main.py diff --current report.json --baseline old.json
 """
 
@@ -77,8 +78,9 @@ def main():
         action="store_true",
         help="Infer node/edge attributes from Mermaid via LLM (multilingual)",
     )
-    p_think.add_argument("--format", choices=["json", "md"], default="md")
-    p_think.add_argument("--out", type=str, help="Write output to file")
+    p_think.add_argument("--format", choices=["json", "md", "both"], default="both")
+    p_think.add_argument("--out-md", type=str, help="Write Markdown output to file")
+    p_think.add_argument("--out-json", type=str, help="Write JSON output to file")
     p_think.add_argument(
         "--llm-api",
         type=str,
@@ -278,10 +280,19 @@ def main():
 
         # 6) Export
         if args.format == "json":
-            s = export_json(threats, args.out, metrics)
-        else:
-            s = export_md(threats, args.out, metrics)
-        print(s)
+            s = export_json(threats, args.out_json, metrics)
+            print(s)
+        elif args.format == "md":
+            s = export_md(threats, args.out_md, metrics)
+            print(s)
+        elif args.format == "both":
+            # Export both formats
+            json_output = export_json(threats, args.out_json, metrics)
+            md_output = export_md(threats, args.out_md, metrics)
+            print("JSON Output:")
+            print(json_output)
+            print("\nMarkdown Output:")
+            print(md_output)
 
     elif args.cmd == "diff":
         d = diff_reports(args.current, args.baseline)
