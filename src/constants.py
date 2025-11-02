@@ -62,7 +62,7 @@ LLM_INSTRUCTIONS = (
     "}\n\n"
     "Rules:\n"
     "- Severity should be consistent with score (1..9 ~= impact*likelihood). Use integers for score.\n"
-    "- Do NOT include 'id' field - IDs will be automatically assigned as TTP01, TTP02, etc.\n"
+    "- Do NOT include 'id' field - IDs will be automatically assigned as T001, T002, etc.\n"
     "- Return a MAXIMUM of 12 threats - prioritize the most critical findings.\n"
     "- Prefer high-signal threats; de-duplicate similar findings.\n"
     "- If information is missing, make conservative assumptions and mention them in 'why'.\n"

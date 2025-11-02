@@ -21,7 +21,7 @@ class TestExportJson:
         """Test exporting empty threats list"""
         threats = []
 
-        result = export_json(threats, None)
+        result = export_json(threats, None, None, None)
 
         data = json.loads(result)
         assert data["count"] == 0
@@ -46,7 +46,7 @@ class TestExportJson:
         )
         threats = [threat]
 
-        result = export_json(threats, None)
+        result = export_json(threats, None, None, None)
 
         data = json.loads(result)
         assert data["count"] == 1
@@ -70,7 +70,7 @@ class TestExportJson:
             node_labels_parsed=2,
         )
 
-        result = export_json(threats, None, metrics)
+        result = export_json(threats, None, metrics, None)
 
         data = json.loads(result)
         assert "import_metrics" in data
@@ -86,7 +86,7 @@ class TestExportJson:
             temp_path = f.name
 
         try:
-            result = export_json(threats, temp_path)
+            result = export_json(threats, temp_path, None, None)
 
             # Check file was created
             assert os.path.exists(temp_path)

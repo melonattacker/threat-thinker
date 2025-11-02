@@ -280,14 +280,14 @@ def main():
 
         # 6) Export
         if args.format == "json":
-            s = export_json(threats, args.out_json, metrics)
+            s = export_json(threats, args.out_json, metrics, g)
             print(s)
         elif args.format == "md":
             s = export_md(threats, args.out_md, metrics)
             print(s)
         elif args.format == "both":
             # Export both formats
-            json_output = export_json(threats, args.out_json, metrics)
+            json_output = export_json(threats, args.out_json, metrics, g)
             md_output = export_md(threats, args.out_md, metrics)
             print("JSON Output:")
             print(json_output)

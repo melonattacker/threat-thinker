@@ -103,7 +103,7 @@ class TestDenoiseThreats:
     def test_denoise_require_asvs_filter(self):
         """Test filtering threats requiring ASVS references"""
         threat_with_asvs = Threat(
-            id="TTP01",
+            id="T001",
             title="Valid Threat",
             stride=["T"],
             severity="High",
@@ -116,7 +116,7 @@ class TestDenoiseThreats:
         )
 
         threat_without_asvs = Threat(
-            id="TTP02",
+            id="T002",
             title="Invalid Threat",
             stride=["I"],
             severity="Medium",
@@ -133,7 +133,7 @@ class TestDenoiseThreats:
         # Test with require_asvs=True (default)
         result = denoise_threats(threats, require_asvs=True)
         assert len(result) == 1
-        assert result[0].id == "TTP01"
+        assert result[0].id == "T001"
 
         # Test with require_asvs=False
         result = denoise_threats(threats, require_asvs=False)
@@ -142,7 +142,7 @@ class TestDenoiseThreats:
     def test_denoise_confidence_filter(self):
         """Test filtering threats by confidence threshold"""
         high_confidence = Threat(
-            id="TTP01",
+            id="T001",
             title="High Confidence Threat",
             stride=["T"],
             severity="High",
@@ -155,7 +155,7 @@ class TestDenoiseThreats:
         )
 
         low_confidence = Threat(
-            id="TTP02",
+            id="T002",
             title="Low Confidence Threat",
             stride=["I"],
             severity="Medium",
@@ -168,7 +168,7 @@ class TestDenoiseThreats:
         )
 
         none_confidence = Threat(
-            id="TTP03",
+            id="T003",
             title="None Confidence Threat",
             stride=["D"],
             severity="Low",
@@ -185,14 +185,14 @@ class TestDenoiseThreats:
         # Test with min_confidence=0.5
         result = denoise_threats(threats, min_confidence=0.5)
         assert len(result) == 2  # High confidence + None confidence (None passes)
-        threat_ids = {t.id for t in result}
-        assert "TTP01" in threat_ids
-        assert "TTP03" in threat_ids
+        threat_titles = {t.title for t in result}
+        assert "High Confidence Threat" in threat_titles
+        assert "None Confidence Threat" in threat_titles
 
     def test_denoise_evidence_filter(self):
         """Test filtering threats requiring evidence"""
         with_evidence = Threat(
-            id="TTP01",
+            id="T001",
             title="Threat with Evidence",
             stride=["T"],
             severity="High",
@@ -205,7 +205,7 @@ class TestDenoiseThreats:
         )
 
         without_evidence = Threat(
-            id="TTP02",
+            id="T002",
             title="Threat without Evidence",
             stride=["I"],
             severity="Medium",
@@ -222,12 +222,12 @@ class TestDenoiseThreats:
 
         result = denoise_threats(threats)
         assert len(result) == 1
-        assert result[0].id == "TTP01"
+        assert result[0].id == "T001"
 
     def test_denoise_why_field_filter(self):
         """Test filtering threats with too short 'why' field"""
         valid_why = Threat(
-            id="TTP01",
+            id="T001",
             title="Valid Why",
             stride=["T"],
             severity="High",
@@ -240,7 +240,7 @@ class TestDenoiseThreats:
         )
 
         short_why = Threat(
-            id="TTP02",
+            id="T002",
             title="Short Why",
             stride=["I"],
             severity="Medium",
@@ -256,12 +256,12 @@ class TestDenoiseThreats:
 
         result = denoise_threats(threats)
         assert len(result) == 1
-        assert result[0].id == "TTP01"
+        assert result[0].id == "T001"
 
     def test_denoise_sorting(self):
         """Test sorting by score, severity, title"""
         threat_high_score = Threat(
-            id="TTP01",
+            id="T001",
             title="B_Threat",
             stride=["T"],
             severity="Medium",
@@ -274,7 +274,7 @@ class TestDenoiseThreats:
         )
 
         threat_medium_score = Threat(
-            id="TTP02",
+            id="T002",
             title="A_Threat",
             stride=["I"],
             severity="High",
@@ -287,7 +287,7 @@ class TestDenoiseThreats:
         )
 
         threat_same_score_1 = Threat(
-            id="TTP03",
+            id="T003",
             title="Z_Title",
             stride=["D"],
             severity="Low",
@@ -323,11 +323,11 @@ class TestDenoiseThreats:
 
         # Should be sorted by: score desc, then severity, then title
         assert len(result) == 4
-        assert result[0].id == "TTP01"  # Highest score (9.0)
-        assert result[1].id == "TTP02"  # Second highest score (7.0)
+        assert result[0].title == "B_Threat"  # Highest score (9.0)
+        assert result[1].title == "A_Threat"  # Second highest score (7.0)
         # For same score (5.0), sorted by severity then title
-        assert result[2].id == "T004"  # Low severity, A_Title
-        assert result[3].id == "TTP03"  # Low severity, Z_Title
+        assert result[2].title == "A_Title"  # Low severity, A_Title
+        assert result[3].title == "Z_Title"  # Low severity, Z_Title
 
     def test_denoise_topn_limit(self):
         """Test limiting results with topn parameter"""
@@ -357,7 +357,7 @@ class TestDenoiseThreats:
     def test_denoise_duplicate_merging(self):
         """Test merging near-duplicate threats"""
         threat1 = Threat(
-            id="TTP01",
+            id="T001",
             title="SQL Injection",
             stride=["T"],
             severity="High",
@@ -372,7 +372,7 @@ class TestDenoiseThreats:
 
         # Duplicate with same title and evidence
         threat2 = Threat(
-            id="TTP02",
+            id="T002",
             title="sql injection",  # Different case
             stride=["T", "I"],
             severity="High",
@@ -387,7 +387,7 @@ class TestDenoiseThreats:
 
         # Different threat
         threat3 = Threat(
-            id="TTP03",
+            id="T003",
             title="XSS Attack",
             stride=["T"],
             severity="Medium",
@@ -404,9 +404,9 @@ class TestDenoiseThreats:
 
         result = denoise_threats(threats)
 
-        # Should merge duplicates, keeping only TTP01 and TTP03
+        # Should merge duplicates, keeping only SQL Injection and XSS Attack
         assert len(result) == 2
-        threat_ids = {t.id for t in result}
-        assert "TTP01" in threat_ids  # Higher score, kept
-        assert "TTP03" in threat_ids
-        assert "TTP02" not in threat_ids  # Duplicate, removed
+        threat_titles = {t.title for t in result}
+        assert "SQL Injection" in threat_titles  # Higher score, kept
+        assert "XSS Attack" in threat_titles
+        # sql injection (lowercase) should be merged with SQL Injection

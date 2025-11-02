@@ -5,13 +5,14 @@ Export functionality for reports
 import json
 from typing import Dict, List, Optional
 
-from models import Threat, ImportMetrics
+from models import Threat, ImportMetrics, Graph
 
 
 def export_json(
     threats: List[Threat],
     out_path: Optional[str],
     metrics: Optional[ImportMetrics] = None,
+    graph: Optional[Graph] = None,
 ) -> str:
     """
     Export threats to JSON format.
@@ -20,6 +21,7 @@ def export_json(
         threats: List of Threat objects
         out_path: Optional output file path
         metrics: Optional import metrics
+        graph: Optional graph object containing nodes and edges
 
     Returns:
         JSON string representation
@@ -56,6 +58,31 @@ def export_json(
             "node_label_candidates": metrics.node_label_candidates,
             "node_labels_parsed": metrics.node_labels_parsed,
             "import_success_rate": metrics.import_success_rate,
+        }
+    if graph:
+        obj["graph"] = {
+            "nodes": [
+                {
+                    "id": node.id,
+                    "label": node.label,
+                    "zone": node.zone,
+                    "type": node.type,
+                    "data": node.data,
+                    "auth": node.auth,
+                    "notes": node.notes,
+                }
+                for node in graph.nodes.values()
+            ],
+            "edges": [
+                {
+                    "src": edge.src,
+                    "dst": edge.dst,
+                    "label": edge.label,
+                    "protocol": edge.protocol,
+                    "data": edge.data,
+                }
+                for edge in graph.edges
+            ]
         }
     s = json.dumps(obj, ensure_ascii=False, indent=2)
     if out_path:

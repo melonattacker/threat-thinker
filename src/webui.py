@@ -85,7 +85,7 @@ def _generate_report(
     require_asvs: bool,
     output_format: str,
     lang: str,
-) -> Tuple[str, dict, str, str, Optional[str]]:
+) -> Tuple[str, str, Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
         diagram_text = (diagram_text or "").strip()
@@ -209,41 +209,46 @@ def _generate_report(
         # Remove any previous download files before generating a new one
         _cleanup_downloads()
 
+        download_md_path: Optional[str] = None
+        download_json_path: Optional[str] = None
+
         if output_format == "json":
-            report_text = cli.export_json(filtered, None, metrics)
+            report_text = cli.export_json(filtered, None, metrics, graph)
             file_suffix = ".json"
-        else:
+            download_json_path = _write_temp_file(report_text, file_suffix)
+            _DOWNLOAD_PATHS.add(download_json_path)
+        elif output_format == "md":
             report_text = cli.export_md(filtered, None, metrics)
             file_suffix = ".md"
+            download_md_path = _write_temp_file(report_text, file_suffix)
+            _DOWNLOAD_PATHS.add(download_md_path)
+        else:  # both
+            json_report = cli.export_json(filtered, None, metrics, graph)
+            md_report = cli.export_md(filtered, None, metrics)
+            report_text = f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
+            
+            download_json_path = _write_temp_file(json_report, ".json")
+            download_md_path = _write_temp_file(md_report, ".md")
+            _DOWNLOAD_PATHS.add(download_json_path)
+            _DOWNLOAD_PATHS.add(download_md_path)
+        
         status_lines.append("Report generated successfully.")
 
-        download_path = _write_temp_file(report_text, file_suffix)
-        _DOWNLOAD_PATHS.add(download_path)
+        download_path = download_md_path or download_json_path  # For backward compatibility
 
-        metrics_json = {
-            "total_lines": metrics.total_lines,
-            "edge_candidates": metrics.edge_candidates,
-            "edges_parsed": metrics.edges_parsed,
-            "node_label_candidates": metrics.node_label_candidates,
-            "node_labels_parsed": metrics.node_labels_parsed,
-            "import_success_rate": metrics.import_success_rate,
-            "threats_initial": len(threats),
-            "threats_final": len(filtered),
-        }
-
-        # For Markdown preview, use the markdown report regardless of output format
-        markdown_report = (
-            cli.export_md(filtered, None, metrics, lang)
-            if output_format == "json"
-            else report_text
-        )
+        # For Markdown preview, always use the markdown report
+        if output_format == "json":
+            markdown_report = cli.export_md(filtered, None, metrics)
+        elif output_format == "md":
+            markdown_report = report_text
+        else:  # both
+            markdown_report = cli.export_md(filtered, None, metrics)
 
         return (
-            "\n".join(status_lines),
-            metrics_json,
             markdown_report,
             report_text,
-            download_path,
+            download_md_path,
+            download_json_path,
         )
     except gr.Error:
         raise
@@ -364,8 +369,8 @@ def launch_webui(
             )
             format_input = gr.Radio(
                 label="Report format",
-                choices=["md", "json"],
-                value="md",
+                choices=["both", "md", "json"],
+                value="both",
             )
             lang_input = gr.Textbox(
                 label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
@@ -374,15 +379,6 @@ def launch_webui(
             )
 
         generate_button = gr.Button("Generate Report", variant="primary")
-
-        status_output = gr.Textbox(
-            label="Status",
-            lines=6,
-            interactive=False,
-        )
-        metrics_output = gr.JSON(
-            label="Import & Filtering Metrics",
-        )
 
         with gr.Tabs():
             with gr.Tab("Markdown Preview"):
@@ -397,9 +393,13 @@ def launch_webui(
                     interactive=False,
                 )
 
-        download_output = gr.File(
-            label="Download report",
-        )
+        with gr.Row():
+            download_md_output = gr.File(
+                label="Download Markdown report",
+            )
+            download_json_output = gr.File(
+                label="Download JSON report",
+            )
 
         generate_button.click(
             fn=_generate_report,
@@ -421,11 +421,10 @@ def launch_webui(
                 lang_input,
             ],
             outputs=[
-                status_output,
-                metrics_output,
                 report_markdown_output,
                 report_output,
-                download_output,
+                download_md_output,
+                download_json_output,
             ],
             api_name=False,
         )
