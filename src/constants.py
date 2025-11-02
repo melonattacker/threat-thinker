@@ -11,20 +11,20 @@ HINT_SYSTEM = (
 HINT_INSTRUCTIONS = (
     "Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers) with EXACT shape:\n"
     "{\n"
-    '  \"nodes\": {\n'
-    '    \"<nodeId>\": {\n'
-    '      \"label\": \"string\",\n'
-    '      \"type\": \"actor|service|pod|database|s3|elb|ingress|queue|cache|lambda|unknown\",\n'
-    '      \"zone\": \"Internet|DMZ|Private|K8s-Namespace|VPC-Public|VPC-Private|AWS-Managed|unknown\",\n'
-    '      \"data\": [\"PII\",\"Credentials\",\"Internal\",\"Secrets\"],\n'
-    '      \"auth\": true|false|null,\n'
-    '      \"notes\": \"string optional\"\n'
+    '  "nodes": {\n'
+    '    "<nodeId>": {\n'
+    '      "label": "string",\n'
+    '      "type": "actor|service|pod|database|s3|elb|ingress|queue|cache|lambda|unknown",\n'
+    '      "zone": "Internet|DMZ|Private|K8s-Namespace|VPC-Public|VPC-Private|AWS-Managed|unknown",\n'
+    '      "data": ["PII","Credentials","Internal","Secrets"],\n'
+    '      "auth": true|false|null,\n'
+    '      "notes": "string optional"\n'
     "    }, ...\n"
     "  },\n"
-    '  \"edges\": [\n'
-    '    {\"from\":\"<nodeId>\",\"to\":\"<nodeId>\",\"protocol\":\"HTTP|HTTPS|TCP|gRPC|AMQP|unknown\",\"data\":[\"PII\",\"Credentials\",\"Internal\",\"Secrets\"]}\n'
+    '  "edges": [\n'
+    '    {"from":"<nodeId>","to":"<nodeId>","protocol":"HTTP|HTTPS|TCP|gRPC|AMQP|unknown","data":["PII","Credentials","Internal","Secrets"]}\n'
     "  ],\n"
-    '  \"policies\": {}\n'
+    '  "policies": {}\n'
     "}\n"
     "Rules:\n"
     "- Use null/unknown if unsure. Do not add or remove graph elements.\n"

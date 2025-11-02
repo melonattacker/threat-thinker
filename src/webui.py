@@ -59,7 +59,9 @@ def _setup_gradio_temp_dir() -> Callable[[], None]:
 
 def _write_temp_file(content: str, suffix: str) -> str:
     """Write content to a temporary file and return its path."""
-    tmp = tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", suffix=suffix)
+    tmp = tempfile.NamedTemporaryFile(
+        "w", delete=False, encoding="utf-8", suffix=suffix
+    )
     try:
         tmp.write(content)
     finally:
@@ -89,20 +91,23 @@ def _generate_report(
         diagram_text = (diagram_text or "").strip()
         if not diagram_text:
             raise gr.Error("Diagram input is required.")
-        
+
         diagram_format = (diagram_format or "mermaid").strip().lower()
         if diagram_format not in ["mermaid", "drawio"]:
             raise gr.Error(f"Unsupported diagram format: {diagram_format}")
     else:  # Image
         if not image_file:
             raise gr.Error("Image file is required when using image input method.")
-        
+
         # Validate image file format
         from pathlib import Path
+
         ext = Path(image_file).suffix.lower()
-        supported_formats = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        supported_formats = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
         if ext not in supported_formats:
-            raise gr.Error(f"Unsupported image format: {ext}. Supported formats: {', '.join(supported_formats)}")
+            raise gr.Error(
+                f"Unsupported image format: {ext}. Supported formats: {', '.join(supported_formats)}"
+            )
 
     llm_api = (llm_api or "openai").strip().lower()
     llm_model = (llm_model or "").strip() or "gpt-4o-mini"
@@ -119,7 +124,7 @@ def _generate_report(
             file_suffix = ".drawio"
         else:
             file_suffix = ".txt"
-        
+
         diagram_path = _write_temp_file(diagram_text, file_suffix)
     else:  # Image
         diagram_path = image_file  # Use the uploaded file directly
@@ -135,17 +140,28 @@ def _generate_report(
         if input_method == "Text":
             if diagram_format == "mermaid":
                 graph, metrics = cli.parse_mermaid(diagram_path)
-                status_lines.append(f"Parsed Mermaid diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
+                status_lines.append(
+                    f"Parsed Mermaid diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+                )
             elif diagram_format == "drawio":
                 graph, metrics = cli.parse_drawio(diagram_path)
-                status_lines.append(f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
+                status_lines.append(
+                    f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+                )
             else:
                 raise gr.Error(f"Unsupported diagram format: {diagram_format}")
         else:  # Image
-            graph, metrics = parse_image(diagram_path, api=llm_api, model=llm_model, 
-                                       aws_profile=aws_profile, aws_region=aws_region)
-            status_lines.append(f"Parsed image diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges.")
-            
+            graph, metrics = parse_image(
+                diagram_path,
+                api=llm_api,
+                model=llm_model,
+                aws_profile=aws_profile,
+                aws_region=aws_region,
+            )
+            status_lines.append(
+                f"Parsed image diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+            )
+
         status_lines.append(
             f"Import success ~{metrics.import_success_rate * 100:.1f}% "
             f"(edges {metrics.edges_parsed}/{metrics.edge_candidates}, "
@@ -155,13 +171,21 @@ def _generate_report(
         if infer_hints:
             skeleton = json.dumps(
                 {
-                    "nodes": [{"id": node.id, "label": node.label} for node in graph.nodes.values()],
-                    "edges": [{"from": edge.src, "to": edge.dst, "label": edge.label} for edge in graph.edges],
+                    "nodes": [
+                        {"id": node.id, "label": node.label}
+                        for node in graph.nodes.values()
+                    ],
+                    "edges": [
+                        {"from": edge.src, "to": edge.dst, "label": edge.label}
+                        for edge in graph.edges
+                    ],
                 },
                 ensure_ascii=False,
                 indent=2,
             )
-            inferred = cli.llm_infer_hints(skeleton, llm_api, llm_model, aws_profile, aws_region, lang)
+            inferred = cli.llm_infer_hints(
+                skeleton, llm_api, llm_model, aws_profile, aws_region, lang
+            )
             graph = cli.merge_llm_hints(graph, inferred)
             status_lines.append("Applied LLM-inferred hints.")
 
@@ -169,7 +193,9 @@ def _generate_report(
         if hints_path:
             status_lines.append("Applied user-provided hints.")
 
-        threats = cli.llm_infer_threats(graph, llm_api, llm_model, aws_profile, aws_region, lang)
+        threats = cli.llm_infer_threats(
+            graph, llm_api, llm_model, aws_profile, aws_region, lang
+        )
         status_lines.append(f"LLM returned {len(threats)} threats before filtering.")
 
         filtered = cli.denoise_threats(
@@ -204,11 +230,21 @@ def _generate_report(
             "threats_initial": len(threats),
             "threats_final": len(filtered),
         }
-        
+
         # For Markdown preview, use the markdown report regardless of output format
-        markdown_report = cli.export_md(filtered, None, metrics, lang) if output_format == "json" else report_text
-        
-        return "\n".join(status_lines), metrics_json, markdown_report, report_text, download_path
+        markdown_report = (
+            cli.export_md(filtered, None, metrics, lang)
+            if output_format == "json"
+            else report_text
+        )
+
+        return (
+            "\n".join(status_lines),
+            metrics_json,
+            markdown_report,
+            report_text,
+            download_path,
+        )
     except gr.Error:
         raise
     except Exception as exc:
@@ -221,7 +257,7 @@ def _generate_report(
             cleanup_paths.append(diagram_path)
         if hints_path:
             cleanup_paths.append(hints_path)
-            
+
         for path in cleanup_paths:
             if path and os.path.exists(path):
                 try:
@@ -238,15 +274,17 @@ def launch_webui(
     """Launch the Gradio Web UI."""
     cleanup_temp_dir = _setup_gradio_temp_dir()
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
-        gr.Markdown("## Threat Thinker WebUI\nUpload your diagram file (Mermaid, Draw.io, or Image), optionally add YAML hints, and generate threat reports.")
+        gr.Markdown(
+            "## Threat Thinker WebUI\nUpload your diagram file (Mermaid, Draw.io, or Image), optionally add YAML hints, and generate threat reports."
+        )
 
         # Input method selection
         input_method = gr.Radio(
             label="Input Method - Choose whether to input diagram as text or upload an image file",
             choices=["Text", "Image"],
-            value="Text"
+            value="Text",
         )
-        
+
         # Text input (visible by default)
         diagram_input = gr.TextArea(
             label="Diagram Content",
@@ -261,15 +299,15 @@ def launch_webui(
             value="mermaid",
             visible=True,
         )
-        
+
         # Image input (hidden by default)
         image_input = gr.File(
             label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
             file_types=["image"],
             type="filepath",
-            visible=False
+            visible=False,
         )
-        
+
         hints_input = gr.TextArea(
             label="Hints YAML (optional)",
             placeholder="Paste YAML hints here to override attributes...",
@@ -332,7 +370,7 @@ def launch_webui(
             lang_input = gr.Textbox(
                 label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
                 value="en",
-                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt"
+                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
             )
 
         generate_button = gr.Button("Generate Report", variant="primary")
@@ -345,7 +383,7 @@ def launch_webui(
         metrics_output = gr.JSON(
             label="Import & Filtering Metrics",
         )
-        
+
         with gr.Tabs():
             with gr.Tab("Markdown Preview"):
                 report_markdown_output = gr.Markdown(
@@ -358,7 +396,7 @@ def launch_webui(
                     lines=20,
                     interactive=False,
                 )
-        
+
         download_output = gr.File(
             label="Download report",
         )
@@ -382,7 +420,13 @@ def launch_webui(
                 format_input,
                 lang_input,
             ],
-            outputs=[status_output, metrics_output, report_markdown_output, report_output, download_output],
+            outputs=[
+                status_output,
+                metrics_output,
+                report_markdown_output,
+                report_output,
+                download_output,
+            ],
             api_name=False,
         )
 
@@ -392,19 +436,19 @@ def launch_webui(
                 return {
                     diagram_input: gr.update(visible=True),
                     diagram_format_input: gr.update(visible=True),
-                    image_input: gr.update(visible=False)
+                    image_input: gr.update(visible=False),
                 }
             else:  # Image
                 return {
                     diagram_input: gr.update(visible=False),
                     diagram_format_input: gr.update(visible=False),
-                    image_input: gr.update(visible=True)
+                    image_input: gr.update(visible=True),
                 }
 
         input_method.change(
             fn=update_input_visibility,
             inputs=[input_method],
-            outputs=[diagram_input, diagram_format_input, image_input]
+            outputs=[diagram_input, diagram_format_input, image_input],
         )
 
     try:

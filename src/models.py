@@ -51,11 +51,11 @@ class Threat:
     id: str
     title: str
     stride: List[str]
-    severity: str         # High/Medium/Low
-    score: float          # integer 1..9 expected
+    severity: str  # High/Medium/Low
+    score: float  # integer 1..9 expected
     affected: List[str]
     why: str
-    references: List[str] # e.g., ["ASVS V5 ...", "CWE-319 ..."]
+    references: List[str]  # e.g., ["ASVS V5 ...", "CWE-319 ..."]
     evidence_nodes: List[str] = field(default_factory=list)  # node IDs
     evidence_edges: List[str] = field(default_factory=list)  # edge IDs (src->dst)
     confidence: Optional[float] = None
