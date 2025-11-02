@@ -284,13 +284,13 @@ def _generate_report(
             download_json_path = _write_temp_file(report_text, file_suffix)
             _DOWNLOAD_PATHS.add(download_json_path)
         elif output_format == "md":
-            report_text = cli.export_md(filtered, None, metrics)
+            report_text = cli.export_md(filtered, None)
             file_suffix = ".md"
             download_md_path = _write_temp_file(report_text, file_suffix)
             _DOWNLOAD_PATHS.add(download_md_path)
         else:  # both
             json_report = cli.export_json(filtered, None, metrics, graph)
-            md_report = cli.export_md(filtered, None, metrics)
+            md_report = cli.export_md(filtered, None)
             report_text = (
                 f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
             )
@@ -304,11 +304,11 @@ def _generate_report(
 
         # For Markdown preview, always use the markdown report
         if output_format == "json":
-            markdown_report = cli.export_md(filtered, None, metrics)
+            markdown_report = cli.export_md(filtered, None)
         elif output_format == "md":
             markdown_report = report_text
         else:  # both
-            markdown_report = cli.export_md(filtered, None, metrics)
+            markdown_report = cli.export_md(filtered, None)
 
         return (
             markdown_report,
