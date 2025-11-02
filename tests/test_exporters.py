@@ -145,14 +145,6 @@ class TestExportMd:
     def test_export_with_metrics_markdown(self):
         """Test exporting with metrics to markdown"""
         threats = []
-        metrics = ImportMetrics(
-            total_lines=10,
-            edge_candidates=8,
-            edges_parsed=6,
-            node_label_candidates=4,
-            node_labels_parsed=3,
-        )
-
         result = export_md(threats, None)
 
         assert "# Threat Analysis Report" in result
