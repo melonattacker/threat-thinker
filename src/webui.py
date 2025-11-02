@@ -14,6 +14,7 @@ import gradio as gr
 
 import main as cli
 from parsers.image_parser import parse_image
+from exporters import diff_reports, export_diff_md
 
 
 _DOWNLOAD_PATHS: set[str] = set()
@@ -69,6 +70,72 @@ def _write_temp_file(content: str, suffix: str) -> str:
     return tmp.name
 
 
+def _generate_diff_report(
+    before_file: str,
+    after_file: str,
+    llm_api: str,
+    llm_model: str,
+    aws_profile: str,
+    aws_region: str,
+    lang: str,
+) -> Tuple[str, str, Optional[str], Optional[str]]:
+    """Generate diff report between two JSON files."""
+    if not before_file or not after_file:
+        raise gr.Error(
+            "Both before and after JSON files are required for diff analysis."
+        )
+
+    # Validate file extensions
+    for file_path, label in [(before_file, "Before"), (after_file, "After")]:
+        if not file_path.lower().endswith(".json"):
+            raise gr.Error(f"{label} file must be a JSON file.")
+
+    llm_api = (llm_api or "openai").strip().lower()
+    llm_model = (llm_model or "").strip() or "gpt-4o-mini"
+    aws_profile = (aws_profile or "").strip() or None
+    aws_region = (aws_region or "").strip() or None
+    lang = (lang or "en").strip()
+
+    try:
+        # Generate diff analysis
+        diff_data = diff_reports(
+            after_file,
+            before_file,
+            llm_api,
+            llm_model,
+            aws_profile,
+            aws_region,
+            lang,
+        )
+
+        # Generate markdown report
+        md_report = export_diff_md(diff_data)
+
+        # Generate JSON report
+        json_report = json.dumps(diff_data, ensure_ascii=False, indent=2)
+
+        # Remove any previous download files before generating a new one
+        _cleanup_downloads()
+
+        # Create download files
+        download_md_path = _write_temp_file(md_report, ".md")
+        download_json_path = _write_temp_file(json_report, ".json")
+        _DOWNLOAD_PATHS.add(download_md_path)
+        _DOWNLOAD_PATHS.add(download_json_path)
+
+        return (
+            md_report,
+            json_report,
+            download_md_path,
+            download_json_path,
+        )
+    except gr.Error:
+        raise
+    except Exception as exc:
+        traceback.print_exc()
+        raise gr.Error(f"Failed to generate diff report: {exc}")
+
+
 def _generate_report(
     input_method: str,
     diagram_text: str,
@@ -85,7 +152,7 @@ def _generate_report(
     require_asvs: bool,
     output_format: str,
     lang: str,
-) -> Tuple[str, dict, str, str, Optional[str]]:
+) -> Tuple[str, str, Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
         diagram_text = (diagram_text or "").strip()
@@ -133,7 +200,6 @@ def _generate_report(
         hints_path = _write_temp_file(hints_text, ".yaml")
 
     status_lines = []
-    download_path: Optional[str] = None
 
     try:
         # Parse diagram based on input method and format
@@ -209,41 +275,46 @@ def _generate_report(
         # Remove any previous download files before generating a new one
         _cleanup_downloads()
 
+        download_md_path: Optional[str] = None
+        download_json_path: Optional[str] = None
+
         if output_format == "json":
-            report_text = cli.export_json(filtered, None, metrics)
+            report_text = cli.export_json(filtered, None, metrics, graph)
             file_suffix = ".json"
-        else:
+            download_json_path = _write_temp_file(report_text, file_suffix)
+            _DOWNLOAD_PATHS.add(download_json_path)
+        elif output_format == "md":
             report_text = cli.export_md(filtered, None, metrics)
             file_suffix = ".md"
+            download_md_path = _write_temp_file(report_text, file_suffix)
+            _DOWNLOAD_PATHS.add(download_md_path)
+        else:  # both
+            json_report = cli.export_json(filtered, None, metrics, graph)
+            md_report = cli.export_md(filtered, None, metrics)
+            report_text = (
+                f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
+            )
+
+            download_json_path = _write_temp_file(json_report, ".json")
+            download_md_path = _write_temp_file(md_report, ".md")
+            _DOWNLOAD_PATHS.add(download_json_path)
+            _DOWNLOAD_PATHS.add(download_md_path)
+
         status_lines.append("Report generated successfully.")
 
-        download_path = _write_temp_file(report_text, file_suffix)
-        _DOWNLOAD_PATHS.add(download_path)
-
-        metrics_json = {
-            "total_lines": metrics.total_lines,
-            "edge_candidates": metrics.edge_candidates,
-            "edges_parsed": metrics.edges_parsed,
-            "node_label_candidates": metrics.node_label_candidates,
-            "node_labels_parsed": metrics.node_labels_parsed,
-            "import_success_rate": metrics.import_success_rate,
-            "threats_initial": len(threats),
-            "threats_final": len(filtered),
-        }
-
-        # For Markdown preview, use the markdown report regardless of output format
-        markdown_report = (
-            cli.export_md(filtered, None, metrics, lang)
-            if output_format == "json"
-            else report_text
-        )
+        # For Markdown preview, always use the markdown report
+        if output_format == "json":
+            markdown_report = cli.export_md(filtered, None, metrics)
+        elif output_format == "md":
+            markdown_report = report_text
+        else:  # both
+            markdown_report = cli.export_md(filtered, None, metrics)
 
         return (
-            "\n".join(status_lines),
-            metrics_json,
             markdown_report,
             report_text,
-            download_path,
+            download_md_path,
+            download_json_path,
         )
     except gr.Error:
         raise
@@ -275,181 +346,268 @@ def launch_webui(
     cleanup_temp_dir = _setup_gradio_temp_dir()
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
         gr.Markdown(
-            "## Threat Thinker WebUI\nUpload your diagram file (Mermaid, Draw.io, or Image), optionally add YAML hints, and generate threat reports."
-        )
-
-        # Input method selection
-        input_method = gr.Radio(
-            label="Input Method - Choose whether to input diagram as text or upload an image file",
-            choices=["Text", "Image"],
-            value="Text",
-        )
-
-        # Text input (visible by default)
-        diagram_input = gr.TextArea(
-            label="Diagram Content",
-            placeholder="Paste your diagram content here (Mermaid or Draw.io XML)...",
-            lines=20,
-            autofocus=True,
-            visible=True,
-        )
-        diagram_format_input = gr.Radio(
-            label="Diagram Format",
-            choices=["mermaid", "drawio"],
-            value="mermaid",
-            visible=True,
-        )
-
-        # Image input (hidden by default)
-        image_input = gr.File(
-            label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
-            file_types=["image"],
-            type="filepath",
-            visible=False,
-        )
-
-        hints_input = gr.TextArea(
-            label="Hints YAML (optional)",
-            placeholder="Paste YAML hints here to override attributes...",
-            lines=10,
-        )
-
-        with gr.Row():
-            llm_api_input = gr.Dropdown(
-                label="LLM API",
-                choices=["openai", "anthropic", "bedrock"],
-                value="openai",
-                interactive=True,
-            )
-            llm_model_input = gr.Textbox(
-                label="LLM Model",
-                value="gpt-4o-mini",
-                placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
-            )
-            aws_profile_input = gr.Textbox(
-                label="AWS Profile (for Bedrock only)",
-                value="",
-                placeholder="e.g., my-profile (optional, leave empty to use default credentials)",
-            )
-            aws_region_input = gr.Textbox(
-                label="AWS Region (for Bedrock only)",
-                value="",
-                placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
-            )
-
-        with gr.Row():
-            infer_hints_input = gr.Checkbox(
-                label="Infer hints with LLM",
-                value=False,
-            )
-            require_asvs_input = gr.Checkbox(
-                label="Require ASVS references",
-                value=False,
-            )
-
-        with gr.Row():
-            topn_input = gr.Slider(
-                label="Top N threats",
-                minimum=1,
-                maximum=10,
-                step=1,
-                value=10,
-            )
-            min_confidence_input = gr.Slider(
-                label="Minimum confidence",
-                minimum=0.0,
-                maximum=1.0,
-                step=0.05,
-                value=0.5,
-            )
-            format_input = gr.Radio(
-                label="Report format",
-                choices=["md", "json"],
-                value="md",
-            )
-            lang_input = gr.Textbox(
-                label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
-                value="en",
-                placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
-            )
-
-        generate_button = gr.Button("Generate Report", variant="primary")
-
-        status_output = gr.Textbox(
-            label="Status",
-            lines=6,
-            interactive=False,
-        )
-        metrics_output = gr.JSON(
-            label="Import & Filtering Metrics",
+            "## Threat Thinker WebUI\nAnalyze system diagrams for security threats or compare threat reports."
         )
 
         with gr.Tabs():
-            with gr.Tab("Markdown Preview"):
-                report_markdown_output = gr.Markdown(
-                    label="Report Preview (Markdown)",
-                    value="Generate a report to see the preview here...",
+            with gr.Tab("Think - Threat Analysis"):
+                # Input method selection
+                input_method = gr.Radio(
+                    label="Input Method - Choose whether to input diagram as text or upload an image file",
+                    choices=["Text", "Image"],
+                    value="Text",
                 )
-            with gr.Tab("Raw Text"):
-                report_output = gr.TextArea(
-                    label="Report Preview (Raw)",
+
+                # Text input (visible by default)
+                diagram_input = gr.TextArea(
+                    label="Diagram Content",
+                    placeholder="Paste your diagram content here (Mermaid or Draw.io XML)...",
                     lines=20,
-                    interactive=False,
+                    autofocus=True,
+                    visible=True,
+                )
+                diagram_format_input = gr.Radio(
+                    label="Diagram Format",
+                    choices=["mermaid", "drawio"],
+                    value="mermaid",
+                    visible=True,
                 )
 
-        download_output = gr.File(
-            label="Download report",
-        )
+                # Image input (hidden by default)
+                image_input = gr.File(
+                    label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
+                    file_types=["image"],
+                    type="filepath",
+                    visible=False,
+                )
 
-        generate_button.click(
-            fn=_generate_report,
-            inputs=[
-                input_method,
-                diagram_input,
-                diagram_format_input,
-                image_input,
-                hints_input,
-                infer_hints_input,
-                llm_api_input,
-                llm_model_input,
-                aws_profile_input,
-                aws_region_input,
-                topn_input,
-                min_confidence_input,
-                require_asvs_input,
-                format_input,
-                lang_input,
-            ],
-            outputs=[
-                status_output,
-                metrics_output,
-                report_markdown_output,
-                report_output,
-                download_output,
-            ],
-            api_name=False,
-        )
+                hints_input = gr.TextArea(
+                    label="Hints YAML (optional)",
+                    placeholder="Paste YAML hints here to override attributes...",
+                    lines=10,
+                )
 
-        # Toggle visibility based on input method selection
-        def update_input_visibility(method):
-            if method == "Text":
-                return {
-                    diagram_input: gr.update(visible=True),
-                    diagram_format_input: gr.update(visible=True),
-                    image_input: gr.update(visible=False),
-                }
-            else:  # Image
-                return {
-                    diagram_input: gr.update(visible=False),
-                    diagram_format_input: gr.update(visible=False),
-                    image_input: gr.update(visible=True),
-                }
+                with gr.Row():
+                    llm_api_input = gr.Dropdown(
+                        label="LLM API",
+                        choices=["openai", "anthropic", "bedrock"],
+                        value="openai",
+                        interactive=True,
+                    )
+                    llm_model_input = gr.Textbox(
+                        label="LLM Model",
+                        value="gpt-4o-mini",
+                        placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
+                    )
+                    aws_profile_input = gr.Textbox(
+                        label="AWS Profile (for Bedrock only)",
+                        value="",
+                        placeholder="e.g., my-profile (optional, leave empty to use default credentials)",
+                    )
+                    aws_region_input = gr.Textbox(
+                        label="AWS Region (for Bedrock only)",
+                        value="",
+                        placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
+                    )
 
-        input_method.change(
-            fn=update_input_visibility,
-            inputs=[input_method],
-            outputs=[diagram_input, diagram_format_input, image_input],
-        )
+                with gr.Row():
+                    infer_hints_input = gr.Checkbox(
+                        label="Infer hints with LLM",
+                        value=False,
+                    )
+                    require_asvs_input = gr.Checkbox(
+                        label="Require ASVS references",
+                        value=False,
+                    )
+
+                with gr.Row():
+                    topn_input = gr.Slider(
+                        label="Top N threats",
+                        minimum=1,
+                        maximum=10,
+                        step=1,
+                        value=10,
+                    )
+                    min_confidence_input = gr.Slider(
+                        label="Minimum confidence",
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.05,
+                        value=0.5,
+                    )
+                    format_input = gr.Radio(
+                        label="Report format",
+                        choices=["both", "md", "json"],
+                        value="both",
+                    )
+                    lang_input = gr.Textbox(
+                        label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
+                        value="en",
+                        placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
+                    )
+
+                generate_button = gr.Button("Generate Report", variant="primary")
+
+                with gr.Tabs():
+                    with gr.Tab("Markdown Preview"):
+                        report_markdown_output = gr.Markdown(
+                            label="Report Preview (Markdown)",
+                            value="Generate a report to see the preview here...",
+                        )
+                    with gr.Tab("Raw Text"):
+                        report_output = gr.TextArea(
+                            label="Report Preview (Raw)",
+                            lines=20,
+                            interactive=False,
+                        )
+
+                with gr.Row():
+                    download_md_output = gr.File(
+                        label="Download Markdown report",
+                    )
+                    download_json_output = gr.File(
+                        label="Download JSON report",
+                    )
+
+                generate_button.click(
+                    fn=_generate_report,
+                    inputs=[
+                        input_method,
+                        diagram_input,
+                        diagram_format_input,
+                        image_input,
+                        hints_input,
+                        infer_hints_input,
+                        llm_api_input,
+                        llm_model_input,
+                        aws_profile_input,
+                        aws_region_input,
+                        topn_input,
+                        min_confidence_input,
+                        require_asvs_input,
+                        format_input,
+                        lang_input,
+                    ],
+                    outputs=[
+                        report_markdown_output,
+                        report_output,
+                        download_md_output,
+                        download_json_output,
+                    ],
+                    api_name=False,
+                )
+
+                # Toggle visibility based on input method selection
+                def update_input_visibility(method):
+                    if method == "Text":
+                        return {
+                            diagram_input: gr.update(visible=True),
+                            diagram_format_input: gr.update(visible=True),
+                            image_input: gr.update(visible=False),
+                        }
+                    else:  # Image
+                        return {
+                            diagram_input: gr.update(visible=False),
+                            diagram_format_input: gr.update(visible=False),
+                            image_input: gr.update(visible=True),
+                        }
+
+                input_method.change(
+                    fn=update_input_visibility,
+                    inputs=[input_method],
+                    outputs=[diagram_input, diagram_format_input, image_input],
+                )
+
+            with gr.Tab("Diff - Report Comparison"):
+                gr.Markdown(
+                    "### Compare Threat Reports\nUpload two JSON threat reports to analyze differences and generate a comparison report."
+                )
+
+                with gr.Row():
+                    before_file_input = gr.File(
+                        label="Before Report (JSON)",
+                        file_types=[".json"],
+                        type="filepath",
+                    )
+                    after_file_input = gr.File(
+                        label="After Report (JSON)",
+                        file_types=[".json"],
+                        type="filepath",
+                    )
+
+                with gr.Row():
+                    diff_llm_api_input = gr.Dropdown(
+                        label="LLM API",
+                        choices=["openai", "anthropic", "bedrock"],
+                        value="openai",
+                        interactive=True,
+                    )
+                    diff_llm_model_input = gr.Textbox(
+                        label="LLM Model",
+                        value="gpt-4o-mini",
+                        placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
+                    )
+                    diff_aws_profile_input = gr.Textbox(
+                        label="AWS Profile (for Bedrock only)",
+                        value="",
+                        placeholder="e.g., my-profile (optional, leave empty to use default credentials)",
+                    )
+                    diff_aws_region_input = gr.Textbox(
+                        label="AWS Region (for Bedrock only)",
+                        value="",
+                        placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
+                    )
+
+                diff_lang_input = gr.Textbox(
+                    label="Output language (ISO code)",
+                    value="en",
+                    placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
+                )
+
+                diff_generate_button = gr.Button(
+                    "Generate Diff Report", variant="primary"
+                )
+
+                with gr.Tabs():
+                    with gr.Tab("Markdown Preview"):
+                        diff_markdown_output = gr.Markdown(
+                            label="Diff Report Preview (Markdown)",
+                            value="Upload two JSON reports and generate a diff to see the comparison here...",
+                        )
+                    with gr.Tab("Raw Text"):
+                        diff_raw_output = gr.TextArea(
+                            label="Diff Report Preview (Raw JSON)",
+                            lines=20,
+                            interactive=False,
+                        )
+
+                with gr.Row():
+                    diff_download_md_output = gr.File(
+                        label="Download Markdown diff report",
+                    )
+                    diff_download_json_output = gr.File(
+                        label="Download JSON diff report",
+                    )
+
+                diff_generate_button.click(
+                    fn=_generate_diff_report,
+                    inputs=[
+                        before_file_input,
+                        after_file_input,
+                        diff_llm_api_input,
+                        diff_llm_model_input,
+                        diff_aws_profile_input,
+                        diff_aws_region_input,
+                        diff_lang_input,
+                    ],
+                    outputs=[
+                        diff_markdown_output,
+                        diff_raw_output,
+                        diff_download_md_output,
+                        diff_download_json_output,
+                    ],
+                    api_name=False,
+                )
 
     try:
         demo.launch(server_name=server_name, server_port=server_port, share=False)

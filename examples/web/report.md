@@ -1,13 +1,114 @@
-# Threat Thinker Report
+# Threat Analysis Report
 
-Generated: 2025-10-31T12:55:52.324146+00:00Z
+## Threat Summary
 
-Import Success: 100.0% (edges 2/2, labels 1/1)
+| ID | Threat | Severity | Score |
+|----|---------|---------|-------|
+| T001 | Lack of Authentication on API Endpoint | High | 8.0 |
+| T002 | Unencrypted HTTP Communication Between API and App | High | 8.0 |
+| T003 | No Authentication or Authorization Between App and Database | High | 7.0 |
+| T004 | No Input Validation on API Endpoints | Medium | 5.0 |
+| T005 | Potential Information Disclosure from API in DMZ | Medium | 5.0 |
 
-| ID | Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |
-|---|---|---|---|---|---|---|---|---|
-| TTP01 | High | API lacks authentication, allowing spoofing from Internet | API in DMZ has no authentication, so anyone on the Internet can impersonate users or services. | User, api | Spoofing, Elevation of Privilege | ASVS V2.1 - Authentication Architecture, CWE-287 | user, api | 8 |
-| TTP02 | High | Unencrypted HTTP between API and App exposes sensitive data | HTTP (not HTTPS) between DMZ API and Private App risks data interception or manipulation. | api, app | Information Disclosure, Tampering | ASVS V9.1 - Communications Security, CWE-319 | api, app, api->app | 7 |
-| TTP03 | Medium | API is exposed to Internet, increasing DoS risk | API in DMZ is directly reachable from Internet, making it a target for DoS attacks. | api | Denial of Service | ASVS V10.2 - Denial of Service, CWE-400 | user, api | 6 |
-| TTP04 | Medium | Internal data may be exposed via API due to lack of access controls | API may expose sensitive internal DB data to Internet users if access controls are missing. | api, db | Information Disclosure | ASVS V4.2 - Access Control, CWE-200 | api, db | 6 |
-| TTP05 | Medium | Lack of audit/logging enables repudiation | No evidence of logging or audit trails, making it hard to trace malicious or unauthorized actions. | api, app | Repudiation | ASVS V8.1 - Logging and Monitoring, CWE-778 | api, app, api->app | 5 |
+## Threat Details
+
+### T001: Lack of Authentication on API Endpoint
+
+**Severity:** High
+
+**Score:** 8.0
+
+**STRIDE:** Spoofing, Elevation of Privilege
+
+**Affected Components:** api
+
+**Why:** API in DMZ lacks authentication, allowing unauthorized access from the Internet.
+
+**References:** ASVS V2.1.1, CWE-287
+
+**Recommended Actions:**
+
+Implement strong authentication (e.g., OAuth 2.0, JWT) on the API endpoint.
+
+---
+
+### T002: Unencrypted HTTP Communication Between API and App
+
+**Severity:** High
+
+**Score:** 8.0
+
+**STRIDE:** Tampering, Information Disclosure
+
+**Affected Components:** api, app
+
+**Why:** HTTP protocol between 'api' and 'app' in DMZ/Private zones exposes data to interception and tampering.
+
+**References:** ASVS V9.1.1, CWE-319
+
+**Recommended Actions:**
+
+Enforce HTTPS with TLS 1.3 for all internal service-to-service communication.
+
+---
+
+### T003: No Authentication or Authorization Between App and Database
+
+**Severity:** High
+
+**Score:** 7.0
+
+**STRIDE:** Elevation of Privilege, Information Disclosure
+
+**Affected Components:** app, db
+
+**Why:** No authentication or access control is specified for the app-to-db connection, risking unauthorized data access.
+
+**References:** ASVS V4.1.1, CWE-284
+
+**Recommended Actions:**
+
+Enforce database authentication and least-privilege access controls for the application.
+
+---
+
+### T004: No Input Validation on API Endpoints
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Tampering, Denial of Service
+
+**Affected Components:** api
+
+**Why:** API may be vulnerable to injection or malformed input attacks due to missing validation.
+
+**References:** ASVS V5.3.2, CWE-20
+
+**Recommended Actions:**
+
+Implement strict input validation and sanitization on all API endpoints.
+
+---
+
+### T005: Potential Information Disclosure from API in DMZ
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Information Disclosure
+
+**Affected Components:** api
+
+**Why:** API in DMZ may expose sensitive internal data if not properly filtered or sanitized.
+
+**References:** ASVS V10.4.1, CWE-200
+
+**Recommended Actions:**
+
+Validate and sanitize all API responses to prevent leakage of sensitive information.
+
+---
+

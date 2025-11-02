@@ -76,4 +76,8 @@ def denoise_threats(
         sig_seen.add(sig)
         uniq.append(t)
 
+    # Assign sequential IDs to final threats
+    for i, threat in enumerate(uniq, 1):
+        threat.id = f"T{i:03d}"
+
     return uniq

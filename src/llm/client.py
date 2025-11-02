@@ -43,6 +43,12 @@ class LLMClient:
 
         self.api = api
 
+        # Handle mock API for testing
+        if api == "mock":
+            self.model = "mock-model"
+            self.provider = None
+            return
+
         # Set default models
         if not model:
             if api == "openai":
@@ -85,6 +91,37 @@ class LLMClient:
             NotImplementedError: If API provider is not supported
             RuntimeError: If API key is not set or response is empty
         """
+        # Handle mock API for testing
+        if self.api == "mock":
+            if "diff" in user_prompt.lower() or "changes" in user_prompt.lower():
+                return """## Analysis
+
+The comparison between the before and after systems shows several significant changes in the threat landscape:
+
+### Graph Changes Summary
+No architectural changes were detected between the two system diagrams - the same nodes and edges are present in both versions.
+
+### Threat Changes Summary  
+While the system architecture remained identical, the threat modeling analysis produced different results, with 5 threats being removed and 5 new threats being added.
+
+### Security Impact Analysis
+The threat changes indicate a refinement in the threat analysis rather than fundamental architectural security changes:
+
+1. **Authentication Controls**: Both versions identify similar authentication gaps but with slightly different threat identifications
+2. **Communication Security**: Protocol-related threats remain a consistent concern across both analyses
+3. **Authorization Controls**: Authorization gaps are identified in both versions
+
+### Risk Assessment
+The overall security risk level appears consistent between the two analyses. The changes represent different ways of categorizing and identifying essentially the same underlying security concerns.
+
+### Recommendations
+1. **Implement Authentication**: Address the consistent authentication gaps identified in both analyses
+2. **Secure Communications**: Implement encrypted protocols for all inter-component communications  
+3. **Authorization Controls**: Add proper authorization checks to all system components
+4. **Protocol Specification**: Clearly define and secure all communication protocols between components"""
+            else:
+                return "Mock LLM response for testing. This is a basic analysis of the provided data."
+
         return self.provider.call_api(
             model=self.model,
             system_prompt=system_prompt,
