@@ -91,6 +91,7 @@ threat-thinker diff \
     --llm-api openai \
     --llm-model gpt-4.1 \
     --out-md reports/diff-analysis.md \
+    --out-json reports/diff-analysis.json \
     --lang en
 ```
 

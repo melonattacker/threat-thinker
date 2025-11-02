@@ -1,0 +1,505 @@
+{
+  "generated_at": "2025-11-02T12:03:39.730148+00:00Z",
+  "count": 10,
+  "threats": [
+    {
+      "id": "T001",
+      "title": "Potential Exposure of PII Over Unencrypted Database Connection",
+      "stride": [
+        "Information Disclosure",
+        "Tampering"
+      ],
+      "severity": "High",
+      "score": 8.0,
+      "affected": [
+        "ECS Service (Fargate)",
+        "Aurora (RDS)"
+      ],
+      "why": "PII is transmitted over a generic TCP connection, which may not be encrypted, risking data exposure.",
+      "recommended_action": "Require TLS for all database connections and enforce encryption in transit for Aurora RDS.",
+      "references": [
+        "ASVS V9.1.1",
+        "ASVS V10.4.1",
+        "CWE-319"
+      ],
+      "evidence": {
+        "nodes": [
+          "ecs_service_fargate",
+          "aurora_rds"
+        ],
+        "edges": [
+          "ecs_service_fargate->aurora_rds"
+        ]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "T002",
+      "title": "Unencrypted Traffic Between Load Balancer and ECS Service",
+      "stride": [
+        "Information Disclosure",
+        "Tampering"
+      ],
+      "severity": "High",
+      "score": 8.0,
+      "affected": [
+        "Application Load Balancer",
+        "ECS Service (Fargate)"
+      ],
+      "why": "Traffic between the load balancer and ECS service uses HTTP, exposing sensitive data to interception or modification.",
+      "recommended_action": "Enforce HTTPS/TLS 1.2+ for all internal communications between the load balancer and ECS service.",
+      "references": [
+        "ASVS V9.1.1",
+        "CWE-319"
+      ],
+      "evidence": {
+        "nodes": [
+          "application_load_balancer",
+          "ecs_service_fargate"
+        ],
+        "edges": [
+          "application_load_balancer->ecs_service_fargate"
+        ]
+      },
+      "confidence": 0.95
+    },
+    {
+      "id": "T003",
+      "title": "Lack of Authentication on Application Load Balancer",
+      "stride": [
+        "Elevation of Privilege",
+        "Spoofing"
+      ],
+      "severity": "High",
+      "score": 7.0,
+      "affected": [
+        "Application Load Balancer"
+      ],
+      "why": "The load balancer does not enforce authentication, allowing unauthenticated access to backend services.",
+      "recommended_action": "Implement authentication (e.g., JWT, OAuth2) at the load balancer or ECS service entry point.",
+      "references": [
+        "ASVS V2.1.1",
+        "ASVS V2.1.2",
+        "CWE-287"
+      ],
+      "evidence": {
+        "nodes": [
+          "application_load_balancer"
+        ],
+        "edges": [
+          "cloudfront->application_load_balancer"
+        ]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "T004",
+      "title": "Insufficient Access Controls on S3 Bucket (Assets)",
+      "stride": [
+        "Information Disclosure",
+        "Elevation of Privilege"
+      ],
+      "severity": "Medium",
+      "score": 6.0,
+      "affected": [
+        "S3 Bucket (assets)"
+      ],
+      "why": "S3 bucket contains internal data and may be accessed by unauthorized entities if IAM policies are misconfigured.",
+      "recommended_action": "Restrict S3 bucket access using least privilege IAM roles and enable bucket policies to deny public access.",
+      "references": [
+        "ASVS V4.1.1",
+        "ASVS V1.4.3",
+        "CWE-284"
+      ],
+      "evidence": {
+        "nodes": [
+          "s3_bucket_assets"
+        ],
+        "edges": [
+          "ecs_service_fargate->s3_bucket_assets"
+        ]
+      },
+      "confidence": 0.85
+    },
+    {
+      "id": "T005",
+      "title": "Potential Lack of Input Validation on ECS Service",
+      "stride": [
+        "Tampering",
+        "Elevation of Privilege"
+      ],
+      "severity": "Medium",
+      "score": 6.0,
+      "affected": [
+        "ECS Service (Fargate)"
+      ],
+      "why": "User input flows from the internet to ECS service, risking injection attacks if not validated.",
+      "recommended_action": "Implement strict input validation and sanitization on all user-supplied data at the ECS service.",
+      "references": [
+        "ASVS V5.3.2",
+        "ASVS V5.1.1",
+        "CWE-20"
+      ],
+      "evidence": {
+        "nodes": [
+          "user",
+          "ecs_service_fargate"
+        ],
+        "edges": [
+          "user->cloudfront",
+          "cloudfront->application_load_balancer",
+          "application_load_balancer->ecs_service_fargate"
+        ]
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "T006",
+      "title": "Denial of Service via Unrestricted Public Entry Points",
+      "stride": [
+        "Denial of Service"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "CloudFront",
+        "Application Load Balancer",
+        "ECS Service (Fargate)"
+      ],
+      "why": "Public-facing endpoints may be targeted for DoS attacks due to lack of rate limiting or WAF.",
+      "recommended_action": "Enable AWS WAF and implement rate limiting on CloudFront and the load balancer.",
+      "references": [
+        "ASVS V7.1.1",
+        "ASVS V7.5.1",
+        "CWE-400"
+      ],
+      "evidence": {
+        "nodes": [
+          "cloudfront",
+          "application_load_balancer",
+          "ecs_service_fargate"
+        ],
+        "edges": [
+          "user->cloudfront",
+          "cloudfront->application_load_balancer",
+          "application_load_balancer->ecs_service_fargate"
+        ]
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "T007",
+      "title": "Insufficient Logging and Auditing for Sensitive Operations",
+      "stride": [
+        "Repudiation"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "ECS Service (Fargate)",
+        "Aurora (RDS)",
+        "S3 Bucket (assets)"
+      ],
+      "why": "Lack of comprehensive logging may hinder detection and investigation of security incidents involving PII or internal data.",
+      "recommended_action": "Enable detailed logging and auditing for ECS, RDS, and S3, and ensure logs are protected and monitored.",
+      "references": [
+        "ASVS V10.1.1",
+        "ASVS V10.2.1",
+        "CWE-778"
+      ],
+      "evidence": {
+        "nodes": [
+          "ecs_service_fargate",
+          "aurora_rds",
+          "s3_bucket_assets"
+        ],
+        "edges": [
+          "ecs_service_fargate->aurora_rds",
+          "ecs_service_fargate->s3_bucket_assets"
+        ]
+      },
+      "confidence": 0.75
+    },
+    {
+      "id": "T008",
+      "title": "Lack of Encryption at Rest for Sensitive Data Stores",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "Aurora (RDS)",
+        "S3 Bucket (assets)"
+      ],
+      "why": "Sensitive data may be stored unencrypted at rest, risking exposure if storage is compromised.",
+      "recommended_action": "Enable encryption at rest for Aurora RDS and S3 buckets using AWS KMS.",
+      "references": [
+        "ASVS V9.4.1",
+        "ASVS V9.4.2",
+        "CWE-311"
+      ],
+      "evidence": {
+        "nodes": [
+          "aurora_rds",
+          "s3_bucket_assets"
+        ],
+        "edges": []
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "T009",
+      "title": "Over-Privileged Lambda Worker Access",
+      "stride": [
+        "Elevation of Privilege"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "Lambda Worker",
+        "SQS Queue (jobs)",
+        "SNS Topic (events)"
+      ],
+      "why": "Lambda worker may have excessive permissions to queues, increasing risk if compromised.",
+      "recommended_action": "Apply least privilege IAM roles to Lambda, restricting access only to required queues and topics.",
+      "references": [
+        "ASVS V4.2.1",
+        "ASVS V1.4.3",
+        "CWE-250"
+      ],
+      "evidence": {
+        "nodes": [
+          "lambda_worker",
+          "sqs_queue_jobs",
+          "sns_topic_events"
+        ],
+        "edges": [
+          "sqs_queue_jobs->lambda_worker",
+          "sns_topic_events->lambda_worker"
+        ]
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "T010",
+      "title": "Potential Information Disclosure via SNS/SQS Misconfiguration",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "SQS Queue (jobs)",
+        "SNS Topic (events)"
+      ],
+      "why": "Internal data in queues/topics could be exposed if access policies are too permissive.",
+      "recommended_action": "Review and tighten SNS/SQS access policies to allow only trusted principals.",
+      "references": [
+        "ASVS V4.1.1",
+        "ASVS V1.4.3",
+        "CWE-284"
+      ],
+      "evidence": {
+        "nodes": [
+          "sqs_queue_jobs",
+          "sns_topic_events"
+        ],
+        "edges": [
+          "ecs_service_fargate->sqs_queue_jobs",
+          "ecs_service_fargate->sns_topic_events"
+        ]
+      },
+      "confidence": 0.75
+    }
+  ],
+  "import_metrics": {
+    "total_lines": 164367,
+    "edge_candidates": 9,
+    "edges_parsed": 9,
+    "node_label_candidates": 9,
+    "node_labels_parsed": 9,
+    "import_success_rate": 1.0
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "user",
+        "label": "User",
+        "zone": "Internet",
+        "type": "actor",
+        "data": [
+          "Credentials"
+        ],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "cloudfront",
+        "label": "CloudFront",
+        "zone": "DMZ",
+        "type": "ingress",
+        "data": [
+          "Credentials"
+        ],
+        "auth": true,
+        "notes": "Acts as CDN and entry point"
+      },
+      {
+        "id": "application_load_balancer",
+        "label": "Application Load Balancer",
+        "zone": "DMZ",
+        "type": "elb",
+        "data": [],
+        "auth": false,
+        "notes": null
+      },
+      {
+        "id": "ecs_service_fargate",
+        "label": "ECS Service (Fargate)",
+        "zone": "VPC-Private",
+        "type": "service",
+        "data": [
+          "PII",
+          "Internal"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "s3_bucket_assets",
+        "label": "S3 Bucket (assets)",
+        "zone": "AWS-Managed",
+        "type": "s3",
+        "data": [
+          "Internal"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "aurora_rds",
+        "label": "Aurora (RDS)",
+        "zone": "VPC-Private",
+        "type": "database",
+        "data": [
+          "PII"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "sqs_queue_jobs",
+        "label": "SQS Queue (jobs)",
+        "zone": "AWS-Managed",
+        "type": "queue",
+        "data": [
+          "Internal"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "lambda_worker",
+        "label": "Lambda Worker",
+        "zone": "AWS-Managed",
+        "type": "lambda",
+        "data": [
+          "Internal"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "sns_topic_events",
+        "label": "SNS Topic (events)",
+        "zone": "AWS-Managed",
+        "type": "queue",
+        "data": [
+          "Internal"
+        ],
+        "auth": true,
+        "notes": null
+      }
+    ],
+    "edges": [
+      {
+        "src": "user",
+        "dst": "cloudfront",
+        "label": "HTTPS Credentials",
+        "protocol": "HTTPS",
+        "data": [
+          "Credentials"
+        ]
+      },
+      {
+        "src": "cloudfront",
+        "dst": "application_load_balancer",
+        "label": "HTTPS",
+        "protocol": "HTTPS",
+        "data": []
+      },
+      {
+        "src": "application_load_balancer",
+        "dst": "ecs_service_fargate",
+        "label": "HTTP",
+        "protocol": "HTTP",
+        "data": []
+      },
+      {
+        "src": "ecs_service_fargate",
+        "dst": "s3_bucket_assets",
+        "label": "HTTPS Internal Data",
+        "protocol": "HTTPS",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "ecs_service_fargate",
+        "dst": "sqs_queue_jobs",
+        "label": "HTTPS Internal Data",
+        "protocol": "HTTPS",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "ecs_service_fargate",
+        "dst": "aurora_rds",
+        "label": "TCP PII Data",
+        "protocol": "TCP",
+        "data": [
+          "PII"
+        ]
+      },
+      {
+        "src": "ecs_service_fargate",
+        "dst": "sns_topic_events",
+        "label": "HTTPS Internal Data",
+        "protocol": "HTTPS",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "sqs_queue_jobs",
+        "dst": "lambda_worker",
+        "label": "HTTPS Internal Data",
+        "protocol": "HTTPS",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "sns_topic_events",
+        "dst": "lambda_worker",
+        "label": "HTTPS Internal Data",
+        "protocol": "HTTPS",
+        "data": [
+          "Internal"
+        ]
+      }
+    ]
+  }
+}

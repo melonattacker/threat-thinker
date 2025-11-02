@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="2" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="80" y="200" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="3" value="WAF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+      <mxGeometry x="200" y="200" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="4" value="API Gateway" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="320" y="200" width="100" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="5" value="App Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="480" y="200" width="100" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="6" value="Redis Cache" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffd966;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="490" y="290" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="7" value="Customer DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="580" y="90" width="80" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="8" value="Log Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;" vertex="1" parent="1">
+      <mxGeometry x="630" y="200" width="100" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="9" value="Analytics DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+      <mxGeometry x="810" y="190" width="80" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="10" value="Monitoring Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36c366;" vertex="1" parent="1">
+      <mxGeometry x="630" y="290" width="100" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="11" value="Alert Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcccc;strokeColor=#ff6666;" vertex="1" parent="1">
+      <mxGeometry x="810" y="290" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="12" value="" edge="1" source="2" target="3" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="13" value="" edge="1" source="3" target="4" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="14" value="" edge="1" source="4" target="5" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="15" value="" edge="1" source="4" target="6" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="16" value="" edge="1" source="5" target="7" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="17" value="" edge="1" source="5" target="8" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="18" value="" edge="1" source="8" target="9" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="19" value="" edge="1" source="5" target="10" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="20" value="" edge="1" source="10" target="11" parent="1">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="370" y="400" as="sourcePoint" />
+        <mxPoint x="420" y="350" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>

@@ -1,18 +1,219 @@
-# Threat Thinker Report
+# Threat Analysis Report
 
-Generated: 2025-10-31T13:05:28.425775+00:00Z
+## Threat Summary
 
-Import Success: 100.0% (edges 8/8, labels 9/9)
+| ID | Threat | Severity | Score |
+|----|---------|---------|-------|
+| T001 | Potential Exposure of PII Over Unencrypted Database Connection | High | 8.0 |
+| T002 | Unencrypted Traffic Between Load Balancer and ECS Service | High | 8.0 |
+| T003 | Lack of Authentication on Application Load Balancer | High | 7.0 |
+| T004 | Insufficient Access Controls on S3 Bucket (Assets) | Medium | 6.0 |
+| T005 | Potential Lack of Input Validation on ECS Service | Medium | 6.0 |
+| T006 | Denial of Service via Unrestricted Public Entry Points | Medium | 5.0 |
+| T007 | Insufficient Logging and Auditing for Sensitive Operations | Medium | 5.0 |
+| T008 | Lack of Encryption at Rest for Sensitive Data Stores | Medium | 5.0 |
+| T009 | Over-Privileged Lambda Worker Access | Medium | 5.0 |
+| T010 | Potential Information Disclosure via SNS/SQS Misconfiguration | Medium | 5.0 |
 
-| ID | Severity | Title | Why | Affected | STRIDE | References | Evidence | Score |
-|---|---|---|---|---|---|---|---|---|
-| T001 | High | PII Exposure in Database Communication | PII is transmitted over TCP with unspecified encryption, risking data leakage or modification in transit. | ECS Service (Fargate), Aurora (RDS) | Information Disclosure, Tampering | ASVS V9.1.1, ASVS V10.2.1, CWE-319 | ecs_service_fargate, aurora_rds, ecs_service_fargate->aurora_rds | 8 |
-| T002 | High | Unencrypted Traffic Between Load Balancer and ECS Service | HTTP (not HTTPS) is used between the load balancer and ECS, risking PII/internal data exposure or tampering. | Application Load Balancer, ECS Service (Fargate) | Information Disclosure, Tampering | ASVS V9.1.1, ASVS V10.2.1, CWE-319 | application_load_balancer, ecs_service_fargate, application_load_balancer->ecs_service_fargate | 8 |
-| T003 | High | Potential Lack of End-to-End Authentication | No authentication is specified between the load balancer and ECS, risking unauthorized access to internal services. | Application Load Balancer, ECS Service (Fargate) | Spoofing, Elevation of Privilege | ASVS V2.1.1, ASVS V2.2.2, CWE-287 | application_load_balancer, ecs_service_fargate, application_load_balancer->ecs_service_fargate | 7 |
-| T004 | Medium | Credential Exposure from User to CloudFront | User credentials are transmitted; if HTTPS is misconfigured, credentials could be intercepted or replayed. | User, CloudFront | Information Disclosure, Spoofing | ASVS V2.1.1, ASVS V9.1.1, CWE-522 | user, cloudfront, user->cloudfront | 6 |
-| T005 | Medium | Insufficient Access Controls on S3 Bucket (Assets) | Internal data in S3 may be accessible if bucket policies are overly permissive or misconfigured. | ECS Service (Fargate), S3 Bucket (assets) | Information Disclosure, Elevation of Privilege | ASVS V4.1.3, ASVS V1.4.3, CWE-284 | ecs_service_fargate, s3_bucket_assets, ecs_service_fargate->s3_bucket_assets | 6 |
-| T006 | Medium | Denial of Service via Unrestricted Queue/Event Injection | If access controls are weak, attackers could flood queues or events, exhausting Lambda or backend resources. | SQS Queue (jobs), SNS Topic (events), Lambda Worker | Denial of Service | ASVS V7.5.1, ASVS V10.4.3, CWE-400 | sqs_queue_jobs, sns_topic_events, lambda_worker, sqs_queue_jobs->lambda_worker, sns_topic_events->lambda_worker | 5 |
-| T007 | Medium | Lack of Message Integrity in SQS/SNS Communications | No evidence of message signing or integrity checks, risking message tampering or spoofing in internal queues. | ECS Service (Fargate), SQS Queue (jobs), SNS Topic (events), Lambda Worker | Tampering, Repudiation | ASVS V10.4.1, ASVS V10.4.2, CWE-345 | ecs_service_fargate, sqs_queue_jobs, sns_topic_events, lambda_worker, ecs_service_fargate->sqs_queue_jobs, sns_topic_events->lambda_worker | 5 |
-| T008 | Medium | Potential Over-Privileged Lambda Worker | Lambda may have excessive permissions to SQS/SNS or other AWS resources, increasing lateral movement risk. | Lambda Worker | Elevation of Privilege, Tampering | ASVS V1.4.2, ASVS V4.2.1, CWE-250 | lambda_worker, sqs_queue_jobs->lambda_worker, sns_topic_events->lambda_worker | 5 |
-| T009 | Medium | Insufficient Audit Logging for Sensitive Operations | No evidence of audit logging for access to PII or internal data, hindering incident response and accountability. | ECS Service (Fargate), Aurora (RDS), S3 Bucket (assets) | Repudiation | ASVS V10.1.1, ASVS V10.2.1, CWE-778 | ecs_service_fargate, aurora_rds, s3_bucket_assets, ecs_service_fargate->aurora_rds, ecs_service_fargate->s3_bucket_assets | 4 |
-| T010 | Medium | Potential Data Leakage via Misconfigured CloudFront | CloudFront may expose sensitive headers or cache private data if not properly configured. | CloudFront | Information Disclosure | ASVS V9.1.1, ASVS V14.4.1, CWE-200 | cloudfront, user->cloudfront, cloudfront->application_load_balancer | 4 |
+## Threat Details
+
+### T001: Potential Exposure of PII Over Unencrypted Database Connection
+
+**Severity:** High
+
+**Score:** 8.0
+
+**STRIDE:** Information Disclosure, Tampering
+
+**Affected Components:** ECS Service (Fargate), Aurora (RDS)
+
+**Why:** PII is transmitted over a generic TCP connection, which may not be encrypted, risking data exposure.
+
+**References:** ASVS V9.1.1, ASVS V10.4.1, CWE-319
+
+**Recommended Actions:**
+
+Require TLS for all database connections and enforce encryption in transit for Aurora RDS.
+
+---
+
+### T002: Unencrypted Traffic Between Load Balancer and ECS Service
+
+**Severity:** High
+
+**Score:** 8.0
+
+**STRIDE:** Information Disclosure, Tampering
+
+**Affected Components:** Application Load Balancer, ECS Service (Fargate)
+
+**Why:** Traffic between the load balancer and ECS service uses HTTP, exposing sensitive data to interception or modification.
+
+**References:** ASVS V9.1.1, CWE-319
+
+**Recommended Actions:**
+
+Enforce HTTPS/TLS 1.2+ for all internal communications between the load balancer and ECS service.
+
+---
+
+### T003: Lack of Authentication on Application Load Balancer
+
+**Severity:** High
+
+**Score:** 7.0
+
+**STRIDE:** Elevation of Privilege, Spoofing
+
+**Affected Components:** Application Load Balancer
+
+**Why:** The load balancer does not enforce authentication, allowing unauthenticated access to backend services.
+
+**References:** ASVS V2.1.1, ASVS V2.1.2, CWE-287
+
+**Recommended Actions:**
+
+Implement authentication (e.g., JWT, OAuth2) at the load balancer or ECS service entry point.
+
+---
+
+### T004: Insufficient Access Controls on S3 Bucket (Assets)
+
+**Severity:** Medium
+
+**Score:** 6.0
+
+**STRIDE:** Information Disclosure, Elevation of Privilege
+
+**Affected Components:** S3 Bucket (assets)
+
+**Why:** S3 bucket contains internal data and may be accessed by unauthorized entities if IAM policies are misconfigured.
+
+**References:** ASVS V4.1.1, ASVS V1.4.3, CWE-284
+
+**Recommended Actions:**
+
+Restrict S3 bucket access using least privilege IAM roles and enable bucket policies to deny public access.
+
+---
+
+### T005: Potential Lack of Input Validation on ECS Service
+
+**Severity:** Medium
+
+**Score:** 6.0
+
+**STRIDE:** Tampering, Elevation of Privilege
+
+**Affected Components:** ECS Service (Fargate)
+
+**Why:** User input flows from the internet to ECS service, risking injection attacks if not validated.
+
+**References:** ASVS V5.3.2, ASVS V5.1.1, CWE-20
+
+**Recommended Actions:**
+
+Implement strict input validation and sanitization on all user-supplied data at the ECS service.
+
+---
+
+### T006: Denial of Service via Unrestricted Public Entry Points
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Denial of Service
+
+**Affected Components:** CloudFront, Application Load Balancer, ECS Service (Fargate)
+
+**Why:** Public-facing endpoints may be targeted for DoS attacks due to lack of rate limiting or WAF.
+
+**References:** ASVS V7.1.1, ASVS V7.5.1, CWE-400
+
+**Recommended Actions:**
+
+Enable AWS WAF and implement rate limiting on CloudFront and the load balancer.
+
+---
+
+### T007: Insufficient Logging and Auditing for Sensitive Operations
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Repudiation
+
+**Affected Components:** ECS Service (Fargate), Aurora (RDS), S3 Bucket (assets)
+
+**Why:** Lack of comprehensive logging may hinder detection and investigation of security incidents involving PII or internal data.
+
+**References:** ASVS V10.1.1, ASVS V10.2.1, CWE-778
+
+**Recommended Actions:**
+
+Enable detailed logging and auditing for ECS, RDS, and S3, and ensure logs are protected and monitored.
+
+---
+
+### T008: Lack of Encryption at Rest for Sensitive Data Stores
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Information Disclosure
+
+**Affected Components:** Aurora (RDS), S3 Bucket (assets)
+
+**Why:** Sensitive data may be stored unencrypted at rest, risking exposure if storage is compromised.
+
+**References:** ASVS V9.4.1, ASVS V9.4.2, CWE-311
+
+**Recommended Actions:**
+
+Enable encryption at rest for Aurora RDS and S3 buckets using AWS KMS.
+
+---
+
+### T009: Over-Privileged Lambda Worker Access
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Elevation of Privilege
+
+**Affected Components:** Lambda Worker, SQS Queue (jobs), SNS Topic (events)
+
+**Why:** Lambda worker may have excessive permissions to queues, increasing risk if compromised.
+
+**References:** ASVS V4.2.1, ASVS V1.4.3, CWE-250
+
+**Recommended Actions:**
+
+Apply least privilege IAM roles to Lambda, restricting access only to required queues and topics.
+
+---
+
+### T010: Potential Information Disclosure via SNS/SQS Misconfiguration
+
+**Severity:** Medium
+
+**Score:** 5.0
+
+**STRIDE:** Information Disclosure
+
+**Affected Components:** SQS Queue (jobs), SNS Topic (events)
+
+**Why:** Internal data in queues/topics could be exposed if access policies are too permissive.
+
+**References:** ASVS V4.1.1, ASVS V1.4.3, CWE-284
+
+**Recommended Actions:**
+
+Review and tighten SNS/SQS access policies to allow only trusted principals.
+
+---
+

@@ -127,7 +127,7 @@ def main():
     p_diff.add_argument(
         "--before", type=str, required=True, help="Path to before report JSON"
     )
-    p_diff.add_argument("--out", type=str, help="Write diff JSON to file")
+    p_diff.add_argument("--out-json", type=str, help="Write diff JSON to file")
     p_diff.add_argument("--out-md", type=str, help="Write diff Markdown to file")
     p_diff.add_argument(
         "--llm-api",
@@ -349,8 +349,8 @@ def main():
             args.lang,
         )
         s = json.dumps(d, ensure_ascii=False, indent=2)
-        if args.out:
-            with open(args.out, "w", encoding="utf-8") as f:
+        if args.out_json:
+            with open(args.out_json, "w", encoding="utf-8") as f:
                 f.write(s)
         if args.out_md:
             md_output = export_diff_md(d, args.out_md)

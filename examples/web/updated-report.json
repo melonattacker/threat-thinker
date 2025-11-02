@@ -1,0 +1,375 @@
+{
+  "generated_at": "2025-11-02T12:41:25.922324+00:00Z",
+  "count": 5,
+  "threats": [
+    {
+      "id": "T001",
+      "title": "Unencrypted Internal API Communication Exposes PII",
+      "stride": [
+        "Information Disclosure",
+        "Tampering"
+      ],
+      "severity": "High",
+      "score": 8.0,
+      "affected": [
+        "api",
+        "app"
+      ],
+      "why": "API communicates with app over HTTP (not HTTPS), risking PII exposure and tampering in transit.",
+      "recommended_action": "Enforce TLS 1.2+ for all internal service-to-service communications, especially where PII is present.",
+      "references": [
+        "ASVS V9.1.1",
+        "ASVS V10.2.1",
+        "CWE-319"
+      ],
+      "evidence": {
+        "nodes": [
+          "api",
+          "app"
+        ],
+        "edges": [
+          "api->app"
+        ]
+      },
+      "confidence": 0.95
+    },
+    {
+      "id": "T002",
+      "title": "Unknown Protocols on Sensitive Internal Connections",
+      "stride": [
+        "Information Disclosure",
+        "Tampering"
+      ],
+      "severity": "High",
+      "score": 8.0,
+      "affected": [
+        "api",
+        "cache",
+        "app",
+        "logs",
+        "logs",
+        "analytics",
+        "app",
+        "monitor",
+        "monitor",
+        "alerts"
+      ],
+      "why": "Several internal edges use 'unknown' protocols, risking unencrypted or unauthenticated data transfer.",
+      "recommended_action": "Explicitly specify and enforce secure protocols (e.g., HTTPS, TLS) for all internal service connections.",
+      "references": [
+        "ASVS V9.1.1",
+        "ASVS V10.2.1",
+        "CWE-319"
+      ],
+      "evidence": {
+        "nodes": [
+          "api",
+          "cache",
+          "app",
+          "logs",
+          "logs",
+          "analytics",
+          "app",
+          "monitor",
+          "monitor",
+          "alerts"
+        ],
+        "edges": [
+          "api->cache",
+          "app->logs",
+          "logs->analytics",
+          "app->monitor",
+          "monitor->alerts"
+        ]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "T003",
+      "title": "Cache Service Lacks Authentication Controls",
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "severity": "High",
+      "score": 7.0,
+      "affected": [
+        "cache"
+      ],
+      "why": "Cache node has null 'auth', risking unauthorized access to internal data.",
+      "recommended_action": "Implement strong authentication and access controls for the cache service.",
+      "references": [
+        "ASVS V2.1.1",
+        "ASVS V4.1.1",
+        "CWE-284"
+      ],
+      "evidence": {
+        "nodes": [
+          "cache"
+        ],
+        "edges": [
+          "api->cache"
+        ]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "T004",
+      "title": "No Evidence of Secrets Management for Credentials in App and DB",
+      "stride": [
+        "Information Disclosure",
+        "Elevation of Privilege"
+      ],
+      "severity": "High",
+      "score": 7.0,
+      "affected": [
+        "app",
+        "db"
+      ],
+      "why": "App and DB nodes store credentials and secrets, but no evidence of secure secrets management.",
+      "recommended_action": "Use a centralized secrets management solution (e.g., HashiCorp Vault, AWS Secrets Manager) for all credentials.",
+      "references": [
+        "ASVS V10.3.1",
+        "ASVS V10.3.2",
+        "CWE-798"
+      ],
+      "evidence": {
+        "nodes": [
+          "app",
+          "db"
+        ],
+        "edges": [
+          "app->db"
+        ]
+      },
+      "confidence": 0.85
+    },
+    {
+      "id": "T005",
+      "title": "Sensitive Data in Database May Be Unencrypted at Rest",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "severity": "High",
+      "score": 7.0,
+      "affected": [
+        "db"
+      ],
+      "why": "Database node stores PII, secrets, and credentials, but no evidence of encryption at rest.",
+      "recommended_action": "Enable strong encryption at rest for all sensitive data in the database.",
+      "references": [
+        "ASVS V10.1.1",
+        "ASVS V10.2.1",
+        "CWE-311"
+      ],
+      "evidence": {
+        "nodes": [
+          "db"
+        ],
+        "edges": [
+          "app->db"
+        ]
+      },
+      "confidence": 0.85
+    }
+  ],
+  "import_metrics": {
+    "total_lines": 13,
+    "edge_candidates": 8,
+    "edges_parsed": 8,
+    "node_label_candidates": 1,
+    "node_labels_parsed": 1,
+    "import_success_rate": 1.0
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "waf",
+        "label": "waf",
+        "zone": "DMZ",
+        "type": "ingress",
+        "data": [],
+        "auth": false,
+        "notes": null
+      },
+      {
+        "id": "api",
+        "label": "api",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal",
+          "PII"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "app",
+        "label": "app",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal",
+          "PII",
+          "Credentials"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "cache",
+        "label": "cache",
+        "zone": "Private",
+        "type": "cache",
+        "data": [
+          "Internal"
+        ],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "db",
+        "label": "db",
+        "zone": "Private",
+        "type": "database",
+        "data": [
+          "Internal",
+          "PII",
+          "Secrets",
+          "Credentials"
+        ],
+        "auth": true,
+        "notes": null
+      },
+      {
+        "id": "logs",
+        "label": "logs",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "analytics",
+        "label": "analytics",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "monitor",
+        "label": "monitor",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "alerts",
+        "label": "alerts",
+        "zone": "Private",
+        "type": "service",
+        "data": [],
+        "auth": null,
+        "notes": null
+      },
+      {
+        "id": "user",
+        "label": "User",
+        "zone": "Internet",
+        "type": "actor",
+        "data": [],
+        "auth": null,
+        "notes": null
+      }
+    ],
+    "edges": [
+      {
+        "src": "waf",
+        "dst": "api",
+        "label": null,
+        "protocol": "HTTPS",
+        "data": [
+          "Internal",
+          "PII"
+        ]
+      },
+      {
+        "src": "api",
+        "dst": "app",
+        "label": null,
+        "protocol": "HTTP",
+        "data": [
+          "Internal",
+          "PII"
+        ]
+      },
+      {
+        "src": "api",
+        "dst": "cache",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "app",
+        "dst": "db",
+        "label": null,
+        "protocol": "TCP",
+        "data": [
+          "Internal",
+          "PII",
+          "Secrets",
+          "Credentials"
+        ]
+      },
+      {
+        "src": "app",
+        "dst": "logs",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "logs",
+        "dst": "analytics",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "app",
+        "dst": "monitor",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "monitor",
+        "dst": "alerts",
+        "label": null,
+        "protocol": "unknown",
+        "data": []
+      }
+    ]
+  }
+}
