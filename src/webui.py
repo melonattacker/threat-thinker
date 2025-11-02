@@ -81,13 +81,15 @@ def _generate_diff_report(
 ) -> Tuple[str, str, Optional[str], Optional[str]]:
     """Generate diff report between two JSON files."""
     if not before_file or not after_file:
-        raise gr.Error("Both before and after JSON files are required for diff analysis.")
-    
+        raise gr.Error(
+            "Both before and after JSON files are required for diff analysis."
+        )
+
     # Validate file extensions
     for file_path, label in [(before_file, "Before"), (after_file, "After")]:
-        if not file_path.lower().endswith('.json'):
+        if not file_path.lower().endswith(".json"):
             raise gr.Error(f"{label} file must be a JSON file.")
-    
+
     llm_api = (llm_api or "openai").strip().lower()
     llm_model = (llm_model or "").strip() or "gpt-4o-mini"
     aws_profile = (aws_profile or "").strip() or None
@@ -108,7 +110,7 @@ def _generate_diff_report(
 
         # Generate markdown report
         md_report = export_diff_md(diff_data)
-        
+
         # Generate JSON report
         json_report = json.dumps(diff_data, ensure_ascii=False, indent=2)
 
@@ -198,7 +200,6 @@ def _generate_report(
         hints_path = _write_temp_file(hints_text, ".yaml")
 
     status_lines = []
-    download_path: Optional[str] = None
 
     try:
         # Parse diagram based on input method and format
@@ -290,16 +291,16 @@ def _generate_report(
         else:  # both
             json_report = cli.export_json(filtered, None, metrics, graph)
             md_report = cli.export_md(filtered, None, metrics)
-            report_text = f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
-            
+            report_text = (
+                f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
+            )
+
             download_json_path = _write_temp_file(json_report, ".json")
             download_md_path = _write_temp_file(md_report, ".md")
             _DOWNLOAD_PATHS.add(download_json_path)
             _DOWNLOAD_PATHS.add(download_md_path)
-        
-        status_lines.append("Report generated successfully.")
 
-        download_path = download_md_path or download_json_path  # For backward compatibility
+        status_lines.append("Report generated successfully.")
 
         # For Markdown preview, always use the markdown report
         if output_format == "json":
@@ -521,7 +522,7 @@ def launch_webui(
                 gr.Markdown(
                     "### Compare Threat Reports\nUpload two JSON threat reports to analyze differences and generate a comparison report."
                 )
-                
+
                 with gr.Row():
                     before_file_input = gr.File(
                         label="Before Report (JSON)",
@@ -563,7 +564,9 @@ def launch_webui(
                     placeholder="e.g., en, ja, fr, de, es, zh, ko, pt, it, ru, ar, hi, th, vi, nl, sv, da, no, fi, pl, cs, hu, tr, he, id, ms, tl, bn, ta, te, ml, kn, gu, ur, fa, uk, bg, hr, sr, sk, sl, et, lv, lt, mt",
                 )
 
-                diff_generate_button = gr.Button("Generate Diff Report", variant="primary")
+                diff_generate_button = gr.Button(
+                    "Generate Diff Report", variant="primary"
+                )
 
                 with gr.Tabs():
                     with gr.Tab("Markdown Preview"):

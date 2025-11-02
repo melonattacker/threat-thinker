@@ -121,8 +121,12 @@ def main():
     )
 
     p_diff = sub.add_parser("diff", help="Diff two JSON reports")
-    p_diff.add_argument("--after", type=str, required=True, help="Path to after report JSON")
-    p_diff.add_argument("--before", type=str, required=True, help="Path to before report JSON")
+    p_diff.add_argument(
+        "--after", type=str, required=True, help="Path to after report JSON"
+    )
+    p_diff.add_argument(
+        "--before", type=str, required=True, help="Path to before report JSON"
+    )
     p_diff.add_argument("--out", type=str, help="Write diff JSON to file")
     p_diff.add_argument("--out-md", type=str, help="Write diff Markdown to file")
     p_diff.add_argument(
@@ -307,12 +311,12 @@ def main():
             s = export_json(threats, args.out_json, metrics, g)
             print(s)
         elif args.format == "md":
-            s = export_md(threats, args.out_md, metrics)
+            s = export_md(threats, args.out_md)
             print(s)
         elif args.format == "both":
             # Export both formats
             json_output = export_json(threats, args.out_json, metrics, g)
-            md_output = export_md(threats, args.out_md, metrics)
+            md_output = export_md(threats, args.out_md)
             print("JSON Output:")
             print(json_output)
             print("\nMarkdown Output:")
@@ -336,7 +340,7 @@ def main():
                 )
 
         d = diff_reports(
-            args.after, 
+            args.after,
             args.before,
             args.llm_api,
             args.llm_model,

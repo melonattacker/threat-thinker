@@ -111,6 +111,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="Input validation missing",
             references=["ASVS V5.1.1", "CWE-89"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API"],
             confidence=0.9,
         )
@@ -124,6 +125,7 @@ class TestDenoiseThreats:
             affected=["DB"],
             why="No encryption",
             references=["CWE-319"],
+            recommended_action="Test recommended action",
             evidence_nodes=["DB"],
             confidence=0.8,
         )
@@ -150,6 +152,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="Input validation missing",
             references=["ASVS V5.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API"],
             confidence=0.9,
         )
@@ -163,6 +166,7 @@ class TestDenoiseThreats:
             affected=["DB"],
             why="No encryption",
             references=["ASVS V2.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["DB"],
             confidence=0.3,
         )
@@ -176,6 +180,7 @@ class TestDenoiseThreats:
             affected=["Cache"],
             why="Data exposure",
             references=["ASVS V1.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["Cache"],
             confidence=None,
         )
@@ -200,6 +205,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="Input validation missing",
             references=["ASVS V5.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API"],
             confidence=0.9,
         )
@@ -213,6 +219,7 @@ class TestDenoiseThreats:
             affected=["DB"],
             why="No encryption",
             references=["ASVS V2.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=[],
             evidence_edges=[],
             confidence=0.8,
@@ -235,6 +242,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="Input validation is missing from user input fields",
             references=["ASVS V5.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API"],
             confidence=0.9,
         )
@@ -248,6 +256,7 @@ class TestDenoiseThreats:
             affected=["DB"],
             why="Bad",  # Too short (< 6 chars)
             references=["ASVS V2.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["DB"],
             confidence=0.8,
         )
@@ -269,6 +278,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="High score threat",
             references=["ASVS V5.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API"],
             confidence=0.9,
         )
@@ -282,6 +292,7 @@ class TestDenoiseThreats:
             affected=["DB"],
             why="Medium score threat",
             references=["ASVS V2.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["DB"],
             confidence=0.8,
         )
@@ -295,6 +306,7 @@ class TestDenoiseThreats:
             affected=["Cache"],
             why="Same score threat 1",
             references=["ASVS V1.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["Cache"],
             confidence=0.7,
         )
@@ -308,6 +320,7 @@ class TestDenoiseThreats:
             affected=["Queue"],
             why="Same score threat 2",
             references=["ASVS V1.2.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["Queue"],
             confidence=0.6,
         )
@@ -342,6 +355,7 @@ class TestDenoiseThreats:
                 affected=[f"System{i}"],
                 why=f"Threat reason {i}",
                 references=["ASVS V1.1.1"],
+                recommended_action="Test recommended action",
                 evidence_nodes=[f"Node{i}"],
                 confidence=0.8,
             )
@@ -365,6 +379,7 @@ class TestDenoiseThreats:
             affected=["API"],
             why="Input validation missing",
             references=["ASVS V5.1.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["API", "DB"],
             evidence_edges=["API->DB"],
             confidence=0.9,
@@ -380,6 +395,7 @@ class TestDenoiseThreats:
             affected=["Database"],
             why="No input validation",
             references=["ASVS V5.1.2"],
+            recommended_action="Test recommended action",
             evidence_nodes=["DB", "API"],  # Different order
             evidence_edges=["API->DB"],
             confidence=0.8,
@@ -395,6 +411,7 @@ class TestDenoiseThreats:
             affected=["Frontend"],
             why="No output encoding",
             references=["ASVS V5.3.1"],
+            recommended_action="Test recommended action",
             evidence_nodes=["WebApp"],
             evidence_edges=[],
             confidence=0.7,

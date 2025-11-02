@@ -56,6 +56,7 @@ class Threat:
     affected: List[str]
     why: str
     references: List[str]  # e.g., ["ASVS V5 ...", "CWE-319 ..."]
+    recommended_action: str  # developer-friendly actionable guidance
     evidence_nodes: List[str] = field(default_factory=list)  # node IDs
     evidence_edges: List[str] = field(default_factory=list)  # edge IDs (src->dst)
     confidence: Optional[float] = None

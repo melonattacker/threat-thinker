@@ -121,8 +121,7 @@ The overall security risk level appears consistent between the two analyses. The
 4. **Protocol Specification**: Clearly define and secure all communication protocols between components"""
             else:
                 return "Mock LLM response for testing. This is a basic analysis of the provided data."
-        
-        
+
         return self.provider.call_api(
             model=self.model,
             system_prompt=system_prompt,

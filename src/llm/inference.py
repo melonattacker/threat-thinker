@@ -208,6 +208,9 @@ def llm_infer_threats(
                 score=score,
                 affected=[str(a) for a in (t.get("affected") or [])],
                 why=str(t.get("why") or ""),
+                recommended_action=str(
+                    t.get("recommended_action") or "No specific action provided"
+                ),
                 references=[str(r) for r in (t.get("references") or [])],
                 evidence_nodes=ev_nodes,
                 evidence_edges=ev_edges,
