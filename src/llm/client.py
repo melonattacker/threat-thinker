@@ -7,16 +7,22 @@ from typing import Dict, Optional
 
 from .providers import get_provider
 
+
 class LLMClient:
     """
     LLM client for both text and image analysis
     """
-    
-    def __init__(self, api: Optional[str] = None, model: Optional[str] = None,
-                 aws_profile: Optional[str] = None, aws_region: Optional[str] = None):
+
+    def __init__(
+        self,
+        api: Optional[str] = None,
+        model: Optional[str] = None,
+        aws_profile: Optional[str] = None,
+        aws_region: Optional[str] = None,
+    ):
         """
         Initialize LLM client with provider settings.
-        
+
         Args:
             api: LLM API provider (defaults to first available: openai, anthropic, bedrock)
             model: Model name (defaults to provider's best text/vision model)
@@ -25,7 +31,7 @@ class LLMClient:
         """
         self.aws_profile = aws_profile
         self.aws_region = aws_region
-        
+
         # Auto-detect API if not specified
         if not api:
             if os.getenv("OPENAI_API_KEY"):
@@ -34,9 +40,9 @@ class LLMClient:
                 api = "anthropic"
             else:
                 api = "bedrock"  # Fallback to bedrock
-        
+
         self.api = api
-        
+
         # Set default models
         if not model:
             if api == "openai":
@@ -45,29 +51,36 @@ class LLMClient:
                 model = "claude-3-5-sonnet-20241022"  # Claude 3.5 Sonnet latest
             elif api == "bedrock":
                 model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
-        
+
         self.model = model
-        
+
         # Initialize provider once during client creation
-        self.provider = get_provider(self.api, aws_profile=self.aws_profile, aws_region=self.aws_region)
-    
-    def call_llm(self, system_prompt: str, user_prompt: str, *,
-                 response_format: Optional[Dict[str, str]] = None,
-                 temperature: float = 0.2,
-                 max_tokens: int = 1600) -> str:
+        self.provider = get_provider(
+            self.api, aws_profile=self.aws_profile, aws_region=self.aws_region
+        )
+
+    def call_llm(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        response_format: Optional[Dict[str, str]] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 1600,
+    ) -> str:
         """
         Call LLM API with given parameters using the client's configuration.
-        
+
         Args:
             system_prompt: System prompt
             user_prompt: User prompt
             response_format: Optional response format specification
             temperature: Sampling temperature
             max_tokens: Maximum tokens in response
-            
+
         Returns:
             String response from LLM
-            
+
         Raises:
             NotImplementedError: If API provider is not supported
             RuntimeError: If API key is not set or response is empty
@@ -78,15 +91,21 @@ class LLMClient:
             user_prompt=user_prompt,
             response_format=response_format,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
         )
-    
-    def analyze_image_for_graph(self, base64_image: str, media_type: str,
-                               system_prompt: str, user_prompt: str,
-                               temperature: float = 0.2, max_tokens: int = 2000) -> str:
+
+    def analyze_image_for_graph(
+        self,
+        base64_image: str,
+        media_type: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.2,
+        max_tokens: int = 2000,
+    ) -> str:
         """
         Analyze an image using LLM vision capabilities to extract graph data.
-        
+
         Args:
             base64_image: Base64 encoded image data
             media_type: MIME type of the image (e.g., "image/jpeg", "image/png")
@@ -94,16 +113,16 @@ class LLMClient:
             user_prompt: User prompt describing what to extract
             temperature: Sampling temperature
             max_tokens: Maximum tokens in response
-            
+
         Returns:
             String response from LLM (expected to be JSON)
-            
+
         Raises:
             NotImplementedError: If API provider doesn't support image analysis
             RuntimeError: If API call fails
         """
         # Check if provider supports image analysis
-        if hasattr(self.provider, 'analyze_image'):
+        if hasattr(self.provider, "analyze_image"):
             return self.provider.analyze_image(
                 model=self.model,
                 base64_image=base64_image,
@@ -111,7 +130,9 @@ class LLMClient:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
         else:
-            raise NotImplementedError(f"Provider {self.api} does not support image analysis")
+            raise NotImplementedError(
+                f"Provider {self.api} does not support image analysis"
+            )

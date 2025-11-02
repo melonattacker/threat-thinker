@@ -13,24 +13,26 @@ class OpenAIProvider(LLMProvider):
     """
     OpenAI LLM provider implementation.
     """
-    
+
     def __init__(self):
         """Initialize OpenAI provider."""
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("OPENAI_API_KEY is not set")
         self.client = OpenAI()
-    
-    def call_api(self,
-                 model: str,
-                 system_prompt: str,
-                 user_prompt: str,
-                 *,
-                 response_format: Optional[Dict[str, str]] = None,
-                 temperature: float = 0.2,
-                 max_tokens: int = 10000) -> str:
+
+    def call_api(
+        self,
+        model: str,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        response_format: Optional[Dict[str, str]] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 10000,
+    ) -> str:
         """
         Call OpenAI API with given parameters.
-        
+
         Args:
             model: Model name
             system_prompt: System prompt
@@ -38,10 +40,10 @@ class OpenAIProvider(LLMProvider):
             response_format: Optional response format specification
             temperature: Sampling temperature
             max_tokens: Maximum tokens in response
-            
+
         Returns:
             String response from OpenAI API
-            
+
         Raises:
             RuntimeError: If response is empty
         """
@@ -62,18 +64,20 @@ class OpenAIProvider(LLMProvider):
         if not content:
             raise RuntimeError("LLM returned empty content")
         return content
-    
-    def analyze_image(self,
-                     model: str,
-                     base64_image: str,
-                     media_type: str,
-                     system_prompt: str,
-                     user_prompt: str,
-                     temperature: float = 0.2,
-                     max_tokens: int = 10000) -> str:
+
+    def analyze_image(
+        self,
+        model: str,
+        base64_image: str,
+        media_type: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.2,
+        max_tokens: int = 10000,
+    ) -> str:
         """
         Analyze an image using OpenAI's Responses API (required for image analysis).
-        
+
         Args:
             model: Model name (should be a vision-capable model like gpt-4o)
             base64_image: Base64 encoded image data
@@ -82,10 +86,10 @@ class OpenAIProvider(LLMProvider):
             user_prompt: User prompt describing what to extract
             temperature: Sampling temperature
             max_tokens: Maximum tokens in response
-            
+
         Returns:
             String response from OpenAI Responses API
-            
+
         Raises:
             RuntimeError: If Responses API is not available or response is empty
         """
@@ -96,7 +100,10 @@ class OpenAIProvider(LLMProvider):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "input_text", "text": f"{system_prompt}\n\n{user_prompt}"},
+                            {
+                                "type": "input_text",
+                                "text": f"{system_prompt}\n\n{user_prompt}",
+                            },
                             {
                                 "type": "input_image",
                                 "image_url": f"data:{media_type};base64,{base64_image}",
@@ -107,10 +114,14 @@ class OpenAIProvider(LLMProvider):
             )
             content = response.output_text
             if not content:
-                raise RuntimeError("OpenAI Responses API returned empty content for image analysis")
+                raise RuntimeError(
+                    "OpenAI Responses API returned empty content for image analysis"
+                )
             return content
-            
+
         except AttributeError:
-            raise RuntimeError("OpenAI Responses API is not available. Image analysis requires the Responses API.")
+            raise RuntimeError(
+                "OpenAI Responses API is not available. Image analysis requires the Responses API."
+            )
         except Exception as e:
             raise RuntimeError(f"OpenAI Responses API image analysis failed: {e}")

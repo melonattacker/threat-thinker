@@ -2,7 +2,6 @@
 Hint processing functionality
 """
 
-import json
 import yaml
 from typing import Optional
 
@@ -12,20 +11,20 @@ from models import Graph, Node, Edge
 def apply_hints(g: Graph, hints_path: Optional[str]) -> Graph:
     """
     Apply hints from a YAML file to the graph.
-    
+
     Args:
         g: Graph object to modify
         hints_path: Path to YAML hints file (optional)
-        
+
     Returns:
         Modified Graph object
     """
     if not hints_path:
         return g
-        
+
     with open(hints_path, "r", encoding="utf-8") as f:
         hints = yaml.safe_load(f) or {}
-        
+
     # nodes
     for nid, attrs in (hints.get("nodes") or {}).items():
         if nid not in g.nodes:
@@ -39,9 +38,9 @@ def apply_hints(g: Graph, hints_path: Optional[str]) -> Graph:
             node.data = list({*node.data, *[str(x) for x in attrs["data"]]})
         if "label" in attrs:
             node.label = attrs["label"]
-            
+
     # edges
-    for e in (hints.get("edges") or []):
+    for e in hints.get("edges") or []:
         src, dst = e.get("from"), e.get("to")
         if not src or not dst:
             continue
@@ -64,18 +63,18 @@ def apply_hints(g: Graph, hints_path: Optional[str]) -> Graph:
                 g.nodes[src] = Node(id=src, label=src)
             if dst not in g.nodes:
                 g.nodes[dst] = Node(id=dst, label=dst)
-                
+
     return g
 
 
 def merge_llm_hints(g: Graph, hints: dict) -> Graph:
     """
     Merge LLM-inferred hints into the graph.
-    
+
     Args:
         g: Graph object to modify
         hints: Dictionary of hints from LLM
-        
+
     Returns:
         Modified Graph object
     """
@@ -93,9 +92,9 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
             n.auth = attrs["auth"]
         if "notes" in attrs:
             n.notes = attrs["notes"]
-            
+
     # edges
-    for e in (hints.get("edges") or []):
+    for e in hints.get("edges") or []:
         src, dst = e.get("from"), e.get("to")
         if not src or not dst:
             continue
@@ -114,5 +113,5 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
             if isinstance(e.get("data"), list):
                 ne.data = [str(x) for x in e["data"]]
             g.edges.append(ne)
-            
+
     return g
