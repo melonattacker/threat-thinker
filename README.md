@@ -8,6 +8,8 @@ It analyzes diagrams written in **Mermaid**, **draw.io**, or extracted from **im
 
 Designed for **simplicity** and **low noise**, Threat Thinker enables teams to keep their **threat models up to date** with minimal manual effort.
 
+https://github.com/user-attachments/assets/4b1ded1c-36fc-4834-ade3-196db1af550f
+
 ## Getting Started
 ### Set Up API Keys
 Threat Thinker uses LLM for extracting diagrams from images, extracting components, data flows, and trust boundaries from architecture diagrams, and for inferring threats.
