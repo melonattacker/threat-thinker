@@ -178,16 +178,18 @@ def main():
 
     if args.cmd == "think":
         start_time = time.time()
-        
+
         # Set verbose mode
         set_verbose(args.verbose)
-        
+
         # Show banner
         ui.show_banner()
-        
+
         # Set up progress tracking
-        ui.set_total_steps(6)  # Parse, Infer hints, Apply hints, Analyze threats, Denoise, Export
-        
+        ui.set_total_steps(
+            6
+        )  # Parse, Infer hints, Apply hints, Analyze threats, Denoise, Export
+
         # Determine diagram file and format
         diagram_file = None
         diagram_format = None
@@ -206,7 +208,7 @@ def main():
             else:
                 ui.error(
                     f"Unsupported diagram file format for {diagram_file}",
-                    "Supported: .mmd, .mermaid, .drawio, .xml, .jpg, .jpeg, .png, .gif, .bmp, .webp"
+                    "Supported: .mmd, .mermaid, .drawio, .xml, .jpg, .jpeg, .png, .gif, .bmp, .webp",
                 )
                 sys.exit(2)
         elif args.mermaid:
@@ -219,20 +221,31 @@ def main():
             diagram_file = args.image
             diagram_format = "image"
         else:
-            ui.error("No diagram file specified", "Please specify a diagram file using --diagram, --mermaid, --drawio, or --image")
+            ui.error(
+                "No diagram file specified",
+                "Please specify a diagram file using --diagram, --mermaid, --drawio, or --image",
+            )
             sys.exit(2)
-            
+
         supported_apis = ["openai", "anthropic", "bedrock"]
         if args.llm_api.lower() not in supported_apis:
-            ui.error(f"Invalid LLM API: {args.llm_api}", f"Must be one of {supported_apis}")
+            ui.error(
+                f"Invalid LLM API: {args.llm_api}", f"Must be one of {supported_apis}"
+            )
             sys.exit(2)
 
         # Check for required API keys/credentials
         if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
-            ui.error("OPENAI_API_KEY is not set", "Please set your OpenAI API key in environment variables")
+            ui.error(
+                "OPENAI_API_KEY is not set",
+                "Please set your OpenAI API key in environment variables",
+            )
             sys.exit(2)
         elif args.llm_api.lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
-            ui.error("ANTHROPIC_API_KEY is not set", "Please set your Anthropic API key in environment variables")
+            ui.error(
+                "ANTHROPIC_API_KEY is not set",
+                "Please set your Anthropic API key in environment variables",
+            )
             sys.exit(2)
         elif args.llm_api.lower() == "bedrock":
             # For bedrock, we check credentials later in the provider initialization
@@ -242,16 +255,16 @@ def main():
             ):
                 ui.warning(
                     "AWS credentials not fully configured",
-                    "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)"
+                    "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
                 )
 
         # 1) Parse diagram to skeleton graph (+ metrics)
         ui.step("Parsing architecture diagram")
         ui.info(f"Loading {diagram_format} diagram: {diagram_file}")
-        
+
         thinking = ui.create_thinking_indicator("Parsing diagram structure")
         thinking.start()
-        
+
         try:
             if diagram_format == "mermaid":
                 g, metrics = parse_mermaid(diagram_file)
@@ -268,12 +281,12 @@ def main():
             else:
                 ui.error(f"Unsupported diagram format: {diagram_format}")
                 sys.exit(2)
-            
+
             thinking.stop()
-            ui.success(f"Successfully parsed diagram")
+            ui.success("Successfully parsed diagram")
             ui.show_metrics_summary(metrics)
             ui.debug("Parsed graph details", str(g))
-            
+
         except Exception as e:
             thinking.stop()
             ui.error("Failed to parse diagram", str(e))
@@ -282,8 +295,10 @@ def main():
         # 2) (Optional) LLM-based attribute inference from skeleton
         if args.infer_hints:
             ui.step("Inferring node and edge attributes")
-            ui.thinking("AI is analyzing diagram components to infer security-relevant attributes")
-            
+            ui.thinking(
+                "AI is analyzing diagram components to infer security-relevant attributes"
+            )
+
             skeleton = json.dumps(
                 {
                     "nodes": [{"id": n.id, "label": n.label} for n in g.nodes.values()],
@@ -294,10 +309,12 @@ def main():
                 ensure_ascii=False,
                 indent=2,
             )
-            
-            thinking = ui.create_thinking_indicator("AI is inferring component attributes")
+
+            thinking = ui.create_thinking_indicator(
+                "AI is inferring component attributes"
+            )
             thinking.start()
-            
+
             try:
                 inferred = llm_infer_hints(
                     skeleton,
@@ -311,7 +328,7 @@ def main():
                 thinking.stop()
                 ui.success("Successfully inferred component attributes")
                 ui.debug("Graph after LLM-inferred hints", str(g))
-                
+
             except Exception as e:
                 thinking.stop()
                 ui.error("Failed to infer hints", str(e))
@@ -331,16 +348,16 @@ def main():
                 ui.warning("Failed to apply some hints", str(e))
         else:
             ui.info("No custom hints provided, using inferred attributes")
-        
+
         ui.debug("Graph after applying user hints", str(g))
 
         # 4) LLM-driven threat inference
         ui.step("Analyzing potential security threats")
         ui.thinking("AI is performing comprehensive security threat analysis")
-        
+
         thinking = ui.create_thinking_indicator("AI is identifying security threats")
         thinking.start()
-        
+
         try:
             threats = llm_infer_threats(
                 g,
@@ -353,7 +370,7 @@ def main():
             thinking.stop()
             ui.success(f"Identified {len(threats)} potential threats")
             ui.debug("LLM inferred threats", "\n".join(str(t) for t in threats))
-            
+
         except Exception as e:
             thinking.stop()
             ui.error("Failed to analyze threats", str(e))
@@ -362,7 +379,7 @@ def main():
         # 5) De-noise & trim
         ui.step("Filtering and prioritizing threats")
         ui.info("Applying threat filtering criteria")
-        
+
         try:
             original_count = len(threats)
             threats = denoise_threats(
@@ -371,15 +388,17 @@ def main():
                 min_confidence=args.min_confidence,
                 topn=args.topn,
             )
-            
+
             filtered_count = original_count - len(threats)
             if filtered_count > 0:
                 ui.info(f"Filtered out {filtered_count} low-confidence threats")
-            
+
             ui.success(f"Finalized {len(threats)} high-priority threats")
             ui.show_threats_preview(threats)
-            ui.debug("Threats after de-noising/filtering", "\n".join(str(t) for t in threats))
-            
+            ui.debug(
+                "Threats after de-noising/filtering", "\n".join(str(t) for t in threats)
+            )
+
         except Exception as e:
             ui.error("Failed to filter threats", str(e))
             sys.exit(2)
@@ -387,7 +406,7 @@ def main():
         # 6) Export
         ui.step("Generating reports")
         ui.info(f"Exporting in {args.format} format")
-        
+
         try:
             if args.format == "json":
                 s = export_json(threats, args.out_json, metrics, g)
@@ -397,7 +416,7 @@ def main():
                     ui.debug("JSON output", s)
                 else:
                     print("\n" + s)
-                    
+
             elif args.format == "md":
                 s = export_md(threats, args.out_md)
                 if args.out_md:
@@ -406,17 +425,17 @@ def main():
                     ui.debug("Markdown output", s)
                 else:
                     print("\n" + s)
-                    
+
             elif args.format == "both":
                 # Export both formats
                 json_output = export_json(threats, args.out_json, metrics, g)
                 md_output = export_md(threats, args.out_md)
-                
+
                 if args.out_json:
                     ui.success(f"JSON report saved to: {args.out_json}")
                 if args.out_md:
                     ui.success(f"Markdown report saved to: {args.out_md}")
-                    
+
                 if args.verbose:
                     print("\nJSON Output:")
                     print(json_output)
@@ -425,11 +444,11 @@ def main():
                 else:
                     ui.debug("JSON output", json_output)
                     ui.debug("Markdown output", md_output)
-                    
+
         except Exception as e:
             ui.error("Failed to export reports", str(e))
             sys.exit(2)
-        
+
         # Show final summary
         end_time = time.time()
         processing_time = end_time - start_time
@@ -437,19 +456,25 @@ def main():
 
     elif args.cmd == "diff":
         start_time = time.time()
-        
+
         # Set verbose mode
         set_verbose(args.verbose)
-        
+
         # Show banner
         ui.show_banner()
-        
+
         # Check for required API keys/credentials
         if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
-            ui.error("OPENAI_API_KEY is not set", "Please set your OpenAI API key in environment variables")
+            ui.error(
+                "OPENAI_API_KEY is not set",
+                "Please set your OpenAI API key in environment variables",
+            )
             sys.exit(2)
         elif args.llm_api.lower() == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
-            ui.error("ANTHROPIC_API_KEY is not set", "Please set your Anthropic API key in environment variables")
+            ui.error(
+                "ANTHROPIC_API_KEY is not set",
+                "Please set your Anthropic API key in environment variables",
+            )
             sys.exit(2)
         elif args.llm_api.lower() == "bedrock":
             if not args.aws_profile and not (
@@ -457,14 +482,14 @@ def main():
             ):
                 ui.warning(
                     "AWS credentials not fully configured",
-                    "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)"
+                    "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
                 )
 
         ui.info(f"Comparing reports: {args.before} → {args.after}")
-        
+
         thinking = ui.create_thinking_indicator("AI is analyzing report differences")
         thinking.start()
-        
+
         try:
             d = diff_reports(
                 args.after,
@@ -476,39 +501,45 @@ def main():
                 args.lang,
             )
             thinking.stop()
-            
+
             # Show summary of changes
             graph_changes = d.get("graph_changes", {})
             threat_changes = d.get("threat_changes", {})
-            
+
             ui.success("Diff analysis completed")
             ui.info("Changes summary:")
-            print(f"  • Nodes: +{graph_changes.get('count_nodes_added', 0)} -{graph_changes.get('count_nodes_removed', 0)}")
-            print(f"  • Edges: +{graph_changes.get('count_edges_added', 0)} -{graph_changes.get('count_edges_removed', 0)}")
-            print(f"  • Threats: +{threat_changes.get('count_added', 0)} -{threat_changes.get('count_removed', 0)}")
-            
+            print(
+                f"  • Nodes: +{graph_changes.get('count_nodes_added', 0)} -{graph_changes.get('count_nodes_removed', 0)}"
+            )
+            print(
+                f"  • Edges: +{graph_changes.get('count_edges_added', 0)} -{graph_changes.get('count_edges_removed', 0)}"
+            )
+            print(
+                f"  • Threats: +{threat_changes.get('count_added', 0)} -{threat_changes.get('count_removed', 0)}"
+            )
+
             s = json.dumps(d, ensure_ascii=False, indent=2)
             if args.out_json:
                 with open(args.out_json, "w", encoding="utf-8") as f:
                     f.write(s)
                 ui.success(f"Diff JSON saved to: {args.out_json}")
-                
+
             if args.out_md:
                 md_output = export_diff_md(d, args.out_md)
                 ui.success(f"Diff Markdown saved to: {args.out_md}")
                 if args.verbose:
                     print("\nMarkdown diff output:")
                     print(md_output)
-                    
+
             if args.verbose:
                 print("\nJSON diff output:")
                 print(s)
-                
+
         except Exception as e:
             thinking.stop()
             ui.error("Failed to generate diff", str(e))
             sys.exit(2)
-            
+
         end_time = time.time()
         processing_time = end_time - start_time
         ui.info(f"Diff completed in {processing_time:.1f}s")
