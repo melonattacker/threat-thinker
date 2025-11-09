@@ -169,7 +169,9 @@ def build_kb(
         )
 
     files = [
-        f for f in raw_dir.iterdir() if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+        f
+        for f in raw_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
     ]
     if not files:
         raise KnowledgeBaseError(

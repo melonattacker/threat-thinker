@@ -194,7 +194,7 @@ def main():
         help=f"Token overlap between chunks (default: {DEFAULT_CHUNK_OVERLAP})",
     )
 
-    kb_list = kb_sub.add_parser("list", help="List available knowledge bases")
+    kb_sub.add_parser("list", help="List available knowledge bases")
 
     kb_search = kb_sub.add_parser(
         "search", help="Query a knowledge base with semantic similarity"
