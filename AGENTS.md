@@ -5,12 +5,14 @@
 
 ## Build, Test, and Development Commands
 ```bash
-pip install -e . -r requirements.txt   # editable install plus tooling deps
-ruff check src tests                   # static checks + formatting hints
-pytest                                 # run the full automated test suite
+uv venv                                   # if .venv not exist
+source .venv/bin/activate
+uv pip install -e . -r requirements.txt   # editable install plus tooling deps
+ruff check src tests                      # static checks + formatting hints
+pytest                                    # run the full automated test suite
 threat-thinker think --mermaid examples/web/system.mmd --infer-hints --topn 5 \
   --llm-api openai --llm-model gpt-4.1 --format both --out-md reports/report.md
-threat-thinker webui                   # launch Gradio UI on http://localhost:7860
+threat-thinker webui                      # launch Gradio UI on http://localhost:7860
 ```
 
 ## Coding Style & Naming Conventions

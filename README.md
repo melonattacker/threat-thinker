@@ -97,6 +97,27 @@ threat-thinker diff \
     --lang en
 ```
 
+### Local Knowledge Base (Optional RAG)
+Threat Thinker can enrich LLM reasoning with locally stored guidance (OWASP, MITRE, internal standards, etc.).
+
+1. Place PDF/HTML/Markdown documents under `~/.threat-thinker/kb/<kb_name>/raw/`.
+2. Build embeddings with OpenAI:  
+   ```bash
+   threat-thinker kb build <kb_name> \
+       --embedder openai:text-embedding-3-small \
+       --chunk-tokens 800 --chunk-overlap 80
+   ```
+3. Inspect or search the KB:  
+   ```bash
+   threat-thinker kb list
+   threat-thinker kb search <kb_name> "lateral movement" --topk 5 --show
+   ```
+4. Use the KB during analysis:  
+   ```bash
+   threat-thinker think --mermaid diagram.mmd --rag --kb <kb_name> \
+       --rag-topk 8 --llm-api openai --llm-model gpt-4.1
+   ```
+
 ### Web UI
 
 ```bash

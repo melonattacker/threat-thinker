@@ -3,7 +3,7 @@ LLM inference functions for threat analysis
 """
 
 import json
-from typing import List
+from typing import List, Optional
 
 from models import Graph, Threat
 from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIONS
@@ -127,6 +127,7 @@ def llm_infer_threats(
     aws_profile: str = None,
     aws_region: str = None,
     lang: str = "en",
+    rag_context: Optional[str] = None,
 ) -> List[Threat]:
     """
     Use LLM to infer threats from graph.
@@ -138,6 +139,7 @@ def llm_infer_threats(
         aws_profile: AWS profile name (for bedrock provider only)
         aws_region: AWS region (for bedrock provider only)
         lang: Language code for output (en, ja, fr, de, es, etc.)
+        rag_context: Optional retrieved knowledge to ground the analysis
 
     Returns:
         List of Threat objects
@@ -160,8 +162,16 @@ def llm_infer_threats(
         lang_name = _get_language_name(lang)
         lang_instruction = f"Please write threat titles, reasons, and descriptions in {lang_name}, but keep field names (id, title, why, etc.) in English. "
 
+    context_block = ""
+    if rag_context:
+        context_block = (
+            "\nRetrieved knowledge snippets (ground your reasoning in these when relevant):\n"
+            f"{rag_context}\n"
+        )
+
     user_prompt = (
-        f"System graph (JSON):\n{payload}\n\n"
+        f"System graph (JSON):\n{payload}\n"
+        f"{context_block}\n"
         f"{lang_instruction}Perform threat analysis following the instructions below.\n"
         f"{LLM_INSTRUCTIONS}"
     )
