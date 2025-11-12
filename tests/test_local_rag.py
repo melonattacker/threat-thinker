@@ -79,3 +79,23 @@ def test_generate_graph_query_mentions_edges():
     query = generate_graph_query(graph)
     assert "Client" in query
     assert "A->B" in query
+
+
+def test_build_kb_supports_plain_text(tmp_path, monkeypatch):
+    kb_root = tmp_path / "kb"
+    monkeypatch.setenv("THREAT_THINKER_KB_ROOT", str(kb_root))
+
+    raw_dir = kb_root / "notes" / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "notes.txt").write_text("Playbook entry for service hardening." * 50, encoding="utf-8")
+
+    meta = build_kb(
+        "notes",
+        embed_model="test-model",
+        chunk_tokens=120,
+        chunk_overlap=20,
+        embed_fn=_fake_embed,
+    )
+    assert meta["num_documents"] == 1
+    results = search_kb("notes", "service hardening", topk=1, embed_fn=_fake_embed)
+    assert results and results[0]["source"].endswith(".txt")

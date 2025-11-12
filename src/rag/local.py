@@ -27,7 +27,9 @@ DEFAULT_EMBED_MODEL = "text-embedding-3-small"
 DEFAULT_CHUNK_TOKENS = 800
 DEFAULT_CHUNK_OVERLAP = 80
 DEFAULT_TOPK = 8
-SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".html", ".htm"}
+TEXT_EXTENSIONS = {".md", ".markdown", ".txt", ".text"}
+HTML_EXTENSIONS = {".html", ".htm"}
+SUPPORTED_EXTENSIONS = {".pdf", *TEXT_EXTENSIONS, *HTML_EXTENSIONS}
 
 
 class KnowledgeBaseError(Exception):
@@ -66,7 +68,7 @@ def _read_text_from_file(file_path: Path) -> str:
         pages = [page.extract_text() or "" for page in reader.pages]
         return "\n".join(pages)
 
-    if suffix in {".html", ".htm"}:
+    if suffix in HTML_EXTENSIONS:
         try:
             from bs4 import BeautifulSoup
         except ImportError as exc:
@@ -78,7 +80,7 @@ def _read_text_from_file(file_path: Path) -> str:
         soup = BeautifulSoup(text, "html.parser")
         return soup.get_text(separator=" ", strip=True)
 
-    if suffix in {".md", ".markdown"}:
+    if suffix in TEXT_EXTENSIONS:
         return file_path.read_text(encoding="utf-8", errors="ignore")
 
     raise KnowledgeBaseError(
