@@ -55,6 +55,26 @@ from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
 from exporters import export_json, export_md, diff_reports, export_diff_md
 from cliui import ui, set_verbose
+from rag import (
+    KnowledgeBaseError,
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_TOKENS,
+    DEFAULT_EMBED_MODEL,
+    DEFAULT_TOPK,
+    build_kb,
+    list_kbs,
+    search_kb,
+    remove_kb,
+    retrieve_context_for_graph,
+    get_kb_root,
+)
+
+
+def _normalize_embed_model(embed_arg: str) -> str:
+    value = (embed_arg or "").strip()
+    if ":" in value:
+        value = value.split(":", 1)[-1]
+    return value or DEFAULT_EMBED_MODEL
 
 
 def main():
@@ -126,6 +146,78 @@ def main():
         action="store_true",
         help="Enable verbose output with detailed logs",
     )
+    p_think.add_argument(
+        "--rag",
+        action="store_true",
+        help="Enable local RAG enrichment using knowledge bases built with `kb build`",
+    )
+    p_think.add_argument(
+        "--kb",
+        type=str,
+        help="Comma-separated knowledge base names to use when --rag is enabled",
+    )
+    p_think.add_argument(
+        "--rag-topk",
+        type=int,
+        default=DEFAULT_TOPK,
+        help=f"Number of retrieved knowledge chunks to inject (default: {DEFAULT_TOPK})",
+    )
+
+    p_kb = sub.add_parser("kb", help="Manage local knowledge bases for RAG")
+    p_kb.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output with detailed logs",
+    )
+    kb_sub = p_kb.add_subparsers(dest="kb_cmd", required=True)
+
+    kb_build = kb_sub.add_parser(
+        "build", help="Chunk documents in raw/ and create embeddings"
+    )
+    kb_build.add_argument("kb_name", type=str, help="Knowledge base name")
+    kb_build.add_argument(
+        "--embedder",
+        type=str,
+        default=f"openai:{DEFAULT_EMBED_MODEL}",
+        help="Embedding backend (OpenAI only). Format: openai:<model>",
+    )
+    kb_build.add_argument(
+        "--chunk-tokens",
+        type=int,
+        default=DEFAULT_CHUNK_TOKENS,
+        help=f"Max tokens per chunk (default: {DEFAULT_CHUNK_TOKENS})",
+    )
+    kb_build.add_argument(
+        "--chunk-overlap",
+        type=int,
+        default=DEFAULT_CHUNK_OVERLAP,
+        help=f"Token overlap between chunks (default: {DEFAULT_CHUNK_OVERLAP})",
+    )
+
+    kb_sub.add_parser("list", help="List available knowledge bases")
+
+    kb_search = kb_sub.add_parser(
+        "search", help="Query a knowledge base with semantic similarity"
+    )
+    kb_search.add_argument("kb_name", type=str, help="Knowledge base name")
+    kb_search.add_argument("query", type=str, help="Search query")
+    kb_search.add_argument(
+        "--topk",
+        type=int,
+        default=DEFAULT_TOPK,
+        help=f"Number of chunks to return (default: {DEFAULT_TOPK})",
+    )
+    kb_search.add_argument(
+        "--show",
+        action="store_true",
+        help="Print retrieved chunk text to stdout",
+    )
+
+    kb_remove = kb_sub.add_parser("remove", help="Delete a knowledge base directory")
+    kb_remove.add_argument("kb_name", type=str, help="Knowledge base name")
+    kb_remove.add_argument(
+        "--force", action="store_true", help="Remove without confirmation"
+    )
 
     p_diff = sub.add_parser("diff", help="Diff two JSON reports")
     p_diff.add_argument(
@@ -186,9 +278,10 @@ def main():
         ui.show_banner()
 
         # Set up progress tracking
+        total_steps = 6 + (1 if args.rag else 0)
         ui.set_total_steps(
-            6
-        )  # Parse, Infer hints, Apply hints, Analyze threats, Denoise, Export
+            total_steps
+        )  # Parse, Infer hints, Apply hints, (Retrieve), Analyze threats, Denoise, Export
 
         # Determine diagram file and format
         diagram_file = None
@@ -257,6 +350,28 @@ def main():
                     "AWS credentials not fully configured",
                     "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
                 )
+
+        rag_kbs: list[str] = []
+        if args.rag:
+            if not os.getenv("OPENAI_API_KEY"):
+                ui.error(
+                    "OPENAI_API_KEY is required for --rag",
+                    "Local RAG relies on OpenAI embeddings for semantic search.",
+                )
+                sys.exit(2)
+            if not args.kb:
+                ui.error(
+                    "--kb is required when --rag is enabled",
+                    "Provide a comma-separated list of knowledge base names.",
+                )
+                sys.exit(2)
+            rag_kbs = [kb.strip() for kb in args.kb.split(",") if kb.strip()]
+            if not rag_kbs:
+                ui.error(
+                    "No valid knowledge base names provided",
+                    "Example: --kb owasp,internal-standards",
+                )
+                sys.exit(2)
 
         # 1) Parse diagram to skeleton graph (+ metrics)
         ui.step("Parsing architecture diagram")
@@ -351,6 +466,31 @@ def main():
 
         ui.debug("Graph after applying user hints", str(g))
 
+        rag_context_text = None
+        if args.rag:
+            ui.step("Retrieving local knowledge")
+            try:
+                retrieval = retrieve_context_for_graph(
+                    g,
+                    rag_kbs,
+                    topk=args.rag_topk or DEFAULT_TOPK,
+                )
+                rag_context_text = retrieval.get("context_text") or ""
+                num_chunks = len(retrieval.get("results", []))
+                if rag_context_text and num_chunks:
+                    ui.success(
+                        f"Retrieved {num_chunks} knowledge chunks from {', '.join(rag_kbs)}"
+                    )
+                    ui.debug("RAG query", retrieval.get("query", ""))
+                else:
+                    ui.warning(
+                        "No knowledge snippets retrieved",
+                        "Proceeding without additional context.",
+                    )
+            except KnowledgeBaseError as e:
+                ui.error("Failed to retrieve local knowledge", str(e))
+                sys.exit(2)
+
         # 4) LLM-driven threat inference
         ui.step("Analyzing potential security threats")
         ui.thinking("AI is performing comprehensive security threat analysis")
@@ -366,6 +506,7 @@ def main():
                 args.aws_profile,
                 args.aws_region,
                 args.lang,
+                rag_context=rag_context_text,
             )
             thinking.stop()
             ui.success(f"Identified {len(threats)} potential threats")
@@ -453,6 +594,96 @@ def main():
         end_time = time.time()
         processing_time = end_time - start_time
         ui.show_summary(len(threats), processing_time)
+
+    elif args.cmd == "kb":
+        set_verbose(args.verbose)
+        ui.show_banner()
+
+        if args.kb_cmd == "list":
+            entries = list_kbs()
+            root = get_kb_root()
+            if not entries:
+                ui.info(
+                    f"No knowledge bases found under {root}.",
+                    "Use `threat-thinker kb build <name>` after adding documents to raw/.",
+                )
+            else:
+                ui.info(f"Knowledge bases stored in {root}:")
+                for entry in entries:
+                    updated = entry.get("updated_at") or "unknown"
+                    num_chunks = entry.get("num_chunks", 0)
+                    num_docs = entry.get("num_documents", 0)
+                    model = entry.get("embedding_model") or DEFAULT_EMBED_MODEL
+                    print(
+                        f"  • {entry['name']}: {num_chunks} chunks from {num_docs} docs (model={model}, updated={updated})"
+                    )
+        elif args.kb_cmd == "build":
+            if not os.getenv("OPENAI_API_KEY"):
+                ui.error(
+                    "OPENAI_API_KEY is required to build a knowledge base.",
+                    "Set your OpenAI key before invoking embeddings.",
+                )
+                sys.exit(2)
+            embed_model = _normalize_embed_model(args.embedder)
+            try:
+                meta = build_kb(
+                    args.kb_name,
+                    embed_model=embed_model,
+                    chunk_tokens=args.chunk_tokens,
+                    chunk_overlap=args.chunk_overlap,
+                )
+                ui.success(
+                    f"KB '{args.kb_name}' built with {meta['num_chunks']} chunks using {meta['embedding_model']}"
+                )
+            except KnowledgeBaseError as e:
+                ui.error("Failed to build knowledge base", str(e))
+                sys.exit(2)
+        elif args.kb_cmd == "search":
+            if not os.getenv("OPENAI_API_KEY"):
+                ui.error(
+                    "OPENAI_API_KEY is required for semantic search.",
+                    "Set your OpenAI key before executing `kb search`.",
+                )
+                sys.exit(2)
+            try:
+                results = search_kb(
+                    args.kb_name,
+                    args.query,
+                    topk=args.topk,
+                )
+            except KnowledgeBaseError as e:
+                ui.error("KB search failed", str(e))
+                sys.exit(2)
+
+            if not results:
+                ui.info("No chunks matched the query.")
+            else:
+                ui.info(f"Top {len(results)} chunks:")
+                for idx, item in enumerate(results, 1):
+                    print(
+                        f"  {idx}. KB={item['kb']} chunk={item['chunk_id']} "
+                        f"score={item['score']:.3f} source={item.get('source')}"
+                    )
+                    if args.show:
+                        snippet = (item["text"] or "").strip()
+                        if len(snippet) > 400:
+                            snippet = snippet[:400] + "..."
+                        print(f"     {snippet}")
+        elif args.kb_cmd == "remove":
+            kb_name = args.kb_name
+            if not args.force:
+                confirmation = input(
+                    f"Delete knowledge base '{kb_name}'? This cannot be undone. [y/N]: "
+                ).strip()
+                if confirmation.lower() not in {"y", "yes"}:
+                    ui.info("Aborted knowledge base removal.")
+                    return
+            try:
+                remove_kb(kb_name)
+                ui.success(f"Removed knowledge base '{kb_name}'.")
+            except KnowledgeBaseError as e:
+                ui.error("KB removal failed", str(e))
+                sys.exit(2)
 
     elif args.cmd == "diff":
         start_time = time.time()
