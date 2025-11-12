@@ -87,7 +87,9 @@ def test_build_kb_supports_plain_text(tmp_path, monkeypatch):
 
     raw_dir = kb_root / "notes" / "raw"
     raw_dir.mkdir(parents=True)
-    (raw_dir / "notes.txt").write_text("Playbook entry for service hardening." * 50, encoding="utf-8")
+    (raw_dir / "notes.txt").write_text(
+        "Playbook entry for service hardening." * 50, encoding="utf-8"
+    )
 
     meta = build_kb(
         "notes",
