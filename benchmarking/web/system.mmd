@@ -1,0 +1,35 @@
+%% Web system (benchmark-ready)
+graph LR
+  %% Zones / Trust Boundaries
+  subgraph Internet
+    user[User]
+  end
+
+  subgraph Edge / DMZ
+    waf[WAF]
+    api((API Gateway))
+  end
+
+  subgraph App VPC
+    app[App Service]
+    cache[(Redis Cache)]
+    monitor[Monitoring Service]
+    alerts[Alert Manager]
+  end
+
+  subgraph Data VPC
+    db[(Customer DB<br>PII)]
+    logs[Log Service<br>Telemetry]
+    analytics[Analytics DB]
+  end
+
+  %% Flows (protocols & notes)
+  user -- HTTPS --> waf
+  waf  -- HTTPS --> api
+  api  -- HTTPS/JWT --> app
+  api  -- TLS --> cache
+  app  -- TLS/mTLS --> db
+  app  -- TLS --> logs
+  logs -- ETL/batch --> analytics
+  app  -- TLS --> monitor
+  monitor -- webhook --> alerts
