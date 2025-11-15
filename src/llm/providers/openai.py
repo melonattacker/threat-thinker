@@ -47,15 +47,25 @@ class OpenAIProvider(LLMProvider):
         Raises:
             RuntimeError: If response is empty
         """
-        kwargs = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+        # gpt-5 models don't need temperature
+        if model.startswith("gpt-5"):
+            kwargs = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            }
+        else:
+            kwargs = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": temperature,
+                "max_completion_tokens": max_tokens,
+            }
         if response_format is not None:
             kwargs["response_format"] = response_format
 
