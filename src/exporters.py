@@ -10,6 +10,7 @@ from models import Threat, ImportMetrics, Graph
 # Token budget sized for multi-section narrative diff explanations.
 DIFF_EXPLANATION_MAX_TOKENS = 1800
 
+
 def export_json(
     threats: List[Threat],
     out_path: Optional[str],

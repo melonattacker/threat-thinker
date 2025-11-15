@@ -12,7 +12,10 @@ from .response_utils import safe_json_loads
 
 # Token budgets tuned for the JSON-heavy responses we expect from each flow.
 HINT_INFERENCE_MAX_TOKENS = 1800
-THREAT_INFERENCE_MAX_TOKENS = 4096  # Enough headroom for 12 verbose threats plus metadata
+THREAT_INFERENCE_MAX_TOKENS = (
+    4096  # Enough headroom for 12 verbose threats plus metadata
+)
+
 
 def _get_language_name(lang_code: str) -> str:
     """
