@@ -11,6 +11,9 @@ from models import Graph, Node, Edge, ImportMetrics
 from llm.client import LLMClient
 from llm.response_utils import safe_json_loads
 
+# Headroom for dense diagrams so we can return many nodes/edges with metadata.
+IMAGE_GRAPH_EXTRACTION_MAX_TOKENS = 2800
+
 
 def parse_image(
     path: str,
@@ -167,6 +170,7 @@ Guidelines:
             media_type=media_type,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
+            max_tokens=IMAGE_GRAPH_EXTRACTION_MAX_TOKENS,
         )
 
         # Parse JSON response
