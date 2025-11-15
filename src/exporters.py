@@ -7,6 +7,9 @@ from typing import Dict, List, Optional
 
 from models import Threat, ImportMetrics, Graph
 
+# Token budget sized for multi-section narrative diff explanations.
+DIFF_EXPLANATION_MAX_TOKENS = 1800
+
 
 def export_json(
     threats: List[Threat],
@@ -283,7 +286,7 @@ Format your response as a clear, professional analysis. Focus on the security im
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.3,
-            max_tokens=1500,
+            max_tokens=DIFF_EXPLANATION_MAX_TOKENS,
         )
     except Exception as e:
         explanation = f"Error generating LLM explanation: {str(e)}"

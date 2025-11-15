@@ -10,6 +10,12 @@ from constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIO
 from .client import LLMClient
 from .response_utils import safe_json_loads
 
+# Token budgets tuned for the JSON-heavy responses we expect from each flow.
+HINT_INFERENCE_MAX_TOKENS = 1800
+THREAT_INFERENCE_MAX_TOKENS = (
+    4096  # Enough headroom for 12 verbose threats plus metadata
+)
+
 
 def _get_language_name(lang_code: str) -> str:
     """
@@ -115,7 +121,7 @@ def llm_infer_hints(
         user_prompt=user_prompt,
         response_format={"type": "json_object"},
         temperature=0.2,
-        max_tokens=1400,
+        max_tokens=HINT_INFERENCE_MAX_TOKENS,
     )
     return safe_json_loads(content)
 
@@ -185,7 +191,7 @@ def llm_infer_threats(
         user_prompt=user_prompt,
         response_format={"type": "json_object"},
         temperature=0.2,
-        max_tokens=2500,  # Increased from 1600 to reduce truncation
+        max_tokens=THREAT_INFERENCE_MAX_TOKENS,
     )
     data = safe_json_loads(content)
 
