@@ -1,5 +1,5 @@
 # Threat Thinker
-<img width="360" height="150" alt="threat-thinker-logo" src="https://github.com/user-attachments/assets/56bec7b4-25f9-406d-8652-bcc9db876ec5" />
+<img width="360" height="150" alt="threat-thinker-logo" src="https://github.com/user-attachments/assets/78524431-4d48-4fb7-b69d-4b83856b620d" />
 
 
 **Threat Thinker** is an open-source tool that automatically performs **threat modeling from system architecture diagrams**.  
