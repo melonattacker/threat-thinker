@@ -50,12 +50,16 @@ python benchmarking/scripts/bench_metrics.py \
   --scenarios web \
   --topn 5 \
   --report-dir reports/benchmarks \
-  --json
+  --json \
+  --out-file reports/benchmarks/metrics.json
 ```
 
 - Use `--scenarios aws web` to focus on a subset.
+- Pass `--diagram-file system.png` (relative to each scenario directory) to benchmark
+  alternative diagram exports such as PNG or XML files.
 - Reports from `threat-thinker think` land in `reports/benchmarks/<scenario>.json`.
 - Pass `--json` to capture machine-readable output.
+- Add `--out-file reports/benchmarks/metrics.txt` to mirror the CLI output into a file.
 - Use `--similarity-threshold 0.55` (default `0.6`) to tune how strict the cosine-similarity
   filter is, and `--embedding-model` to point at a different OpenAI embedding model
   (default `text-embedding-3-large`). Provide an `OPENAI_API_KEY` in the environment so

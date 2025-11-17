@@ -28,6 +28,7 @@ DEFAULT_BENCH_ROOT = SCRIPT_DIR.parent
 DEFAULT_REPO_ROOT = DEFAULT_BENCH_ROOT.parent
 DEFAULT_REPORT_DIR = DEFAULT_REPO_ROOT / "reports" / "benchmarks"
 DEFAULT_FIELDS = ["title", "why"]
+DEFAULT_DIAGRAM_FILE = "system.mmd"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-large"
 Vector = Tuple[float, ...]
 
@@ -48,6 +49,18 @@ def compute_metrics(
         else (2 * precision * recall) / (precision + recall)
     )
     return precision, recall, f1
+
+
+def emit_output(text: str, output_path: Optional[Path]) -> None:
+    """Print output and optionally persist it to a file."""
+    print(text)
+    if not output_path:
+        return
+    output_path = output_path.expanduser()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if not text.endswith("\n"):
+        text = f"{text}\n"
+    output_path.write_text(text, encoding="utf-8")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -97,6 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional list of scenario folder names to evaluate (default: all).",
     )
     parser.add_argument(
+        "--diagram-file",
+        help=(
+            "Override the diagram file used for each scenario. Relative paths are "
+            "resolved inside every scenario directory (e.g., system.png or system.xml)."
+        ),
+    )
+    parser.add_argument(
         "--topn",
         type=int,
         default=10,
@@ -139,6 +159,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--json", action="store_true", help="Return metrics as JSON.")
+    parser.add_argument(
+        "--out-file",
+        type=Path,
+        help="Write the printed metrics to this file in addition to stdout.",
+    )
     return parser
 
 
@@ -188,16 +213,20 @@ def manual_mode(args: argparse.Namespace) -> None:
     }
 
     if args.json:
-        print(json.dumps(payload, ensure_ascii=False))
-        return
+        text = json.dumps(payload, ensure_ascii=False)
+    else:
+        fmt = f"{{:.{decimals}f}}"
+        lines = [
+            f"Accepted : {accepted}",
+            f"Outputs  : {outputs}",
+            f"Gold     : {gold}",
+            f"Precision: {fmt.format(precision)}",
+            f"Recall   : {fmt.format(recall)}",
+            f"F1 Score : {fmt.format(f1)}",
+        ]
+        text = "\n".join(lines)
 
-    fmt = f"{{:.{decimals}f}}"
-    print(f"Accepted : {accepted}")
-    print(f"Outputs  : {outputs}")
-    print(f"Gold     : {gold}")
-    print(f"Precision: {fmt.format(precision)}")
-    print(f"Recall   : {fmt.format(recall)}")
-    print(f"F1 Score : {fmt.format(f1)}")
+    emit_output(text, args.out_file)
 
 
 def discover_scenarios(benchmark_root: Path) -> List[Path]:
@@ -214,6 +243,26 @@ def resolve_path(candidate: str, repo_root: Path) -> Path:
     if not path.is_absolute():
         path = repo_root / path
     return path
+
+
+def determine_diagram_path(
+    scenario_dir: Path,
+    scenario_data: Dict[str, Any],
+    repo_root: Path,
+    diagram_override: Optional[str],
+) -> Path:
+    """Select the diagram to run for a scenario, honoring overrides when present."""
+    if diagram_override:
+        override_path = Path(diagram_override)
+        if not override_path.is_absolute():
+            override_path = scenario_dir / override_path
+        return override_path
+
+    diagram_ref = scenario_data.get("diagram")
+    if diagram_ref:
+        return resolve_path(diagram_ref, repo_root)
+
+    return scenario_dir / DEFAULT_DIAGRAM_FILE
 
 
 def load_expected(path: Path) -> Dict[str, Any]:
@@ -249,7 +298,7 @@ class SimilarityEngine:
             sys.exit(11)
         self.client = OpenAI()
         self.model_name = model_name
-        self._cache: Dict[Tuple[str, int], Optional[Vector]] = {}
+        self._cache: Dict[Tuple[str, str], Optional[Vector]] = {}
 
     def _embed(self, text: str) -> Optional[Vector]:
         if not text:
@@ -264,26 +313,23 @@ class SimilarityEngine:
         embedding = response.data[0].embedding
         return tuple(float(value) for value in embedding)
 
-    def _key(self, kind: str, index: int) -> Tuple[str, int]:
-        return (kind, index)
+    def _key(self, kind: str, text: str) -> Tuple[str, str]:
+        return (kind, text)
 
-    def embedding_for_expected(
-        self, index: int, record: Dict[str, Any]
-    ) -> Optional[Vector]:
-        key = self._key("expected", index)
+    def _embedding_for(self, kind: str, record: Dict[str, Any]) -> Optional[Vector]:
+        text = build_similarity_text(record)
+        if not text:
+            return None
+        key = self._key(kind, text)
         if key not in self._cache:
-            text = build_similarity_text(record)
             self._cache[key] = self._embed(text)
         return self._cache[key]
 
-    def embedding_for_threat(
-        self, index: int, record: Dict[str, Any]
-    ) -> Optional[Vector]:
-        key = self._key("threat", index)
-        if key not in self._cache:
-            text = build_similarity_text(record)
-            self._cache[key] = self._embed(text)
-        return self._cache[key]
+    def embedding_for_expected(self, record: Dict[str, Any]) -> Optional[Vector]:
+        return self._embedding_for("expected", record)
+
+    def embedding_for_threat(self, record: Dict[str, Any]) -> Optional[Vector]:
+        return self._embedding_for("threat", record)
 
 
 def load_similarity_engine(model_name: str) -> SimilarityEngine:
@@ -303,15 +349,12 @@ def extract_field_text(threat: Dict[str, Any], fields: Sequence[str]) -> Iterabl
 
 def match_expected(
     expected_entry: Dict[str, Any],
-    entry_index: int,
     actual_threats: Sequence[Dict[str, Any]],
     similarity_engine: SimilarityEngine,
     default_similarity_threshold: float,
 ) -> Optional[Dict[str, Any]]:
     detection = expected_entry.get("detection") or {}
-    expected_embedding = similarity_engine.embedding_for_expected(
-        entry_index, expected_entry
-    )
+    expected_embedding = similarity_engine.embedding_for_expected(expected_entry)
     if expected_embedding is None:
         return None
 
@@ -325,7 +368,7 @@ def match_expected(
     best_score = threshold
 
     for idx, threat in enumerate(actual_threats):
-        threat_embedding = similarity_engine.embedding_for_threat(idx, threat)
+        threat_embedding = similarity_engine.embedding_for_threat(threat)
         if threat_embedding is None:
             continue
         score = cosine_similarity(expected_embedding, threat_embedding)
@@ -343,7 +386,7 @@ def run_threat_thinker(
     cmd = [
         "threat-thinker",
         "think",
-        "--mermaid",
+        "--diagram",
         str(diagram_path),
         "--topn",
         str(args.topn),
@@ -398,9 +441,9 @@ def evaluate_scenario(
     actual_threats: List[Dict[str, Any]] = report.get("threats", [])
     evaluations = []
 
-    for index, entry in enumerate(expected_entries):
+    for entry in expected_entries:
         hit = match_expected(
-            entry, index, actual_threats, similarity_engine, similarity_threshold
+            entry, actual_threats, similarity_engine, similarity_threshold
         )
         evaluations.append(
             {
@@ -461,8 +504,9 @@ def benchmark_mode(args: argparse.Namespace) -> None:
     for scenario_dir in scenarios:
         expected_path = scenario_dir / "expected_threats.json"
         scenario_data = load_expected(expected_path)
-        diagram_ref = scenario_data.get("diagram") or str(scenario_dir / "system.mmd")
-        diagram_path = resolve_path(diagram_ref, repo_root)
+        diagram_path = determine_diagram_path(
+            scenario_dir, scenario_data, repo_root, args.diagram_file
+        )
         report_path = report_dir / f"{scenario_dir.name}.json"
 
         if not diagram_path.exists():
@@ -506,29 +550,31 @@ def benchmark_mode(args: argparse.Namespace) -> None:
             "scenarios": scenario_results,
             "totals": aggregate,
         }
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        text = json.dumps(payload, indent=2, ensure_ascii=False)
+        emit_output(text, args.out_file)
         return
 
     fmt = f"{{:.{decimals}f}}"
+    lines: List[str] = []
     for scenario in scenario_results:
         matched_ids = [m["id"] for m in scenario["matches"] if m["matched"]]
         missing_ids = [m["id"] for m in scenario["matches"] if not m["matched"]]
-        print(
+        lines.append(
             f"[{scenario['scenario']}] accepted={scenario['accepted']}/{scenario['gold']} "
             f"outputs={scenario['outputs']} precision={fmt.format(scenario['precision'])} "
             f"recall={fmt.format(scenario['recall'])} f1={fmt.format(scenario['f1'])}"
         )
         if matched_ids:
-            print(f"  matched : {', '.join(matched_ids)}")
+            lines.append(f"  matched : {', '.join(matched_ids)}")
         if missing_ids:
-            print(f"  missing : {', '.join(missing_ids)}")
-        print(f"  report  : {scenario['report_path']}")
-
-    print(
+            lines.append(f"  missing : {', '.join(missing_ids)}")
+        lines.append(f"  report  : {scenario['report_path']}")
+    lines.append(
         f"TOTAL accepted={total_accepted}/{total_gold} outputs={total_outputs} "
         f"precision={fmt.format(total_precision)} recall={fmt.format(total_recall)} "
         f"f1={fmt.format(total_f1)}"
     )
+    emit_output("\n".join(lines), args.out_file)
 
 
 def main() -> None:
