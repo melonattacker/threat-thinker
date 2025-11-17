@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- Subgraph: Internet -->
+    <mxCell id="zone_internet" value="Internet"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="40" y="230" width="160" height="130" as="geometry"/>
+    </mxCell>
+
+    <!-- User -->
+    <mxCell id="user" value="User"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
+            parent="1" vertex="1">
+      <mxGeometry x="80" y="260" width="90" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: Edge / DMZ -->
+    <mxCell id="zone_edge" value="Edge / DMZ"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="240" y="210" width="220" height="170" as="geometry"/>
+    </mxCell>
+
+    <!-- WAF -->
+    <mxCell id="waf" value="WAF"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;"
+            parent="1" vertex="1">
+      <mxGeometry x="270" y="240" width="90" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- API Gateway -->
+    <mxCell id="api" value="API Gateway"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;"
+            parent="1" vertex="1">
+      <mxGeometry x="270" y="300" width="110" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: App VPC -->
+    <mxCell id="zone_app" value="App VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="500" y="200" width="290" height="220" as="geometry"/>
+    </mxCell>
+
+    <!-- App Service -->
+    <mxCell id="app" value="App Service"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+            parent="1" vertex="1">
+      <mxGeometry x="530" y="250" width="110" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Redis Cache -->
+    <mxCell id="cache" value="Redis Cache"
+            style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;"
+            parent="1" vertex="1">
+      <mxGeometry x="530" y="315" width="110" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- Monitoring Service -->
+    <mxCell id="monitor" value="Monitoring Service"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;"
+            parent="1" vertex="1">
+      <mxGeometry x="650" y="220" width="130" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Alert Manager -->
+    <mxCell id="alerts" value="Alert Manager"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccffcc;strokeColor=#009900;"
+            parent="1" vertex="1">
+      <mxGeometry x="660" y="305" width="120" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: Data VPC -->
+    <mxCell id="zone_data" value="Data VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="820" y="210" width="270" height="230" as="geometry"/>
+    </mxCell>
+
+    <!-- Customer DB -->
+    <mxCell id="db" value="Customer DB&lt;br&gt;PII"
+            style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;"
+            parent="1" vertex="1">
+      <mxGeometry x="850" y="230" width="150" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- Log Service -->
+    <mxCell id="logs" value="Log Service&lt;br&gt;Telemetry"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;"
+            parent="1" vertex="1">
+      <mxGeometry x="850" y="310" width="170" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Analytics DB -->
+    <mxCell id="analytics" value="Analytics DB"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;"
+            parent="1" vertex="1">
+      <mxGeometry x="850" y="380" width="140" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Edges -->
+    <!-- user -> waf -->
+    <mxCell id="edge1" value="HTTPS" edge="1" parent="1" source="user" target="waf">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="-22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- waf -> api -->
+    <mxCell id="edge2" value="HTTPS" edge="1" parent="1" source="waf" target="api">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="24" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- api -> app -->
+    <mxCell id="edge3" value="HTTPS/JWT" edge="1" parent="1" source="api" target="app">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="-24" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- api -> cache -->
+    <mxCell id="edge4" value="TLS" edge="1" parent="1" source="api" target="cache">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- app -> db -->
+    <mxCell id="edge5" value="TLS/mTLS" edge="1" parent="1" source="app" target="db">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label slightly above -->
+        <mxPoint x="0.5" y="-22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- app -> logs -->
+    <mxCell id="edge6" value="TLS" edge="1" parent="1" source="app" target="logs">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label slightly below to avoid overlap with db edge -->
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- logs -> analytics -->
+    <mxCell id="edge7" value="ETL/batch" edge="1" parent="1" source="logs" target="analytics">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- app -> monitor -->
+    <mxCell id="edge8" value="TLS" edge="1" parent="1" source="app" target="monitor">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="-22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- monitor -> alerts -->
+    <mxCell id="edge9" value="webhook" edge="1" parent="1" source="monitor" target="alerts">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

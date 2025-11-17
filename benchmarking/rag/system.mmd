@@ -1,0 +1,32 @@
+%% RAG-based System (benchmark-ready)
+graph LR
+  %% Zones / Trust Boundaries
+  subgraph Internet
+    user[User]
+  end
+
+  subgraph App VPC
+    flask[Flask App Server]
+    rag[RAG Module / Search Orchestrator]
+  end
+
+  subgraph Data VPC
+    vectordb[(Vector Database<br>Docs Collection)]
+  end
+
+  subgraph External API
+    llm_q[LLM Query Endpoint]
+    llm_a[LLM Answer Endpoint]
+  end
+
+  %% Flows (numbered for traceability)
+  user -- "1. Ask question" --> flask
+  flask -- "2. Forward query" --> rag
+  rag -- "3. Construct LLM prompt" --> llm_q
+  llm_q -- "4. Extract keywords" --> rag
+  rag -- "5. Perform vector search" --> vectordb
+  vectordb -- "6. Return retrieved embeddings/chunks" --> rag
+  rag -- "7. Combine context + prompt" --> llm_a
+  llm_a -- "8. Return answer (Markdown supported)" --> rag
+  rag -- "9. Send final response" --> flask
+  flask -- "10. Respond to user" --> user

@@ -1,0 +1,32 @@
+%% AWS system (benchmark-ready)
+graph LR
+  subgraph Internet
+    user[User]
+  end
+
+  subgraph Public
+    cf[CloudFront]
+    alb[ALB]
+  end
+
+  subgraph App VPC
+    ecs[ECS Service]
+    sqs[(SQS Queue)]
+    sns[(SNS Topic)]
+    lambda[Lambda Worker]
+  end
+
+  subgraph Data VPC
+    rds[(Customer RDS<br>PII)]
+    s3[(S3 Bucket<br>Logs/Uploads)]
+  end
+
+  %% Flows
+  user -- HTTPS --> cf
+  cf -- HTTPS --> alb
+  alb -- HTTP --> ecs
+  ecs -- SQL/TLS --> rds
+  ecs -- S3 API --> s3
+  ecs -- send --> sqs
+  sns -- notify --> lambda
+  sqs -- trigger --> lambda

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- Subgraph: Internet -->
+    <mxCell id="zone_internet" value="Internet"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="40" y="220" width="180" height="140" as="geometry"/>
+    </mxCell>
+
+    <!-- User -->
+    <mxCell id="user" value="User"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
+            parent="1" vertex="1">
+      <mxGeometry x="80" y="255" width="100" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: App VPC -->
+    <mxCell id="zone_app" value="App VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="260" y="200" width="260" height="190" as="geometry"/>
+    </mxCell>
+
+    <!-- Flask App Server -->
+    <mxCell id="flask" value="Flask App Server"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+            parent="1" vertex="1">
+      <mxGeometry x="290" y="235" width="120" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- RAG Module / Search Orchestrator -->
+    <mxCell id="rag" value="RAG Module /&lt;br&gt;Search Orchestrator"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;"
+            parent="1" vertex="1">
+      <mxGeometry x="420" y="235" width="130" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: External API -->
+    <mxCell id="zone_ext" value="External API"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="560" y="200" width="260" height="190" as="geometry"/>
+    </mxCell>
+
+    <!-- LLM Query Endpoint -->
+    <mxCell id="llm_q" value="LLM Query&lt;br&gt;Endpoint"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;"
+            parent="1" vertex="1">
+      <mxGeometry x="590" y="225" width="130" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- LLM Answer Endpoint -->
+    <mxCell id="llm_a" value="LLM Answer&lt;br&gt;Endpoint"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccffcc;strokeColor=#009900;"
+            parent="1" vertex="1">
+      <mxGeometry x="590" y="295" width="140" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: Data VPC -->
+    <mxCell id="zone_data" value="Data VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="260" y="410" width="260" height="170" as="geometry"/>
+    </mxCell>
+
+    <!-- Vector Database -->
+    <mxCell id="vectordb" value="Vector Database&lt;br&gt;Docs Collection"
+            style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;"
+            parent="1" vertex="1">
+      <mxGeometry x="290" y="440" width="190" height="80" as="geometry"/>
+    </mxCell>
+
+    <!-- Edges / Flows -->
+    <!-- 1. user -> flask -->
+    <mxCell id="edge1" value="1. Ask question" edge="1" parent="1" source="user" target="flask">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label above -->
+        <mxPoint x="0.5" y="-22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 2. flask -> rag -->
+    <mxCell id="edge2" value="2. Forward query" edge="1" parent="1" source="flask" target="rag">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label above -->
+        <mxPoint x="0.5" y="-22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 3. rag -> llm_q -->
+    <mxCell id="edge3" value="3. Construct LLM prompt" edge="1" parent="1" source="rag" target="llm_q">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label above -->
+        <mxPoint x="0.5" y="-24" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 4. llm_q -> rag -->
+    <mxCell id="edge4" value="4. Extract keywords" edge="1" parent="1" source="llm_q" target="rag">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label below -->
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 5. rag -> vectordb -->
+    <mxCell id="edge5" value="5. Perform vector search" edge="1" parent="1" source="rag" target="vectordb">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- route downward; label to the right -->
+        <Array as="points">
+          <mxPoint x="440" y="420"/>
+        </Array>
+        <mxPoint x="28" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 6. vectordb -> rag -->
+    <mxCell id="edge6" value="6. Return retrieved embeddings/chunks" edge="1" parent="1" source="vectordb" target="rag">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- route upward; label to the left -->
+        <Array as="points">
+          <mxPoint x="360" y="420"/>
+        </Array>
+        <mxPoint x="-40" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 7. rag -> llm_a -->
+    <mxCell id="edge7" value="7. Combine context + prompt" edge="1" parent="1" source="rag" target="llm_a">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label above -->
+        <mxPoint x="0.5" y="-24" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 8. llm_a -> rag -->
+    <mxCell id="edge8" value="8. Return answer (Markdown supported)" edge="1" parent="1" source="llm_a" target="rag">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label below -->
+        <mxPoint x="0.5" y="24" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 9. rag -> flask -->
+    <mxCell id="edge9" value="9. Send final response" edge="1" parent="1" source="rag" target="flask">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label below -->
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 10. flask -> user -->
+    <mxCell id="edge10" value="10. Respond to user" edge="1" parent="1" source="flask" target="user">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label below -->
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

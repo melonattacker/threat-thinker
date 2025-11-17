@@ -1,0 +1,128 @@
+{
+  "scenario": "aws",
+  "diagram": "benchmarking/aws/system.mmd",
+  "expected": [
+    {
+      "id": "G1",
+      "title": "Public S3 Bucket Exposure",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "s3"
+      ],
+      "why": "Misconfigured S3 bucket permissions may allow public access to sensitive logs or uploaded data."
+    },
+    {
+      "id": "G2",
+      "title": "Insufficient TLS Enforcement Between ALB and ECS",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "alb",
+        "ecs"
+      ],
+      "why": "ALB-ECS communication over HTTP (not HTTPS) can expose session tokens or PII to interception inside the VPC."
+    },
+    {
+      "id": "G3",
+      "title": "Overprivileged IAM Role on ECS Tasks",
+      "stride": [
+        "Elevation of Privilege"
+      ],
+      "components": [
+        "ecs"
+      ],
+      "why": "ECS task roles often have wildcard permissions (`*:*`), enabling attackers to access unrelated AWS resources."
+    },
+    {
+      "id": "G4",
+      "title": "Unvalidated Input Leading to SQL Injection in RDS",
+      "stride": [
+        "Tampering",
+        "Information Disclosure"
+      ],
+      "components": [
+        "ecs",
+        "rds"
+      ],
+      "why": "If application input is not properly sanitized, SQL queries may be manipulated, leaking or altering customer data."
+    },
+    {
+      "id": "G5",
+      "title": "SNS / SQS Message Tampering or Replay",
+      "stride": [
+        "Tampering",
+        "Denial of Service"
+      ],
+      "components": [
+        "sqs",
+        "sns",
+        "lambda"
+      ],
+      "why": "Without message signing or idempotency checks, attackers could replay or modify messages between components."
+    },
+    {
+      "id": "G6",
+      "title": "Sensitive Data in CloudWatch or S3 Logs",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "s3",
+        "ecs"
+      ],
+      "why": "Application or infrastructure logs stored in S3 or CloudWatch may include PII or access tokens without masking."
+    },
+    {
+      "id": "G7",
+      "title": "Misconfigured Lambda Trigger Permissions",
+      "stride": [
+        "Elevation of Privilege"
+      ],
+      "components": [
+        "lambda",
+        "sns",
+        "sqs"
+      ],
+      "why": "Lambda triggered from SQS/SNS may have overly broad execution roles or unverified event sources."
+    },
+    {
+      "id": "G8",
+      "title": "Lack of WAF Rule Tuning / Bypass of CDN Protection",
+      "stride": [
+        "Tampering"
+      ],
+      "components": [
+        "cf",
+        "alb"
+      ],
+      "why": "Generic WAF/CDN configurations may fail to block application-specific injection or path traversal patterns."
+    },
+    {
+      "id": "G9",
+      "title": "Missing Backup Encryption for RDS Snapshots",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "rds"
+      ],
+      "why": "Automated backups or snapshots may not be encrypted, exposing PII if snapshots are shared or leaked."
+    },
+    {
+      "id": "G10",
+      "title": "Unmonitored Cross-Region Data Transfer",
+      "stride": [
+        "Repudiation",
+        "Information Disclosure"
+      ],
+      "components": [
+        "ecs",
+        "s3"
+      ],
+      "why": "Data replicated across regions (S3 replication, logging) may bypass compliance boundaries without visibility."
+    }
+  ]
+}

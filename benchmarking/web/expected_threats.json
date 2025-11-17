@@ -1,0 +1,131 @@
+{
+  "scenario": "web",
+  "diagram": "benchmarking/web/system.mmd",
+  "expected": [
+    {
+      "id": "G1",
+      "title": "Insufficient Input Validation at API Gateway",
+      "stride": [
+        "Tampering",
+        "Injection"
+      ],
+      "components": [
+        "api",
+        "app"
+      ],
+      "why": "User inputs pass through API Gateway without sufficient sanitization or schema validation, allowing potential injection or parameter tampering."
+    },
+    {
+      "id": "G2",
+      "title": "JWT Misconfiguration",
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "components": [
+        "api",
+        "app"
+      ],
+      "why": "Improper JWT signature verification or missing expiration validation may allow forged tokens or privilege escalation."
+    },
+    {
+      "id": "G3",
+      "title": "Unencrypted Internal Data Transfer to Redis",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "api",
+        "cache"
+      ],
+      "why": "Although TLS is configured, Redis connections are often unencrypted in internal VPCs, exposing sensitive data in transit."
+    },
+    {
+      "id": "G4",
+      "title": "Excessive Data Exposure in API Responses",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "app",
+        "api"
+      ],
+      "why": "The API may return PII fields from Customer DB without appropriate filtering or field-level access control."
+    },
+    {
+      "id": "G5",
+      "title": "Insecure Database Access or Credentials Reuse",
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "components": [
+        "app",
+        "db"
+      ],
+      "why": "App service connects directly to DB using static credentials or shared accounts, risking privilege escalation or data exfiltration."
+    },
+    {
+      "id": "G6",
+      "title": "Insufficient Monitoring Alert Configuration",
+      "stride": [
+        "Repudiation",
+        "Detection Failure"
+      ],
+      "components": [
+        "monitor",
+        "alerts"
+      ],
+      "why": "Monitoring alerts may not trigger for abnormal traffic or failed login attempts, delaying incident detection."
+    },
+    {
+      "id": "G7",
+      "title": "Weak Isolation between App and Data VPCs",
+      "stride": [
+        "Elevation of Privilege"
+      ],
+      "components": [
+        "app",
+        "db",
+        "analytics"
+      ],
+      "why": "Misconfigured network ACLs or peering can allow lateral movement or unauthorized access between environments."
+    },
+    {
+      "id": "G8",
+      "title": "Logging Service Storing Sensitive PII in Plaintext",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "logs",
+        "analytics"
+      ],
+      "why": "Logs collected from the application may contain unmasked PII or access tokens, later aggregated into analytics DB."
+    },
+    {
+      "id": "G9",
+      "title": "Missing WAF Tuning / Bypass of Filtering Rules",
+      "stride": [
+        "Tampering"
+      ],
+      "components": [
+        "waf",
+        "api"
+      ],
+      "why": "Generic WAF rules may not block application-specific payloads (e.g., serialized JSON injection, nested input vectors)."
+    },
+    {
+      "id": "G10",
+      "title": "Misconfigured Webhook in Alert Manager",
+      "stride": [
+        "Information Disclosure"
+      ],
+      "components": [
+        "alerts",
+        "monitor"
+      ],
+      "why": "Alerts sent via webhook to external systems may include stack traces or secrets if not properly sanitized."
+    }
+  ]
+}

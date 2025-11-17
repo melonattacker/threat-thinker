@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- Subgraph: Internet -->
+    <mxCell id="zone_internet" value="Internet"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="40" y="190" width="160" height="140" as="geometry"/>
+    </mxCell>
+
+    <!-- User -->
+    <mxCell id="user" value="User"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
+            parent="1" vertex="1">
+      <mxGeometry x="80" y="230" width="80" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: Public -->
+    <mxCell id="zone_public" value="Public"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="260" y="190" width="220" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- CloudFront -->
+    <mxCell id="cf" value="CloudFront"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ff9999;strokeColor=#cc0000;"
+            parent="1" vertex="1">
+      <mxGeometry x="290" y="215" width="110" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- ALB -->
+    <mxCell id="alb" value="ALB"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcc99;strokeColor=#cc6600;"
+            parent="1" vertex="1">
+      <mxGeometry x="300" y="275" width="90" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: App VPC -->
+    <mxCell id="zone_app" value="App VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="520" y="160" width="320" height="230" as="geometry"/>
+    </mxCell>
+
+    <!-- ECS Service -->
+    <mxCell id="ecs" value="ECS Service"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+            parent="1" vertex="1">
+      <mxGeometry x="550" y="230" width="120" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- SQS Queue -->
+    <mxCell id="sqs" value="SQS Queue"
+            style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;"
+            parent="1" vertex="1">
+      <mxGeometry x="555" y="305" width="110" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- SNS Topic -->
+    <mxCell id="sns" value="SNS Topic"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;"
+            parent="1" vertex="1">
+      <mxGeometry x="690" y="200" width="120" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Lambda Worker -->
+    <mxCell id="lambda" value="Lambda&lt;br&gt;Worker"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccffcc;strokeColor=#009900;"
+            parent="1" vertex="1">
+      <mxGeometry x="690" y="295" width="130" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- Subgraph: Data VPC -->
+    <mxCell id="zone_data" value="Data VPC"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;"
+            parent="1" vertex="1">
+      <mxGeometry x="900" y="190" width="280" height="200" as="geometry"/>
+    </mxCell>
+
+    <!-- RDS -->
+    <mxCell id="rds" value="Customer RDS&lt;br&gt;PII"
+            style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;"
+            parent="1" vertex="1">
+      <mxGeometry x="930" y="210" width="140" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- S3 -->
+    <mxCell id="s3" value="S3 Bucket&lt;br&gt;Logs/Uploads"
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;"
+            parent="1" vertex="1">
+      <mxGeometry x="930" y="290" width="170" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- Edges -->
+    <!-- user -> cf -->
+    <mxCell id="edge1" value="HTTPS" edge="1" parent="1" source="user" target="cf">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label slightly above the line -->
+        <mxPoint x="0.5" y="-20" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- cf -> alb -->
+    <mxCell id="edge2" value="HTTPS" edge="1" parent="1" source="cf" target="alb">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label to the right of the vertical edge -->
+        <mxPoint x="25" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- alb -> ecs -->
+    <mxCell id="edge3" value="HTTP" edge="1" parent="1" source="alb" target="ecs">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label above the line -->
+        <mxPoint x="0.5" y="-20" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ecs -> rds -->
+    <mxCell id="edge4" value="SQL/TLS" edge="1" parent="1" source="ecs" target="rds">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label below the line so it doesn't overlap SNS -->
+        <mxPoint x="0.5" y="22" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ecs -> s3 -->
+    <mxCell id="edge5" value="S3 API" edge="1" parent="1" source="ecs" target="s3">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- bend down so it passes under Lambda, label above -->
+        <Array as="points">
+          <mxPoint x="760" y="360"/>
+        </Array>
+        <mxPoint x="0.5" y="-20" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ecs -> sqs -->
+    <mxCell id="edge6" value="send" edge="1" parent="1" source="ecs" target="sqs">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label left of the vertical-ish line -->
+        <mxPoint x="-35" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- sns -> lambda -->
+    <mxCell id="edge7" value="notify" edge="1" parent="1" source="sns" target="lambda">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label to the left of the vertical edge -->
+        <mxPoint x="-35" y="0" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- sqs -> lambda -->
+    <mxCell id="edge8" value="trigger" edge="1" parent="1" source="sqs" target="lambda">
+      <mxGeometry width="50" height="50" relative="1" as="geometry">
+        <!-- label slightly below the diagonal edge -->
+        <mxPoint x="0.5" y="20" as="offset"/>
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>
