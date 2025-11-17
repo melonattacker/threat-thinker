@@ -274,9 +274,6 @@ def main():
         # Set verbose mode
         set_verbose(args.verbose)
 
-        # Show banner
-        ui.show_banner()
-
         # Set up progress tracking
         total_steps = 6 + (1 if args.rag else 0)
         ui.set_total_steps(
@@ -597,7 +594,6 @@ def main():
 
     elif args.cmd == "kb":
         set_verbose(args.verbose)
-        ui.show_banner()
 
         if args.kb_cmd == "list":
             entries = list_kbs()
@@ -690,9 +686,6 @@ def main():
 
         # Set verbose mode
         set_verbose(args.verbose)
-
-        # Show banner
-        ui.show_banner()
 
         # Check for required API keys/credentials
         if args.llm_api.lower() == "openai" and not os.getenv("OPENAI_API_KEY"):
