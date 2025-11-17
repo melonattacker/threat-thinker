@@ -17,6 +17,7 @@ import sys
 from math import sqrt
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+
 try:
     from openai import OpenAI
 except ImportError:  # pragma: no cover - optional dependency
@@ -36,10 +37,16 @@ def safe_div(n: int, d: int) -> float:
     return 0.0 if d == 0 else n / d
 
 
-def compute_metrics(accepted: int, outputs: int, gold: int) -> Tuple[float, float, float]:
+def compute_metrics(
+    accepted: int, outputs: int, gold: int
+) -> Tuple[float, float, float]:
     precision = safe_div(accepted, outputs)
     recall = safe_div(accepted, gold)
-    f1 = 0.0 if (precision + recall) == 0 else (2 * precision * recall) / (precision + recall)
+    f1 = (
+        0.0
+        if (precision + recall) == 0
+        else (2 * precision * recall) / (precision + recall)
+    )
     return precision, recall, f1
 
 
@@ -54,12 +61,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     manual = parser.add_argument_group("manual mode inputs")
-    manual.add_argument("-a", "--accepted", type=int, help="Accepted (correct) threats.")
+    manual.add_argument(
+        "-a", "--accepted", type=int, help="Accepted (correct) threats."
+    )
     manual.add_argument("-o", "--outputs", type=int, help="Total threats generated.")
     manual.add_argument("-g", "--gold", type=int, help="Ground-truth threats.")
 
-    parser.add_argument("--llm-api", help="LLM provider passed to `threat-thinker think`.")
-    parser.add_argument("--llm-model", help="LLM model passed to `threat-thinker think`.")
+    parser.add_argument(
+        "--llm-api", help="LLM provider passed to `threat-thinker think`."
+    )
+    parser.add_argument(
+        "--llm-model", help="LLM model passed to `threat-thinker think`."
+    )
     parser.add_argument(
         "--benchmark-root",
         type=Path,
@@ -229,7 +242,10 @@ class SimilarityEngine:
             print("openai package is required for embedding matching.", file=sys.stderr)
             sys.exit(10)
         if not os.getenv("OPENAI_API_KEY"):
-            print("OPENAI_API_KEY must be set to compute embedding similarities.", file=sys.stderr)
+            print(
+                "OPENAI_API_KEY must be set to compute embedding similarities.",
+                file=sys.stderr,
+            )
             sys.exit(11)
         self.client = OpenAI()
         self.model_name = model_name
@@ -239,7 +255,9 @@ class SimilarityEngine:
         if not text:
             return None
         try:
-            response = self.client.embeddings.create(model=self.model_name, input=[text])
+            response = self.client.embeddings.create(
+                model=self.model_name, input=[text]
+            )
         except Exception as exc:  # pragma: no cover - runtime env issues
             print(f"Failed to compute embeddings via OpenAI: {exc}", file=sys.stderr)
             sys.exit(12)
@@ -249,14 +267,18 @@ class SimilarityEngine:
     def _key(self, kind: str, index: int) -> Tuple[str, int]:
         return (kind, index)
 
-    def embedding_for_expected(self, index: int, record: Dict[str, Any]) -> Optional[Vector]:
+    def embedding_for_expected(
+        self, index: int, record: Dict[str, Any]
+    ) -> Optional[Vector]:
         key = self._key("expected", index)
         if key not in self._cache:
             text = build_similarity_text(record)
             self._cache[key] = self._embed(text)
         return self._cache[key]
 
-    def embedding_for_threat(self, index: int, record: Dict[str, Any]) -> Optional[Vector]:
+    def embedding_for_threat(
+        self, index: int, record: Dict[str, Any]
+    ) -> Optional[Vector]:
         key = self._key("threat", index)
         if key not in self._cache:
             text = build_similarity_text(record)
@@ -287,7 +309,9 @@ def match_expected(
     default_similarity_threshold: float,
 ) -> Optional[Dict[str, Any]]:
     detection = expected_entry.get("detection") or {}
-    expected_embedding = similarity_engine.embedding_for_expected(entry_index, expected_entry)
+    expected_embedding = similarity_engine.embedding_for_expected(
+        entry_index, expected_entry
+    )
     if expected_embedding is None:
         return None
 
@@ -345,7 +369,9 @@ def run_threat_thinker(
     except FileNotFoundError:  # pragma: no cover - runtime environment issue
         print("threat-thinker CLI not found on PATH.", file=sys.stderr)
         sys.exit(5)
-    except subprocess.CalledProcessError as exc:  # pragma: no cover - CLI error bubble up
+    except (
+        subprocess.CalledProcessError
+    ) as exc:  # pragma: no cover - CLI error bubble up
         print("threat-thinker think failed:", file=sys.stderr)
         if exc.stdout:
             print(exc.stdout, file=sys.stderr)
@@ -373,7 +399,9 @@ def evaluate_scenario(
     evaluations = []
 
     for index, entry in enumerate(expected_entries):
-        hit = match_expected(entry, index, actual_threats, similarity_engine, similarity_threshold)
+        hit = match_expected(
+            entry, index, actual_threats, similarity_engine, similarity_threshold
+        )
         evaluations.append(
             {
                 "id": entry.get("id"),
@@ -415,7 +443,10 @@ def benchmark_mode(args: argparse.Namespace) -> None:
         scenarios = [path for path in scenarios if path.name in requested]
         missing = requested - {path.name for path in scenarios}
         if missing:
-            print(f"Unknown scenarios requested: {', '.join(sorted(missing))}", file=sys.stderr)
+            print(
+                f"Unknown scenarios requested: {', '.join(sorted(missing))}",
+                file=sys.stderr,
+            )
             sys.exit(7)
 
     if not scenarios:
@@ -435,7 +466,10 @@ def benchmark_mode(args: argparse.Namespace) -> None:
         report_path = report_dir / f"{scenario_dir.name}.json"
 
         if not diagram_path.exists():
-            print(f"Diagram not found for {scenario_dir.name}: {diagram_path}", file=sys.stderr)
+            print(
+                f"Diagram not found for {scenario_dir.name}: {diagram_path}",
+                file=sys.stderr,
+            )
             sys.exit(9)
 
         report = run_threat_thinker(diagram_path, report_path, args)
@@ -454,7 +488,9 @@ def benchmark_mode(args: argparse.Namespace) -> None:
         total_outputs += evaluation["outputs"]
         total_gold += evaluation["gold"]
 
-    total_precision, total_recall, total_f1 = compute_metrics(total_accepted, total_outputs, total_gold)
+    total_precision, total_recall, total_f1 = compute_metrics(
+        total_accepted, total_outputs, total_gold
+    )
     decimals = args.decimals
     aggregate = {
         "accepted": total_accepted,
