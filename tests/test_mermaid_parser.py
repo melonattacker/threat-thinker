@@ -74,6 +74,25 @@ class TestParseMermaid:
         finally:
             os.unlink(temp_path)
 
+    def test_parse_edge_with_inline_label(self):
+        """Test parsing an edge with inline label A -- HTTP --> B"""
+        content = "A -- HTTP --> B"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            graph, metrics = parse_mermaid(temp_path)
+
+            assert len(graph.edges) == 1
+            assert graph.edges[0].src == "A"
+            assert graph.edges[0].dst == "B"
+            assert graph.edges[0].label == "HTTP"
+            assert metrics.edges_parsed == 1
+            assert metrics.edge_candidates == 1
+        finally:
+            os.unlink(temp_path)
+
     def test_parse_node_labels(self):
         """Test parsing node labels like A[User]"""
         content = """A[User]
@@ -97,7 +116,8 @@ A --> B"""
         """Test parsing different arrow variations"""
         content = """A -> B
 C --> D
-E ---> F"""
+E ---> F
+G -- TLS --> H"""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
             f.write(content)
             temp_path = f.name
@@ -105,9 +125,9 @@ E ---> F"""
         try:
             graph, metrics = parse_mermaid(temp_path)
 
-            assert len(graph.edges) == 3
-            assert metrics.edges_parsed == 3
-            assert metrics.edge_candidates == 3
+            assert len(graph.edges) == 4
+            assert metrics.edges_parsed == 4
+            assert metrics.edge_candidates == 4
         finally:
             os.unlink(temp_path)
 
