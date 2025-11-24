@@ -222,6 +222,7 @@ class TestExportHtml:
         assert "id=\"graph\"" in result  # graph container exists
         assert "window.THREAT_REPORT" in result  # JSON payload embedded
         assert "cytoscape" in result  # cytoscape script reference
+        assert "zone::" in result  # zone compound node template
 
     def test_export_html_escapes_content(self):
         graph = Graph(

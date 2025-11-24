@@ -279,8 +279,9 @@ def export_html(
     html_parts.append("    .mapping-list { list-style: disc; margin-left: 20px; }")
     html_parts.append("    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; }")
     html_parts.append("    #graph-container { margin-top: 24px; }")
-    html_parts.append("    #graph { width: 100%; height: 480px; border: 1px solid #e2e8f0; border-radius: 8px; }")
+    html_parts.append("    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }")
     html_parts.append("    .highlight { box-shadow: 0 0 0 2px #f97316; }")
+    html_parts.append("    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }")
     html_parts.append("  </style>")
     html_parts.append("</head>")
     html_parts.append("<body>")
@@ -473,22 +474,35 @@ def export_html(
         "      if (!container) return;\n"
         "      const palette = ['#0ea5e9','#22c55e','#f97316','#a78bfa','#f43f5e','#14b8a6','#eab308','#3b82f6'];\n"
         "      const zoneColor = {};\n"
+        "      const zones = Array.from(new Set(nodes.map(n => n.zone).filter(Boolean)));\n"
+        "      const zoneElements = zones.map(z => {\n"
+        "        if (!zoneColor[z]) {\n"
+        "          zoneColor[z] = palette[Object.keys(zoneColor).length % palette.length];\n"
+        "        }\n"
+        "        const zoneId = `zone::${String(z).replace(/\\s+/g, '_')}`;\n"
+        "        return { data: { id: zoneId, label: z, type: 'zone' } };\n"
+        "      });\n"
         "      const elements = {\n"
-        "        nodes: nodes.map((n, idx) => {\n"
-        "          const zone = n.zone || 'default';\n"
-        "          if (zone && !zoneColor[zone]) {\n"
-        "            zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];\n"
-        "          }\n"
-        "          const color = zoneColor[zone] || '#0ea5e9';\n"
-        "          return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color } };\n"
-        "        }),\n"
+        "        nodes: [\n"
+        "          ...zoneElements,\n"
+        "          ...nodes.map((n) => {\n"
+        "            const zone = n.zone || 'default';\n"
+        "            if (zone && !zoneColor[zone]) {\n"
+        "              zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];\n"
+        "            }\n"
+        "            const color = zoneColor[zone] || '#0ea5e9';\n"
+        "            const parent = n.zone ? `zone::${String(n.zone).replace(/\\s+/g, '_')}` : undefined;\n"
+        "            return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };\n"
+        "          })\n"
+        "        ],\n"
         "        edges: edges.map(e => ({ data: { id: `${e.src}->${e.dst}`, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } }))\n"
         "      };\n"
         "      const cy = cytoscape({\n"
         "        container,\n"
         "        elements,\n"
         "        style: [\n"
-        "          { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10' } },\n"
+        "          { selector: 'node[type = \\\"zone\\\"]', style: { 'background-color': '#f8fafc', 'background-opacity': 0.25, 'shape': 'round-rectangle', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'top', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-weight': 700, 'font-size': 12, 'text-background-color': '#f8fafc', 'text-background-opacity': 0.9, 'text-background-padding': 4, 'text-margin-y': -12, 'border-style': 'dashed', 'border-color': '#94a3b8', 'border-width': 2, 'padding': 18, 'z-compound-depth': 'bottom' } },\n"
+        "          { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10', 'z-compound-depth': 'top' } },\n"
         "          { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2, 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8', 'label': 'data(label)', 'font-size': 8, 'text-background-color': '#fff', 'text-background-opacity': 0.7, 'text-background-padding': 2 } },\n"
         "          { selector: '.highlight', style: { 'background-color': '#f97316', 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } }\n"
         "        ],\n"
@@ -498,6 +512,7 @@ def export_html(
         "      } catch (e) {\n"
         "        cy.layout({ name: 'cose', padding: 30, animate: false }).run();\n"
         "      }\n"
+        "      cy.nodes().forEach(n => n.grabbable(true));\n"
         "      function clearHighlights() { cy.elements().removeClass('highlight'); }\n"
         "      function highlightThreat(threatId) {\n"
         "        clearHighlights();\n"
