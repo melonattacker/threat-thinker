@@ -22,9 +22,10 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
+    --format all \
     --out-md reports/web-report.md \
-    --out-json reports/web-report.json
+    --out-json reports/web-report.json \
+    --out-html reports/web-report.html
 ```
 
 ### Discovered potential threats

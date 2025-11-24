@@ -52,6 +52,8 @@ uv pip install -e . -r requirements.txt
 ### CLI Usage
 Here is an example of command using CLI mode.
 
+`--format` supports `json`, `md`, `html`, `both` (json+md), and `all` (json+md+html). Use `--out-html` to save the HTML report with architecture mapping and an embedded graph visualization.
+
 ```bash
 # Think: Analyze a mermaid diagram
 threat-thinker think \
@@ -60,9 +62,10 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
+    --format all \
     --out-md reports/web-report.md \
-    --out-json reports/web-report.json
+    --out-json reports/web-report.json \
+    --out-html reports/web-report.html
 
 # Think: Analyze a draw.io diagram
 threat-thinker think \
@@ -71,9 +74,10 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
+    --format all \
     --out-md reports/web-report.md \
-    --out-json reports/web-report.json
+    --out-json reports/web-report.json \
+    --out-html reports/web-report.html
 
 # Think: Analyze a image diagram
 threat-thinker think \
@@ -82,9 +86,10 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
+    --format all \
     --out-md reports/web-report.md \
-    --out-json reports/web-report.json
+    --out-json reports/web-report.json \
+    --out-html reports/web-report.html
 
 # Diff: Compare two threat reports and analyze changes
 threat-thinker diff \

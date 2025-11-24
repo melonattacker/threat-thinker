@@ -53,7 +53,7 @@ from parsers.image_parser import parse_image
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
-from exporters import export_json, export_md, diff_reports, export_diff_md
+from exporters import export_json, export_md, diff_reports, export_diff_md, export_html
 from cliui import ui, set_verbose
 from rag import (
     KnowledgeBaseError,
@@ -100,9 +100,14 @@ def main():
         action="store_true",
         help="Infer node/edge attributes from Mermaid via LLM (multilingual)",
     )
-    p_think.add_argument("--format", choices=["json", "md", "both"], default="both")
+    p_think.add_argument(
+        "--format",
+        choices=["json", "md", "html", "both", "all"],
+        default="both",
+    )
     p_think.add_argument("--out-md", type=str, help="Write Markdown output to file")
     p_think.add_argument("--out-json", type=str, help="Write JSON output to file")
+    p_think.add_argument("--out-html", type=str, help="Write HTML output to file")
     p_think.add_argument(
         "--llm-api",
         type=str,
@@ -564,8 +569,17 @@ def main():
                 else:
                     print("\n" + s)
 
+            elif args.format == "html":
+                s = export_html(threats, args.out_html, g)
+                if args.out_html:
+                    ui.success(f"HTML report saved to: {args.out_html}")
+                if not args.verbose:
+                    ui.debug("HTML output", s)
+                else:
+                    print("\n" + s)
+
             elif args.format == "both":
-                # Export both formats
+                # Export JSON and Markdown
                 json_output = export_json(threats, args.out_json, metrics, g)
                 md_output = export_md(threats, args.out_md)
 
@@ -582,6 +596,30 @@ def main():
                 else:
                     ui.debug("JSON output", json_output)
                     ui.debug("Markdown output", md_output)
+
+            elif args.format == "all":
+                json_output = export_json(threats, args.out_json, metrics, g)
+                md_output = export_md(threats, args.out_md)
+                html_output = export_html(threats, args.out_html, g)
+
+                if args.out_json:
+                    ui.success(f"JSON report saved to: {args.out_json}")
+                if args.out_md:
+                    ui.success(f"Markdown report saved to: {args.out_md}")
+                if args.out_html:
+                    ui.success(f"HTML report saved to: {args.out_html}")
+
+                if args.verbose:
+                    print("\nJSON Output:")
+                    print(json_output)
+                    print("\nMarkdown Output:")
+                    print(md_output)
+                    print("\nHTML Output:")
+                    print(html_output)
+                else:
+                    ui.debug("JSON output", json_output)
+                    ui.debug("Markdown output", md_output)
+                    ui.debug("HTML output", html_output)
 
         except Exception as e:
             ui.error("Failed to export reports", str(e))
