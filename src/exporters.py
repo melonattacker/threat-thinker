@@ -243,18 +243,10 @@ def export_html(
                     key = (src_part.strip(), dst_part.strip(), label_part.strip())
                 else:
                     key = (src_part.strip(), rest.strip(), None)
-                if key in edge_lookup:
-                    edge_threats[key].append(t.id)
-                else:
-                    alt_key = (key[0], key[1], None)
-                    if alt_key in edge_lookup:
-                        canonical_edge = edge_lookup[alt_key]
-                        canonical_key = (
-                            canonical_edge.src,
-                            canonical_edge.dst,
-                            canonical_edge.label or key[2],
-                        )
-                        edge_threats.setdefault(canonical_key, []).append(t.id)
+                edge = edge_lookup.get(key) or edge_lookup.get((key[0], key[1], None))
+                if edge:
+                    canonical_key = (edge.src, edge.dst, edge.label or key[2])
+                    edge_threats.setdefault(canonical_key, []).append(t.id)
 
     html_parts: List[str] = []
     html_parts.append("<!DOCTYPE html>")
@@ -482,6 +474,7 @@ def export_html(
         "      const edges = (report.graph && report.graph.edges) || [];\n"
         "      const container = document.getElementById('graph');\n"
         "      if (!container) return;\n"
+        "      let initialZoom = 1;\n"
         "      const cssEscape = (value) => (window.CSS && CSS.escape ? CSS.escape(value) : value);\n"
         "\n"
         "      function clearCyHighlight(cy) {\n"
@@ -503,6 +496,12 @@ def export_html(
         "          cy.elements().difference(targets).addClass('cy-dim');\n"
         "          try {\n"
         "            cy.fit(targets, 60);\n"
+        "            const bbox = targets.boundingBox();\n"
+        "            const center = { x: (bbox.x1 + bbox.x2) / 2, y: (bbox.y1 + bbox.y2) / 2 };\n"
+        "            const clampedZoom = Math.min(cy.zoom(), initialZoom * 1.2);\n"
+        "            if (cy.zoom() > clampedZoom) {\n"
+        "              cy.zoom({ level: clampedZoom, position: center });\n"
+        "            }\n"
         "          } catch (err) {}\n"
         "        }\n"
         "      }\n"
@@ -533,7 +532,6 @@ def export_html(
         "            const tid = row.getAttribute('data-threat-id');\n"
         "            highlightRows([tid]);\n"
         "            highlightThreat(cy, report, tid);\n"
-        "            scrollToThreat(tid);\n"
         "          });\n"
         "        });\n"
         "\n"
@@ -543,7 +541,6 @@ def export_html(
         "            const tid = chip.getAttribute('data-threat-id');\n"
         "            highlightRows([tid]);\n"
         "            highlightThreat(cy, report, tid);\n"
-        "            scrollToThreat(tid);\n"
         "          });\n"
         "        });\n"
         "\n"
@@ -596,7 +593,8 @@ def export_html(
         "            { selector: 'node[type = \\\"zone\\\"]', style: { 'background-color': '#f8fafc', 'background-opacity': 0.25, 'shape': 'round-rectangle', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'top', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-weight': 700, 'font-size': 12, 'text-background-color': '#f8fafc', 'text-background-opacity': 0.9, 'text-background-padding': 4, 'text-margin-y': -12, 'border-style': 'dashed', 'border-color': '#94a3b8', 'border-width': 2, 'padding': 18, 'z-compound-depth': 'bottom' } },\n"
         "            { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10', 'z-compound-depth': 'top' } },\n"
         "            { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2, 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8', 'label': 'data(label)', 'font-size': 8, 'text-background-color': '#fff', 'text-background-opacity': 0.7, 'text-background-padding': 2 } },\n"
-        "            { selector: '.cy-highlight', style: { 'background-color': '#f97316', 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } },\n"
+        "            { selector: 'node.cy-highlight', style: { 'background-color': '#f97316', 'border-color': '#f97316', 'border-width': 3 } },\n"
+        "            { selector: 'edge.cy-highlight', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } },\n"
         "            { selector: '.cy-dim', style: { 'opacity': 0.25 } }\n"
         "          ],\n"
         "        });\n"
@@ -606,6 +604,7 @@ def export_html(
         "          cy.layout({ name: 'cose', padding: 30, animate: false }).run();\n"
         "        }\n"
         "        cy.nodes().forEach((n) => n.grabbable(true));\n"
+        "        initialZoom = cy.zoom();\n"
         "        return cy;\n"
         "      }\n"
         "\n"
