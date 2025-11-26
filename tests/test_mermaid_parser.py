@@ -147,6 +147,26 @@ G -- TLS --> H"""
         finally:
             os.unlink(temp_path)
 
+    def test_parse_edge_with_source_inline_label(self):
+        """Test parsing edge when source has inline label like user[User] --> api"""
+        content = "user[User] --> api((API Gateway))"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            graph, metrics = parse_mermaid(temp_path)
+
+            assert len(graph.edges) == 1
+            edge = graph.edges[0]
+            assert edge.src == "user"
+            assert edge.dst == "api"
+            assert metrics.edges_parsed == 1
+            assert metrics.edge_candidates == 1
+            assert "user" in graph.nodes and "api" in graph.nodes
+        finally:
+            os.unlink(temp_path)
+
     def test_import_success_rate_calculation(self):
         """Test import success rate calculation"""
         content = """A --> B

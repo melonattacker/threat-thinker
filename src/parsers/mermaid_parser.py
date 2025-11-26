@@ -12,15 +12,18 @@ from models import Graph, Node, Edge, ImportMetrics
 #   - Plain: A -> B, A --> B, A ---> B
 #   - Pipe label: A --> B |label|
 #   - Inline label: A -- label --> B
+#   - Source with inline node label: A[User] --> B
 # IDs allow letters, numbers, underscore, dash, dot
+# Optional inline node label after source is captured and ignored
+SOURCE_WITH_LABEL = r"([A-Za-z0-9_.-]+)(?:\s*[\[\(\{]{1,2}[^\]\)\}]+?[\]\)\}]{1,2})?"
 MERMAID_EDGE_INLINE_RE = re.compile(
-    r"^\s*([A-Za-z0-9_.-]+)\s*--+\s*([^->\\n]+?)\s*-+>\s*([A-Za-z0-9_.-]+)"
+    rf"^\s*{SOURCE_WITH_LABEL}\s*--+\s*([^->\n]+?)\s*-+>\s*([A-Za-z0-9_.-]+)"
 )
 MERMAID_EDGE_PIPE_RE = re.compile(
-    r"^\s*([A-Za-z0-9_.-]+)\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)\s*\|\s*([^|]+?)\s*\|"
+    rf"^\s*{SOURCE_WITH_LABEL}\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)\s*\|\s*([^|]+?)\s*\|"
 )
 MERMAID_EDGE_PLAIN_RE = re.compile(
-    r"^\s*([A-Za-z0-9_.-]+)\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)"
+    rf"^\s*{SOURCE_WITH_LABEL}\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)"
 )
 
 NODE_LABEL_RE = re.compile(
