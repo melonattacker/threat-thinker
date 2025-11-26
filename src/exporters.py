@@ -136,7 +136,6 @@ def export_md(threats: List[Threat], output_file: str = None) -> str:
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(md_content)
-        print(f"Markdown report saved to {output_file}")
 
     return md_content
 

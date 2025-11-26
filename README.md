@@ -52,7 +52,7 @@ uv pip install -e . -r requirements.txt
 ### CLI Usage
 Here is an example of command using CLI mode.
 
-`--format` supports `json`, `md`, `html`, `both` (json+md), and `all` (json+md+html). Use `--out-html` to save the HTML report with architecture mapping and an embedded graph visualization.
+Reports are always written as JSON, Markdown, and HTML. Use `--out-dir` to choose the destination; filenames are derived from the diagram name (e.g., `system_report.json/md/html`). Optionally set `--out-name` to override the base filename.
 
 ```bash
 # Think: Analyze a mermaid diagram
@@ -62,10 +62,7 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format all \
-    --out-md reports/web-report.md \
-    --out-json reports/web-report.json \
-    --out-html reports/web-report.html
+    --out-dir reports/
 
 # Think: Analyze a draw.io diagram
 threat-thinker think \
@@ -74,10 +71,7 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format all \
-    --out-md reports/web-report.md \
-    --out-json reports/web-report.json \
-    --out-html reports/web-report.html
+    --out-dir reports/
 
 # Think: Analyze a image diagram
 threat-thinker think \
@@ -86,10 +80,7 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format all \
-    --out-md reports/web-report.md \
-    --out-json reports/web-report.json \
-    --out-html reports/web-report.html
+    --out-dir reports/
 
 # Diff: Compare two threat reports and analyze changes
 threat-thinker diff \
@@ -97,8 +88,7 @@ threat-thinker diff \
     --before reports/old-report.json \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-md reports/diff-analysis.md \
-    --out-json reports/diff-analysis.json \
+    --out-dir reports/ \
     --lang en
 ```
 
