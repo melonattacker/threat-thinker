@@ -91,7 +91,7 @@ def _generate_diff_report(
             raise gr.Error(f"{label} file must be a JSON file.")
 
     llm_api = (llm_api or "openai").strip().lower()
-    llm_model = (llm_model or "").strip() or "gpt-4o-mini"
+    llm_model = (llm_model or "").strip() or "gpt-4.1"
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
     lang = (lang or "en").strip()
@@ -150,9 +150,8 @@ def _generate_report(
     topn: int,
     min_confidence: float,
     require_asvs: bool,
-    output_format: str,
     lang: str,
-) -> Tuple[str, str, Optional[str], Optional[str]]:
+) -> Tuple[str, str, Optional[str], Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
         diagram_text = (diagram_text or "").strip()
@@ -177,7 +176,7 @@ def _generate_report(
             )
 
     llm_api = (llm_api or "openai").strip().lower()
-    llm_model = (llm_model or "").strip() or "gpt-4o-mini"
+    llm_model = (llm_model or "").strip() or "gpt-4.1"
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
 
@@ -275,46 +274,33 @@ def _generate_report(
         # Remove any previous download files before generating a new one
         _cleanup_downloads()
 
-        download_md_path: Optional[str] = None
-        download_json_path: Optional[str] = None
+        json_report = cli.export_json(filtered, None, metrics, graph)
+        md_report = cli.export_md(filtered, None)
+        html_report = cli.export_html(filtered, None, graph)
 
-        if output_format == "json":
-            report_text = cli.export_json(filtered, None, metrics, graph)
-            file_suffix = ".json"
-            download_json_path = _write_temp_file(report_text, file_suffix)
-            _DOWNLOAD_PATHS.add(download_json_path)
-        elif output_format == "md":
-            report_text = cli.export_md(filtered, None)
-            file_suffix = ".md"
-            download_md_path = _write_temp_file(report_text, file_suffix)
-            _DOWNLOAD_PATHS.add(download_md_path)
-        else:  # both
-            json_report = cli.export_json(filtered, None, metrics, graph)
-            md_report = cli.export_md(filtered, None)
-            report_text = (
-                f"JSON Report:\n{json_report}\n\nMarkdown Report:\n{md_report}"
-            )
+        download_md_path = _write_temp_file(md_report, ".md")
+        download_json_path = _write_temp_file(json_report, ".json")
+        download_html_path = _write_temp_file(html_report, ".html")
+        _DOWNLOAD_PATHS.update(
+            {download_md_path, download_json_path, download_html_path}
+        )
 
-            download_json_path = _write_temp_file(json_report, ".json")
-            download_md_path = _write_temp_file(md_report, ".md")
-            _DOWNLOAD_PATHS.add(download_json_path)
-            _DOWNLOAD_PATHS.add(download_md_path)
+        report_text = (
+            f"JSON Report:\n{json_report}\n\n"
+            f"Markdown Report:\n{md_report}\n\n"
+            f"HTML Report:\n{html_report}"
+        )
 
         status_lines.append("Report generated successfully.")
 
-        # For Markdown preview, always use the markdown report
-        if output_format == "json":
-            markdown_report = cli.export_md(filtered, None)
-        elif output_format == "md":
-            markdown_report = report_text
-        else:  # both
-            markdown_report = cli.export_md(filtered, None)
+        markdown_report = md_report
 
         return (
             markdown_report,
             report_text,
             download_md_path,
             download_json_path,
+            download_html_path,
         )
     except gr.Error:
         raise
@@ -396,8 +382,8 @@ def launch_webui(
                     )
                     llm_model_input = gr.Textbox(
                         label="LLM Model",
-                        value="gpt-4o-mini",
-                        placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
+                        value="gpt-4.1",
+                        placeholder="e.g., gpt-4.1, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
                     )
                     aws_profile_input = gr.Textbox(
                         label="AWS Profile (for Bedrock only)",
@@ -413,11 +399,11 @@ def launch_webui(
                 with gr.Row():
                     infer_hints_input = gr.Checkbox(
                         label="Infer hints with LLM",
-                        value=False,
+                        value=True,
                     )
                     require_asvs_input = gr.Checkbox(
                         label="Require ASVS references",
-                        value=False,
+                        value=True,
                     )
 
                 with gr.Row():
@@ -434,11 +420,6 @@ def launch_webui(
                         maximum=1.0,
                         step=0.05,
                         value=0.5,
-                    )
-                    format_input = gr.Radio(
-                        label="Report format",
-                        choices=["both", "md", "json"],
-                        value="both",
                     )
                     lang_input = gr.Textbox(
                         label="Output language (ISO code) - Enter any ISO language code. LLM will automatically translate UI elements to that language.",
@@ -468,6 +449,9 @@ def launch_webui(
                     download_json_output = gr.File(
                         label="Download JSON report",
                     )
+                    download_html_output = gr.File(
+                        label="Download HTML report",
+                    )
 
                 generate_button.click(
                     fn=_generate_report,
@@ -485,7 +469,6 @@ def launch_webui(
                         topn_input,
                         min_confidence_input,
                         require_asvs_input,
-                        format_input,
                         lang_input,
                     ],
                     outputs=[
@@ -493,6 +476,7 @@ def launch_webui(
                         report_output,
                         download_md_output,
                         download_json_output,
+                        download_html_output,
                     ],
                     api_name=False,
                 )
@@ -544,8 +528,8 @@ def launch_webui(
                     )
                     diff_llm_model_input = gr.Textbox(
                         label="LLM Model",
-                        value="gpt-4o-mini",
-                        placeholder="e.g., gpt-4o-mini, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
+                        value="gpt-4.1",
+                        placeholder="e.g., gpt-4.1, claude-3-haiku-20240307, anthropic.claude-3-5-sonnet-20240620-v1:0",
                     )
                     diff_aws_profile_input = gr.Textbox(
                         label="AWS Profile (for Bedrock only)",
