@@ -104,13 +104,14 @@ Threat Thinker can enrich LLM reasoning with locally stored guidance (OWASP, MIT
 3. Inspect or search the KB:  
    ```bash
    threat-thinker kb list
-   threat-thinker kb search <kb_name> "lateral movement" --topk 5 --show
+   threat-thinker kb search <kb_name> "api" --topk 5 --show
    ```
 4. Use the KB during analysis:  
    ```bash
    threat-thinker think --mermaid diagram.mmd --rag --kb <kb_name> \
        --rag-topk 8 --llm-api openai --llm-model gpt-4.1
    ```
+For details (KB layout, build/search/usage) see [docs/rag.md](./docs/rag.md). Source docs stay local, but inference uses your configured remote LLM.
 
 ### Web UI
 
@@ -144,3 +145,6 @@ Provide zones, protocols, data classifications, and other attributes alongside y
 
 ## Reports (Markdown / JSON / HTML)
 Threat Thinker emits three report formats per run. See [docs/reports.md](./docs/reports.md) for what each format contains and when to use it.
+
+## Knowledge Base (RAG)
+Enrich threat analysis with your own guidance (OWASP, MITRE, internal standards) via a local knowledge base. See [docs/rag.md](./docs/rag.md) for how to build, search, and use RAG in CLI/Web UI.
