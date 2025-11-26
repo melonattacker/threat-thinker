@@ -4,7 +4,6 @@ Export functionality for reports
 
 import json
 from html import escape
-import json
 from typing import Dict, List, Optional, Tuple
 
 from models import Threat, ImportMetrics, Graph, Node, Edge
