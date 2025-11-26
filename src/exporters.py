@@ -222,7 +222,9 @@ def export_html(
             label = edge.label or label_part
             protocol = f" ({edge.protocol})" if edge.protocol else ""
             label_suffix = f" : {label}" if label else ""
-            return _safe(f"{src_label} [{edge.src}] -> {dst_label} [{edge.dst}]{label_suffix}{protocol}")
+            return _safe(
+                f"{src_label} [{edge.src}] -> {dst_label} [{edge.dst}]{label_suffix}{protocol}"
+            )
         return _safe(edge_id)
 
     # Build architecture mapping: nodes/edges to threat IDs
@@ -249,32 +251,48 @@ def export_html(
 
     html_parts: List[str] = []
     html_parts.append("<!DOCTYPE html>")
-    html_parts.append("<html lang=\"en\">")
+    html_parts.append('<html lang="en">')
     html_parts.append("<head>")
-    html_parts.append("  <meta charset=\"UTF-8\" />")
+    html_parts.append('  <meta charset="UTF-8" />')
     html_parts.append("  <title>Threat Analysis Report</title>")
     html_parts.append("  <style>")
-    html_parts.append("    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }")
+    html_parts.append(
+        "    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }"
+    )
     html_parts.append("    h1 { font-size: 28px; margin-bottom: 8px; }")
-    html_parts.append("    h2 { margin-top: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }")
+    html_parts.append(
+        "    h2 { margin-top: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }"
+    )
     html_parts.append("    h3 { margin-top: 24px; color: #0f172a; }")
-    html_parts.append("    table { border-collapse: collapse; width: 100%; margin-top: 12px; }")
-    html_parts.append("    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }")
+    html_parts.append(
+        "    table { border-collapse: collapse; width: 100%; margin-top: 12px; }"
+    )
+    html_parts.append(
+        "    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }"
+    )
     html_parts.append("    th { background: #f8fafc; }")
-    html_parts.append("    .severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }")
+    html_parts.append(
+        "    .severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }"
+    )
     html_parts.append("    .sev-High { background: #fee2e2; color: #b91c1c; }")
     html_parts.append("    .sev-Medium { background: #fef9c3; color: #b45309; }")
     html_parts.append("    .sev-Low { background: #dcfce7; color: #166534; }")
     html_parts.append("    .meta { color: #475569; font-size: 14px; }")
     html_parts.append("    .section { margin-top: 24px; }")
     html_parts.append("    .mapping-list { list-style: disc; margin-left: 20px; }")
-    html_parts.append("    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; cursor: pointer; }")
+    html_parts.append(
+        "    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; cursor: pointer; }"
+    )
     html_parts.append("    #graph-container { margin-top: 24px; }")
-    html_parts.append("    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }")
+    html_parts.append(
+        "    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }"
+    )
     html_parts.append("    .dom-highlight { box-shadow: 0 0 0 2px #f97316; }")
     html_parts.append("    .cy-highlight { }")
     html_parts.append("    .cy-dim { }")
-    html_parts.append("    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }")
+    html_parts.append(
+        "    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }"
+    )
     html_parts.append("  </style>")
     html_parts.append("</head>")
     html_parts.append("<body>")
@@ -289,20 +307,20 @@ def export_html(
     for threat in threats:
         severity_class = f"sev-{_safe(threat.severity)}"
         html_parts.append(
-            "    <tr class=\"threat-row\" data-threat-id=\""
-            f"{_safe(threat.id)}\">"
+            '    <tr class="threat-row" data-threat-id="'
+            f'{_safe(threat.id)}">'
             f"<td>{_safe(threat.id)}</td>"
             f"<td>{_safe(threat.title)}</td>"
-            f"<td><span class=\"severity {severity_class}\">{_safe(threat.severity)}</span></td>"
+            f'<td><span class="severity {severity_class}">{_safe(threat.severity)}</span></td>'
             f"<td>{threat.score:.1f}</td>"
             "</tr>"
         )
     html_parts.append("  </table>")
 
     # Graph visualization
-    html_parts.append("  <div id=\"graph-container\">")
+    html_parts.append('  <div id="graph-container">')
     html_parts.append("    <h2>Architecture Graph</h2>")
-    html_parts.append("    <div id=\"graph\"></div>")
+    html_parts.append('    <div id="graph"></div>')
     html_parts.append("  </div>")
 
     # Architecture mapping tables
@@ -317,7 +335,7 @@ def export_html(
             threats_for_node = node_threats.get(node_id) or []
             threat_badges = (
                 " ".join(
-                    f"<span class=\"chip\" data-threat-id=\"{_safe(tid)}\">{_safe(tid)}</span>"
+                    f'<span class="chip" data-threat-id="{_safe(tid)}">{_safe(tid)}</span>'
                     for tid in threats_for_node
                 )
                 or "&mdash;"
@@ -343,7 +361,7 @@ def export_html(
             threats_for_edge = edge_threats.get(key) or []
             threat_badges = (
                 " ".join(
-                    f"<span class=\"chip\" data-threat-id=\"{_safe(tid)}\">{_safe(tid)}</span>"
+                    f'<span class="chip" data-threat-id="{_safe(tid)}">{_safe(tid)}</span>'
                     for tid in threats_for_edge
                 )
                 or "&mdash;"
@@ -364,16 +382,18 @@ def export_html(
     html_parts.append("  <h2>Threat Details</h2>")
     for threat in threats:
         html_parts.append(
-            f"  <div class=\"section\" id=\"{_safe(threat.id)}\" data-threat-id=\"{_safe(threat.id)}\">"
+            f'  <div class="section" id="{_safe(threat.id)}" data-threat-id="{_safe(threat.id)}">'
         )
         html_parts.append(f"    <h3>{_safe(threat.id)}: {_safe(threat.title)}</h3>")
-        html_parts.append("    <div class=\"meta\">")
+        html_parts.append('    <div class="meta">')
         html_parts.append(
-            f"      Severity: <span class=\"severity sev-{_safe(threat.severity)}\">{_safe(threat.severity)}</span> | "
+            f'      Severity: <span class="severity sev-{_safe(threat.severity)}">{_safe(threat.severity)}</span> | '
             f"Score: {threat.score:.1f} | STRIDE: {', '.join(_safe(s) for s in threat.stride)}"
         )
         html_parts.append("    </div>")
-        html_parts.append(f"    <p><strong>Affected Components:</strong> {_safe(', '.join(threat.affected))}</p>")
+        html_parts.append(
+            f"    <p><strong>Affected Components:</strong> {_safe(', '.join(threat.affected))}</p>"
+        )
         html_parts.append(f"    <p><strong>Why:</strong> {format_text(threat.why)}</p>")
 
         if threat.references:
@@ -382,25 +402,29 @@ def export_html(
             )
 
         recommended_action = getattr(threat, "recommended_action", "Not specified")
-        html_parts.append("    <p><strong>Recommended Actions:</strong><br>" + format_text(recommended_action) + "</p>")
+        html_parts.append(
+            "    <p><strong>Recommended Actions:</strong><br>"
+            + format_text(recommended_action)
+            + "</p>"
+        )
 
         # Evidence mapping
-        html_parts.append("    <div class=\"section\">")
+        html_parts.append('    <div class="section">')
         html_parts.append("      <h4>Evidence Mapping</h4>")
         if threat.evidence_nodes:
             html_parts.append("      <p><em>Nodes:</em></p>")
-            html_parts.append("      <ul class=\"mapping-list\">")
+            html_parts.append('      <ul class="mapping-list">')
             for nid in threat.evidence_nodes:
                 html_parts.append(f"        <li>{resolve_node(nid)}</li>")
             html_parts.append("      </ul>")
         if threat.evidence_edges:
             html_parts.append("      <p><em>Edges:</em></p>")
-            html_parts.append("      <ul class=\"mapping-list\">")
+            html_parts.append('      <ul class="mapping-list">')
             for edge_id in threat.evidence_edges:
                 html_parts.append(f"        <li>{resolve_edge(edge_id)}</li>")
             html_parts.append("      </ul>")
         if not threat.evidence_nodes and not threat.evidence_edges:
-            html_parts.append("      <p class=\"meta\">No evidence mapping provided.</p>")
+            html_parts.append('      <p class="meta">No evidence mapping provided.</p>')
         html_parts.append("    </div>")
 
         html_parts.append("  </div>")
@@ -455,15 +479,17 @@ def export_html(
     # Prevent accidental script termination
     safe_json_payload = json_payload.replace("</", "<\\/")
 
-    html_parts.append("  <script>\n    window.THREAT_REPORT = " + safe_json_payload + ";\n  </script>")
     html_parts.append(
-        "  <script src=\"https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js\"></script>"
+        "  <script>\n    window.THREAT_REPORT = " + safe_json_payload + ";\n  </script>"
     )
     html_parts.append(
-        "  <script src=\"https://unpkg.com/dagre@0.8.5/dist/dagre.min.js\"></script>"
+        '  <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>'
     )
     html_parts.append(
-        "  <script src=\"https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js\"></script>"
+        '  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>'
+    )
+    html_parts.append(
+        '  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>'
     )
     html_parts.append(
         "  <script>\n"
@@ -519,7 +545,7 @@ def export_html(
         "      function highlightRows(threatIds) {\n"
         "        clearDomHighlights();\n"
         "        threatIds.forEach((tid) => {\n"
-        "          const row = document.querySelector(`.threat-row[data-threat-id=\"${cssEscape(tid)}\"]`);\n"
+        '          const row = document.querySelector(`.threat-row[data-threat-id="${cssEscape(tid)}"]`);\n'
         "          if (row) row.classList.add('dom-highlight');\n"
         "        });\n"
         "      }\n"

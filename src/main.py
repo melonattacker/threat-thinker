@@ -91,7 +91,9 @@ def _prepare_output_paths(
     return target_dir, json_path, md_path, html_path
 
 
-def _prepare_diff_output_paths(after_report: str, out_dir: str) -> tuple[Path, Path, Path]:
+def _prepare_diff_output_paths(
+    after_report: str, out_dir: str
+) -> tuple[Path, Path, Path]:
     """Return output directory and file paths for diff exports."""
     target_dir = Path(out_dir).expanduser()
     target_dir.mkdir(parents=True, exist_ok=True)

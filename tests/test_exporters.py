@@ -219,7 +219,7 @@ class TestExportHtml:
         assert "queries" in result  # edge label mapping
         assert "TLS" in result  # protocol mapping
         assert "T001" in result  # threat id appears in mapping badges
-        assert "id=\"graph\"" in result  # graph container exists
+        assert 'id="graph"' in result  # graph container exists
         assert "window.THREAT_REPORT" in result  # JSON payload embedded
         assert "cytoscape" in result  # cytoscape script reference
         assert "zone::" in result  # zone compound node template
