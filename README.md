@@ -139,3 +139,6 @@ You can see examples of using Threat Thinker to analyze potential threats of sev
 Learn about Threat Thinker's 5-layer architecture, processing flow, and key technical concepts.
 
 [docs/design.md](./docs/design.md)
+
+## Hint YAML (manual overrides)
+Provide zones, protocols, data classifications, and other attributes alongside your diagrams so Threat Thinker generates threats with the right context. See [docs/hints.md](./docs/hints.md) for concepts, schema, and examples.
