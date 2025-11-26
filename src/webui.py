@@ -10,6 +10,7 @@ import tempfile
 import traceback
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
+import html
 
 import gradio as gr
 
@@ -121,7 +122,7 @@ def _kb_list_markdown() -> str:
         docs = entry.get("num_documents", 0)
         model = entry.get("embedding_model") or DEFAULT_EMBED_MODEL
         lines.append(
-            f"- **{entry['name']}**: {chunks} chunks from {docs} docs (model={model}, updated={updated})"
+            f"- `{html.escape(entry['name'])}`: {chunks} chunks from {docs} docs (model={html.escape(model)}, updated={html.escape(str(updated))})"
         )
     lines.append(f"\nStorage location: {kb_root}")
     return "\n".join(lines)
@@ -176,7 +177,7 @@ def _delete_kb(kb_name: str):
         raise gr.Error(f"Failed to remove knowledge base: {exc}")
 
     list_md, selector_update, delete_update = _refresh_kb_inventory([])
-    status = f"Removed knowledge base '{name}'."
+    status = f"Removed knowledge base `{html.escape(name)}`."
     return status, list_md, selector_update, delete_update
 
 
@@ -219,10 +220,11 @@ def _build_kb_from_uploads(
             chunk_tokens=token_limit,
             chunk_overlap=overlap,
         )
+        safe_name = html.escape(name)
         status_lines = [
-            f"Stored {len(stored)} documents under {get_kb_root() / name / 'raw'}.",
-            f"Built KB **{name}** with {meta.get('num_chunks')} chunks from {meta.get('num_documents')} documents.",
-            f"Embedding model: {meta.get('embedding_model')}",
+            f"Stored {len(stored)} documents under `{get_kb_root() / name / 'raw'}`.",
+            f"Built KB `{safe_name}` with {meta.get('num_chunks')} chunks from {meta.get('num_documents')} documents.",
+            f"Embedding model: `{html.escape(meta.get('embedding_model', ''))}`",
         ]
     except gr.Error:
         raise
@@ -670,6 +672,7 @@ def launch_webui(
                         report_markdown_output = gr.Markdown(
                             label="Report Preview (Markdown)",
                             value="Generate a report to see the preview here...",
+                            sanitize_html=True,
                         )
                     with gr.Tab("Raw Text"):
                         report_output = gr.TextArea(
@@ -757,7 +760,7 @@ def launch_webui(
                     outputs=[kb_selector, rag_topk_input],
                 )
 
-            with gr.Tab("Knowledge Base"):
+            with gr.Tab("KB - Knowledge Base"):
                 gr.Markdown(
                     "### Build Knowledge Base\nUpload documents to create a local knowledge base for retrieval in threat analysis."
                 )
@@ -801,8 +804,9 @@ def launch_webui(
                 kb_build_button = gr.Button("Build Knowledge Base", variant="primary")
                 kb_status_md = gr.Markdown(
                     value="Upload documents and click build to create a knowledge base.",
+                    sanitize_html=True,
                 )
-                kb_list_md = gr.Markdown(value=_kb_list_markdown())
+                kb_list_md = gr.Markdown(value=_kb_list_markdown(), sanitize_html=True)
                 with gr.Row():
                     kb_tab_refresh_button = gr.Button("Refresh Knowledge Bases")
                     kb_delete_selector = gr.Dropdown(
@@ -868,6 +872,7 @@ def launch_webui(
                         diff_markdown_output = gr.Markdown(
                             label="Diff Report Preview (Markdown)",
                             value="Upload two JSON reports and generate a diff to see the comparison here...",
+                            sanitize_html=True,
                         )
                     with gr.Tab("Raw Text"):
                         diff_raw_output = gr.TextArea(
