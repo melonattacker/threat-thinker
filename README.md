@@ -123,6 +123,8 @@ threat-thinker webui
 Then visit http://localhost:7860 to use Threat Thinker interactively:
 
 - Input diagram as text or upload an image file
+- Build a local knowledge base from the **Knowledge Base** tab (upload PDF/Markdown/Text/HTML), then refresh the list
+- Enable **Use Knowledge Base (local RAG)** on the Think tab, pick one or more KBs, and set RAG top-k
 - Choose models & settings
 - Generate a prioritized list of potential threats
 
