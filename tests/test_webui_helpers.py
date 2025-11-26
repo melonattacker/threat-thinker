@@ -9,7 +9,10 @@ def test_normalize_embed_model():
         webui._normalize_embed_model("openai:text-embedding-3-small")
         == "text-embedding-3-small"
     )
-    assert webui._normalize_embed_model("text-embedding-3-large") == "text-embedding-3-large"
+    assert (
+        webui._normalize_embed_model("text-embedding-3-large")
+        == "text-embedding-3-large"
+    )
     assert webui._normalize_embed_model("") == webui.DEFAULT_EMBED_MODEL
 
 
@@ -26,9 +29,7 @@ def test_copy_uploaded_files_to_kb(tmp_path, monkeypatch):
     source_file = tmp_path / "doc.txt"
     source_file.write_text("hello", encoding="utf-8")
 
-    copied = webui._copy_uploaded_files_to_kb(
-        "kb1", [str(source_file)], clean_raw=True
-    )
+    copied = webui._copy_uploaded_files_to_kb("kb1", [str(source_file)], clean_raw=True)
 
     expected = tmp_path / "kb1" / "raw" / "doc.txt"
     assert copied == [str(expected)]

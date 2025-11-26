@@ -133,7 +133,9 @@ def _copy_uploaded_files_to_kb(
 ) -> list[str]:
     valid_files = [f for f in upload_files if f]
     if not valid_files:
-        raise gr.Error("Please upload at least one document to build the knowledge base.")
+        raise gr.Error(
+            "Please upload at least one document to build the knowledge base."
+        )
 
     raw_dir = get_kb_root() / kb_name / "raw"
     if clean_raw and raw_dir.exists():
