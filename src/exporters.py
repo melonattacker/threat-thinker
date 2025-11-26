@@ -457,7 +457,7 @@ def export_html(
 
     html_parts.append("  <script>\n    window.THREAT_REPORT = " + safe_json_payload + ";\n  </script>")
     html_parts.append(
-        "  <script src=\"https://unpkg.com/cytoscape@3.29.2/dist/cytoscape.min.js\"></script>"
+        "  <script src=\"https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js\"></script>"
     )
     html_parts.append(
         "  <script src=\"https://unpkg.com/dagre@0.8.5/dist/dagre.min.js\"></script>"
