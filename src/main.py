@@ -13,31 +13,30 @@ Outputs:
 
 Examples:
   export OPENAI_API_KEY=***
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --out-md report.md
-    python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --format json --out-json report.json
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format both --out-md report.md --out-json report.json
-    python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ja --out-md report_ja.md
-    python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --format md --out-md report.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang ko --out-md report_ko.md
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --format md --lang zh --out-md report_zh.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --out-dir reports/
+    python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --out-dir reports/
+    python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --lang ja --out-dir reports/
+    python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --out-dir reports/
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --lang ko --out-dir reports/
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --lang zh --out-dir reports/
   export ANTHROPIC_API_KEY=***
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --out-md report.md
-    python main.py think --image examples/system_diagram.jpg --infer-hints --llm-api anthropic --llm-model claude-3-5-sonnet-20241022 --format md --out-md report.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang pt --out-md report_pt.md
-    python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --format md --lang ru --out-md report_ru.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --out-dir reports/
+    python main.py think --image examples/system_diagram.jpg --infer-hints --llm-api anthropic --llm-model claude-3-5-sonnet-20241022 --out-dir reports/
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --lang pt --out-dir reports/
+    python main.py think --drawio examples.drawio --infer-hints --llm-api anthropic --llm-model claude-3-haiku-20240307 --lang ru --out-dir reports/
   For AWS Bedrock:
     # Option 1: Use AWS Profile
     aws configure --profile my-profile
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out-md report.md
-    python main.py think --image examples/architecture.png --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20241022-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --out-md report.md
-    python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang ar --out-md report_ar.md
-    python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --format md --lang hi --out-md report_hi.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --out-dir reports/
+    python main.py think --image examples/architecture.png --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20241022-v1:0 --aws-profile my-profile --aws-region us-east-1 --out-dir reports/
+    python main.py think --drawio examples.drawio --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --lang ar --out-dir reports/
+    python main.py think --diagram examples/system.xml --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --aws-profile my-profile --aws-region us-east-1 --lang hi --out-dir reports/
     # Option 2: Use environment variables
     export AWS_ACCESS_KEY_ID=***
     export AWS_SECRET_ACCESS_KEY=***
     export AWS_SESSION_TOKEN=***  # if using temporary credentials
     export AWS_DEFAULT_REGION=us-east-1
-    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --format md --lang th --out-md report_th.md
+    python main.py think --mermaid examples.mmd --infer-hints --llm-api bedrock --llm-model anthropic.claude-3-5-sonnet-20240620-v1:0 --lang th --out-dir reports/
   python main.py diff --after report.json --before old.json
 """
 
@@ -46,6 +45,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 from parsers.mermaid_parser import parse_mermaid
 from parsers.drawio_parser import parse_drawio
@@ -53,7 +53,7 @@ from parsers.image_parser import parse_image
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
-from exporters import export_json, export_md, diff_reports, export_diff_md
+from exporters import export_json, export_md, diff_reports, export_diff_md, export_html
 from cliui import ui, set_verbose
 from rag import (
     KnowledgeBaseError,
@@ -75,6 +75,32 @@ def _normalize_embed_model(embed_arg: str) -> str:
     if ":" in value:
         value = value.split(":", 1)[-1]
     return value or DEFAULT_EMBED_MODEL
+
+
+def _prepare_output_paths(
+    diagram_file: str, out_dir: str, base_name_override: str | None = None
+) -> tuple[Path, Path, Path, Path]:
+    """Return output directory and file paths for full report exports."""
+    target_dir = Path(out_dir).expanduser()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    base_source = base_name_override or Path(diagram_file).stem or "threat"
+    base_name = Path(base_source).stem or "threat"
+    json_path = target_dir / f"{base_name}_report.json"
+    md_path = target_dir / f"{base_name}_report.md"
+    html_path = target_dir / f"{base_name}_report.html"
+    return target_dir, json_path, md_path, html_path
+
+
+def _prepare_diff_output_paths(
+    after_report: str, out_dir: str
+) -> tuple[Path, Path, Path]:
+    """Return output directory and file paths for diff exports."""
+    target_dir = Path(out_dir).expanduser()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    base_name = Path(after_report).stem or "diff"
+    json_path = target_dir / f"{base_name}_diff.json"
+    md_path = target_dir / f"{base_name}_diff.md"
+    return target_dir, json_path, md_path
 
 
 def main():
@@ -100,9 +126,17 @@ def main():
         action="store_true",
         help="Infer node/edge attributes from Mermaid via LLM (multilingual)",
     )
-    p_think.add_argument("--format", choices=["json", "md", "both"], default="both")
-    p_think.add_argument("--out-md", type=str, help="Write Markdown output to file")
-    p_think.add_argument("--out-json", type=str, help="Write JSON output to file")
+    p_think.add_argument(
+        "--out-dir",
+        type=str,
+        required=True,
+        help="Directory to write all report formats (json, md, html)",
+    )
+    p_think.add_argument(
+        "--out-name",
+        type=str,
+        help="Base filename for reports (default: <diagram-stem>_report.*)",
+    )
     p_think.add_argument(
         "--llm-api",
         type=str,
@@ -226,8 +260,12 @@ def main():
     p_diff.add_argument(
         "--before", type=str, required=True, help="Path to before report JSON"
     )
-    p_diff.add_argument("--out-json", type=str, help="Write diff JSON to file")
-    p_diff.add_argument("--out-md", type=str, help="Write diff Markdown to file")
+    p_diff.add_argument(
+        "--out-dir",
+        type=str,
+        required=True,
+        help="Directory to write diff reports (json and markdown)",
+    )
     p_diff.add_argument(
         "--llm-api",
         type=str,
@@ -543,45 +581,34 @@ def main():
 
         # 6) Export
         ui.step("Generating reports")
-        ui.info(f"Exporting in {args.format} format")
+        out_dir, out_json, out_md, out_html = _prepare_output_paths(
+            diagram_file, args.out_dir, args.out_name
+        )
+        ui.info(
+            f"Exporting reports to {out_dir} "
+            f"({out_json.name}, {out_md.name}, {out_html.name})"
+        )
 
         try:
-            if args.format == "json":
-                s = export_json(threats, args.out_json, metrics, g)
-                if args.out_json:
-                    ui.success(f"JSON report saved to: {args.out_json}")
-                if not args.verbose:
-                    ui.debug("JSON output", s)
-                else:
-                    print("\n" + s)
+            json_output = export_json(threats, str(out_json), metrics, g)
+            md_output = export_md(threats, str(out_md))
+            html_output = export_html(threats, str(out_html), g)
 
-            elif args.format == "md":
-                s = export_md(threats, args.out_md)
-                if args.out_md:
-                    ui.success(f"Markdown report saved to: {args.out_md}")
-                if not args.verbose:
-                    ui.debug("Markdown output", s)
-                else:
-                    print("\n" + s)
+            ui.success(f"JSON report saved to: {out_json}")
+            ui.success(f"Markdown report saved to: {out_md}")
+            ui.success(f"HTML report saved to: {out_html}")
 
-            elif args.format == "both":
-                # Export both formats
-                json_output = export_json(threats, args.out_json, metrics, g)
-                md_output = export_md(threats, args.out_md)
-
-                if args.out_json:
-                    ui.success(f"JSON report saved to: {args.out_json}")
-                if args.out_md:
-                    ui.success(f"Markdown report saved to: {args.out_md}")
-
-                if args.verbose:
-                    print("\nJSON Output:")
-                    print(json_output)
-                    print("\nMarkdown Output:")
-                    print(md_output)
-                else:
-                    ui.debug("JSON output", json_output)
-                    ui.debug("Markdown output", md_output)
+            if args.verbose:
+                print("\nJSON Output:")
+                print(json_output)
+                print("\nMarkdown Output:")
+                print(md_output)
+                print("\nHTML Output:")
+                print(html_output)
+            else:
+                ui.debug("JSON output", json_output)
+                ui.debug("Markdown output", md_output)
+                ui.debug("HTML output", html_output)
 
         except Exception as e:
             ui.error("Failed to export reports", str(e))
@@ -710,6 +737,9 @@ def main():
                 )
 
         ui.info(f"Comparing reports: {args.before} → {args.after}")
+        out_dir, diff_json_path, diff_md_path = _prepare_diff_output_paths(
+            args.after, args.out_dir
+        )
 
         thinking = ui.create_thinking_indicator("AI is analyzing report differences")
         thinking.start()
@@ -743,17 +773,15 @@ def main():
             )
 
             s = json.dumps(d, ensure_ascii=False, indent=2)
-            if args.out_json:
-                with open(args.out_json, "w", encoding="utf-8") as f:
-                    f.write(s)
-                ui.success(f"Diff JSON saved to: {args.out_json}")
+            with open(diff_json_path, "w", encoding="utf-8") as f:
+                f.write(s)
+            ui.success(f"Diff JSON saved to: {diff_json_path}")
 
-            if args.out_md:
-                md_output = export_diff_md(d, args.out_md)
-                ui.success(f"Diff Markdown saved to: {args.out_md}")
-                if args.verbose:
-                    print("\nMarkdown diff output:")
-                    print(md_output)
+            md_output = export_diff_md(d, str(diff_md_path))
+            ui.success(f"Diff Markdown saved to: {diff_md_path}")
+            if args.verbose:
+                print("\nMarkdown diff output:")
+                print(md_output)
 
             if args.verbose:
                 print("\nJSON diff output:")

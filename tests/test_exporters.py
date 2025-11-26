@@ -10,8 +10,8 @@ import json
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from exporters import export_json, export_md, diff_reports
-from models import Threat, ImportMetrics
+from exporters import export_json, export_md, diff_reports, export_html
+from models import Threat, ImportMetrics, Graph, Node, Edge
 
 
 class TestExportJson:
@@ -174,6 +174,80 @@ class TestExportMd:
         assert "System|A" in result
         assert "Reason|with|pipes" in result
         assert "Action|with|pipes" in result
+
+
+class TestExportHtml:
+    """Test cases for export_html function"""
+
+    def test_export_empty_threats_html(self):
+        threats = []
+
+        result = export_html(threats, None, None)
+
+        assert "Threat Analysis Report" in result
+        assert "No threats identified" in result
+
+    def test_export_single_threat_with_graph_mapping(self):
+        graph = Graph(
+            nodes={
+                "API": Node(id="API", label="API Service", zone="DMZ", type="api"),
+                "DB": Node(id="DB", label="Database", zone="Private", type="database"),
+            },
+            edges=[
+                Edge(src="API", dst="DB", label="queries", protocol="TLS"),
+            ],
+        )
+        threat = Threat(
+            id="T001",
+            title="SQL Injection",
+            stride=["T"],
+            severity="High",
+            score=8.5,
+            affected=["Database"],
+            why="User input is concatenated into SQL queries",
+            references=["ASVS V5.1"],
+            recommended_action="Use parameterized queries",
+            evidence_nodes=["API", "DB"],
+            evidence_edges=["API->DB"],
+        )
+
+        result = export_html([threat], None, graph)
+
+        assert "SQL Injection" in result
+        assert "API Service" in result  # node mapping
+        assert "Database" in result
+        assert "queries" in result  # edge label mapping
+        assert "TLS" in result  # protocol mapping
+        assert "T001" in result  # threat id appears in mapping badges
+        assert 'id="graph"' in result  # graph container exists
+        assert "window.THREAT_REPORT" in result  # JSON payload embedded
+        assert "cytoscape" in result  # cytoscape script reference
+        assert "zone::" in result  # zone compound node template
+
+    def test_export_html_escapes_content(self):
+        graph = Graph(
+            nodes={"N1": Node(id="N1", label="Node<1>")},
+            edges=[],
+        )
+        threat = Threat(
+            id="T002",
+            title="XSS <Attack>",
+            stride=["T"],
+            severity="Low",
+            score=3.0,
+            affected=["N1"],
+            why="<script>alert(1)</script>",
+            references=[],
+            recommended_action="Encode < & >",
+            evidence_nodes=["N1"],
+            evidence_edges=[],
+        )
+
+        result = export_html([threat], None, graph)
+
+        assert "&lt;Attack&gt;" in result
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in result
+        assert "Encode &lt; &amp; &gt;" in result
 
 
 class TestDiffReports:

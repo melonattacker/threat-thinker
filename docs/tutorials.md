@@ -7,7 +7,7 @@ In this example, we will analyze the architecture diagram of a simple web applic
 - Uses Mermaid diagram format to parse the system components and data flows
 - Automatically infers potential security hints and generates the top 5 highest-priority threats
 - Applies STRIDE methodology to identify threats across spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege
-- Outputs results in Markdown format with detailed threat descriptions, affected components, and security references
+- Outputs results in Markdown/JSON/HTML with detailed threat descriptions, affected components, and security references
 
 ### Diagram
 
@@ -22,10 +22,9 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
-    --out-md reports/web-report.md \
-    --out-json reports/web-report.json
+    --out-dir reports/
 ```
+You can optionally set `--out-name` if you want to override the base report filename.
 
 ### Discovered potential threats
 | ID | Threat | Severity | Score |
@@ -75,9 +74,7 @@ threat-thinker think \
     --topn 10 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --format both \
-    --out-md reports/aws-report.md \
-    --out-json reports/aws-report.json
+    --out-dir reports/
 ```
 
 ### Discovered potential threats
@@ -142,8 +139,7 @@ threat-thinker diff \
     --before examples/web/report.json \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-md examples/web/diff-analysis.md \
-    --out-json examples/web/diff-analysis.json \
+    --out-dir examples/web/ \
     --lang en
 ```
 
