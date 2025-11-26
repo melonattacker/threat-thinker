@@ -52,7 +52,6 @@ uv pip install -e . -r requirements.txt
 ### CLI Usage
 Here is an example of command using CLI mode.
 
-Reports are always written as JSON, Markdown, and HTML. Use `--out-dir` to choose the destination; filenames are derived from the diagram name (e.g., `system_report.json/md/html`). Optionally set `--out-name` to override the base filename.
 
 ```bash
 # Think: Analyze a mermaid diagram
@@ -142,3 +141,6 @@ Learn about Threat Thinker's 5-layer architecture, processing flow, and key tech
 
 ## Hint YAML (manual overrides)
 Provide zones, protocols, data classifications, and other attributes alongside your diagrams so Threat Thinker generates threats with the right context. See [docs/hints.md](./docs/hints.md) for concepts, schema, and examples.
+
+## Reports (Markdown / JSON / HTML)
+Threat Thinker emits three report formats per run. See [docs/reports.md](./docs/reports.md) for what each format contains and when to use it.
