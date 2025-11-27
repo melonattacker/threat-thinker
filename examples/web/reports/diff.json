@@ -1,0 +1,151 @@
+{
+  "graph_changes": {
+    "nodes_added": [
+      {
+        "id": "waf",
+        "label": "waf",
+        "zone": "DMZ",
+        "type": "service",
+        "data": [],
+        "auth": false,
+        "notes": "Web Application Firewall"
+      },
+      {
+        "id": "cache",
+        "label": "cache",
+        "zone": "Private",
+        "type": "cache",
+        "data": [
+          "Internal"
+        ],
+        "auth": false,
+        "notes": ""
+      },
+      {
+        "id": "logs",
+        "label": "logs",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": false,
+        "notes": "Application logs"
+      },
+      {
+        "id": "analytics",
+        "label": "analytics",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": false,
+        "notes": ""
+      },
+      {
+        "id": "monitor",
+        "label": "monitor",
+        "zone": "Private",
+        "type": "service",
+        "data": [
+          "Internal"
+        ],
+        "auth": false,
+        "notes": "Monitoring system"
+      },
+      {
+        "id": "alerts",
+        "label": "alerts",
+        "zone": "Private",
+        "type": "service",
+        "data": [],
+        "auth": false,
+        "notes": "Alerting/notification"
+      }
+    ],
+    "nodes_removed": [],
+    "edges_added": [
+      {
+        "src": "user",
+        "dst": "waf",
+        "label": null,
+        "protocol": "HTTPS",
+        "data": []
+      },
+      {
+        "src": "waf",
+        "dst": "api",
+        "label": null,
+        "protocol": "HTTPS",
+        "data": []
+      },
+      {
+        "src": "api",
+        "dst": "cache",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "app",
+        "dst": "logs",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "logs",
+        "dst": "analytics",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "app",
+        "dst": "monitor",
+        "label": null,
+        "protocol": "unknown",
+        "data": [
+          "Internal"
+        ]
+      },
+      {
+        "src": "monitor",
+        "dst": "alerts",
+        "label": null,
+        "protocol": "unknown",
+        "data": []
+      }
+    ],
+    "edges_removed": [
+      {
+        "src": "user",
+        "dst": "api",
+        "label": null,
+        "protocol": "HTTPS",
+        "data": []
+      }
+    ],
+    "count_nodes_added": 6,
+    "count_nodes_removed": 0,
+    "count_edges_added": 7,
+    "count_edges_removed": 1
+  },
+  "threat_changes": {
+    "added": [],
+    "removed": [],
+    "count_added": 0,
+    "count_removed": 0
+  },
+  "explanation": "---\n\n# System Architecture Change Analysis\n\n## 1. Graph Changes Summary\n\n**Nodes Added (6):**\n- **waf** (Web Application Firewall) – service\n- **cache** – cache\n- **logs** – service\n- **analytics** – service\n- **monitor** – service\n- **alerts** – service\n\n**Nodes Removed:**  \n- None\n\n**Edges Added (7):**\n- user → waf\n- waf → api\n- api → cache\n- app → logs\n- logs → analytics\n- app → monitor\n- monitor → alerts\n\n**Edges Removed (1):**\n- user → api\n\n---\n\n## 2. Threat Changes Summary\n\n- **Threats Added:** 0\n- **Threats Removed:** 0\n\n**No changes** to the documented threat model. No new threats were explicitly added or removed.\n\n---\n\n## 3. Security Impact Analysis\n\n### **Positive Security Impacts**\n\n**a. Introduction of WAF**\n- **user → waf → api** replaces direct user → api communication.\n- **Implication:** The WAF acts as a security control, filtering malicious traffic (e.g., SQLi, XSS, DDoS) before it reaches the API, reducing attack surface and exposure.\n\n**b. Enhanced Observability and Monitoring**\n- **app → logs → analytics**: Application logs are now collected and analyzed, enabling detection of suspicious activity, troubleshooting, and compliance.\n- **app → monitor → alerts**: Real-time monitoring with alerting enables rapid response to incidents, outages, or anomalous behavior.\n\n**c. Caching Layer**\n- **api → cache**: Adding a cache can reduce backend load and exposure, potentially mitigating some DoS risks and improving performance.\n\n### **Potential New Attack Surfaces**\n\n**a. WAF as a New Component**\n- **WAF** itself must be securely configured and maintained. Misconfiguration or vulnerabilities in the WAF could introduce new risks (e.g., bypass, denial of service, or privilege escalation).\n\n**b. Logging and Analytics**\n- **logs, analytics**: Sensitive data in logs must be protected (encryption, access controls). Log injection or leakage could expose sensitive information or facilitate attacks.\n\n**c. Monitoring and Alerts**\n- **monitor, alerts**: These systems must be secured to prevent tampering, suppression of alerts, or unauthorized access to monitoring data.\n\n**d. Cache Layer**\n- **cache**: Caches can be targeted for data leakage (e.g., cache poisoning, unauthorized access to cached data).\n\n### **Threat Model Gaps**\n- **No new threats documented**: The threat model has not been updated to reflect the new components and data flows. This is a significant gap, as each new component introduces potential threats.\n\n---\n\n## 4. Risk Assessment\n\n**Overall, the changes are likely to decrease security risk** by introducing protective and monitoring controls (WAF, logging, monitoring, alerting). However, the risk reduction is contingent on the secure configuration and management of the new components.\n\n**Residual/new risks:**\n- New attack surfaces (WAF, cache, logging, monitoring infrastructure)\n- Potential for misconfiguration or insufficient hardening of new components\n- Lack of updated threat model means some risks may be unaddressed\n\n**Net effect:**  \n- **Risk is reduced** for existing threats (e.g., direct attacks on the API), but **new risks** are introduced that must be managed.\n\n---\n\n## 5. Recommendations\n\n1. **Update the Threat Model**\n   - Immediately update the threat model to include all new components and data flows.\n   - Identify and assess threats specific to WAF, cache, logging, analytics, monitoring, and alerting systems.\n\n2. **Secure New Components**\n   - Harden WAF, cache, logging, analytics, monitoring, and alerting systems.\n   - Apply least privilege, strong authentication, and regular patching.\n\n3. **Protect Log and Monitoring Data**\n   - Ensure logs do not contain sensitive data or secrets.\n   - Encrypt logs at rest and in transit; restrict access.\n\n4. **Monitor and Test WAF Effectiveness**\n   - Regularly test WAF rules and configurations.\n   - Monitor for false positives/negatives and adjust as needed.\n\n5. **Cache Security**\n   - Secure cache against unauthorized access.\n   - Implement cache invalidation and data segregation as appropriate.\n\n6. **Incident Response**\n   - Integrate monitoring and alerting with incident response processes.\n   - Test alerting mechanisms to ensure timely detection and response.\n\n7. **Continuous Review**\n   - Regularly review architecture and threat model as the system evolves.\n\n---\n\n**Summary:**  \nThe architectural changes introduce valuable security controls and observability but also add new components that must be secured and monitored. The absence of updated threats in the threat model is a critical gap. Addressing this and securing the new infrastructure will maximize the security benefits of the changes.\n\n---",
+  "before_file": "examples/web/reports/system_report.json",
+  "after_file": "examples/web/reports/system-updated_report.json",
+  "generated_at": "2025-11-26T23:59:45.404578+00:00Z"
+}

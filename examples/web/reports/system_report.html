@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Threat Analysis Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { margin-top: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+    h3 { margin-top: 24px; color: #0f172a; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+    th { background: #f8fafc; }
+    .severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .sev-High { background: #fee2e2; color: #b91c1c; }
+    .sev-Medium { background: #fef9c3; color: #b45309; }
+    .sev-Low { background: #dcfce7; color: #166534; }
+    .meta { color: #475569; font-size: 14px; }
+    .section { margin-top: 24px; }
+    .mapping-list { list-style: disc; margin-left: 20px; }
+    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; cursor: pointer; }
+    #graph-container { margin-top: 24px; }
+    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .dom-highlight { box-shadow: 0 0 0 2px #f97316; }
+    .cy-highlight { }
+    .cy-dim { }
+    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Threat Analysis Report</h1>
+  <h2>Threat Summary</h2>
+  <table>
+    <tr><th>ID</th><th>Threat</th><th>Severity</th><th>Score</th></tr>
+    <tr class="threat-row" data-threat-id="T001"><td>T001</td><td>Exposure of Sensitive Data in Transit</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T002"><td>T002</td><td>Potential Lack of Input Validation on API</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T003"><td>T003</td><td>Unencrypted Internal API Communication</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T004"><td>T004</td><td>Denial of Service via Unauthenticated API Access</td><td><span class="severity sev-Medium">Medium</span></td><td>6.0</td></tr>
+    <tr class="threat-row" data-threat-id="T005"><td>T005</td><td>Insufficient Authentication on Internal Services</td><td><span class="severity sev-Medium">Medium</span></td><td>6.0</td></tr>
+  </table>
+  <div id="graph-container">
+    <h2>Architecture Graph</h2>
+    <div id="graph"></div>
+  </div>
+  <h2>Architecture Mapping</h2>
+  <h3>Nodes to Threats</h3>
+  <table>
+    <tr><th>Node</th><th>Zone</th><th>Type</th><th>Threats</th></tr>
+    <tr><td>User [user]</td><td>Internet</td><td>actor</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>api [api]</td><td>DMZ</td><td>service</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>app [app]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>db [db]</td><td>Private</td><td>database</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+  </table>
+  <h3>Edges to Threats</h3>
+  <table>
+    <tr><th>Edge</th><th>Protocol</th><th>Threats</th></tr>
+    <tr><td>User [user] -> api [api]</td><td>HTTPS</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>api [api] -> app [app]</td><td>HTTP</td><td><span class="chip" data-threat-id="T003">T003</span></td></tr>
+    <tr><td>app [app] -> db [db]</td><td>TCP</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+  </table>
+  <h2>Threat Details</h2>
+  <div class="section" id="T001" data-threat-id="T001">
+    <h3>T001: Exposure of Sensitive Data in Transit</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> app, db</p>
+    <p><strong>Why:</strong> Internal app-to-db communication over TCP may not be encrypted, risking data exposure if the network is compromised.</p>
+    <p><strong>References:</strong> ASVS V9.1.1, CWE-319</p>
+    <p><strong>Recommended Actions:</strong><br>Enable TLS encryption for all database connections and disable plaintext access.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>db [db] (zone=Private, type=database)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] -&gt; db [db] (TCP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T002" data-threat-id="T002">
+    <h3>T002: Potential Lack of Input Validation on API</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Tampering, Elevation of Privilege
+    </div>
+    <p><strong>Affected Components:</strong> api</p>
+    <p><strong>Why:</strong> APIs exposed to the Internet are common attack vectors for injection if input validation is insufficient (assumed due to lack of detail).</p>
+    <p><strong>References:</strong> ASVS V5.1, CWE-20</p>
+    <p><strong>Recommended Actions:</strong><br>Implement strict input validation and sanitization on all API endpoints.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] (zone=Internet, type=actor)</li>
+        <li>api [api] (zone=DMZ, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] -&gt; api [api] (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T003" data-threat-id="T003">
+    <h3>T003: Unencrypted Internal API Communication</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Information Disclosure, Tampering
+    </div>
+    <p><strong>Affected Components:</strong> api, app</p>
+    <p><strong>Why:</strong> The API communicates with the internal app over HTTP, risking interception or tampering if the DMZ is breached.</p>
+    <p><strong>References:</strong> ASVS V9.1.1, CWE-319</p>
+    <p><strong>Recommended Actions:</strong><br>Upgrade internal API-to-app communication to HTTPS with TLS 1.2+ and enforce certificate validation.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] (zone=DMZ, type=service)</li>
+        <li>app [app] (zone=Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] -&gt; app [app] (HTTP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T004" data-threat-id="T004">
+    <h3>T004: Denial of Service via Unauthenticated API Access</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 6.0 | STRIDE: Denial of Service
+    </div>
+    <p><strong>Affected Components:</strong> api</p>
+    <p><strong>Why:</strong> If API endpoints are not rate-limited or protected, attackers can overwhelm the service (assumed due to lack of detail).</p>
+    <p><strong>References:</strong> ASVS V7.5, CWE-400</p>
+    <p><strong>Recommended Actions:</strong><br>Implement rate limiting, authentication, and request throttling on all public API endpoints.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] (zone=Internet, type=actor)</li>
+        <li>api [api] (zone=DMZ, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] -&gt; api [api] (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T005" data-threat-id="T005">
+    <h3>T005: Insufficient Authentication on Internal Services</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 6.0 | STRIDE: Elevation of Privilege, Spoofing
+    </div>
+    <p><strong>Affected Components:</strong> app, db</p>
+    <p><strong>Why:</strong> If authentication between internal services is not strong, attackers moving laterally could impersonate trusted components.</p>
+    <p><strong>References:</strong> ASVS V2.1, CWE-287</p>
+    <p><strong>Recommended Actions:</strong><br>Enforce mutual authentication (e.g., mTLS or signed tokens) between app and db.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>db [db] (zone=Private, type=database)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] -&gt; db [db] (TCP)</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    window.THREAT_REPORT = {"graph": {"nodes": [{"id": "user", "label": "User", "zone": "Internet", "type": "actor", "data": [], "auth": null, "notes": null}, {"id": "api", "label": "api", "zone": "DMZ", "type": "service", "data": [], "auth": true, "notes": null}, {"id": "app", "label": "app", "zone": "Private", "type": "service", "data": ["Internal"], "auth": true, "notes": null}, {"id": "db", "label": "db", "zone": "Private", "type": "database", "data": ["Internal"], "auth": true, "notes": null}], "edges": [{"src": "user", "dst": "api", "label": null, "protocol": "HTTPS", "data": []}, {"src": "api", "dst": "app", "label": null, "protocol": "HTTP", "data": ["Internal"]}, {"src": "app", "dst": "db", "label": null, "protocol": "TCP", "data": ["Internal"]}]}, "threats": [{"id": "T001", "title": "Exposure of Sensitive Data in Transit", "severity": "High", "score": 8.0, "stride": ["Information Disclosure"], "affected": ["app", "db"], "why": "Internal app-to-db communication over TCP may not be encrypted, risking data exposure if the network is compromised.", "references": ["ASVS V9.1.1", "CWE-319"], "recommended_action": "Enable TLS encryption for all database connections and disable plaintext access.", "evidence": {"nodes": ["app", "db"], "edges": ["app->db"]}}, {"id": "T002", "title": "Potential Lack of Input Validation on API", "severity": "High", "score": 8.0, "stride": ["Tampering", "Elevation of Privilege"], "affected": ["api"], "why": "APIs exposed to the Internet are common attack vectors for injection if input validation is insufficient (assumed due to lack of detail).", "references": ["ASVS V5.1", "CWE-20"], "recommended_action": "Implement strict input validation and sanitization on all API endpoints.", "evidence": {"nodes": ["user", "api"], "edges": ["user->api"]}}, {"id": "T003", "title": "Unencrypted Internal API Communication", "severity": "High", "score": 8.0, "stride": ["Information Disclosure", "Tampering"], "affected": ["api", "app"], "why": "The API communicates with the internal app over HTTP, risking interception or tampering if the DMZ is breached.", "references": ["ASVS V9.1.1", "CWE-319"], "recommended_action": "Upgrade internal API-to-app communication to HTTPS with TLS 1.2+ and enforce certificate validation.", "evidence": {"nodes": ["api", "app"], "edges": ["api->app"]}}, {"id": "T004", "title": "Denial of Service via Unauthenticated API Access", "severity": "Medium", "score": 6.0, "stride": ["Denial of Service"], "affected": ["api"], "why": "If API endpoints are not rate-limited or protected, attackers can overwhelm the service (assumed due to lack of detail).", "references": ["ASVS V7.5", "CWE-400"], "recommended_action": "Implement rate limiting, authentication, and request throttling on all public API endpoints.", "evidence": {"nodes": ["user", "api"], "edges": ["user->api"]}}, {"id": "T005", "title": "Insufficient Authentication on Internal Services", "severity": "Medium", "score": 6.0, "stride": ["Elevation of Privilege", "Spoofing"], "affected": ["app", "db"], "why": "If authentication between internal services is not strong, attackers moving laterally could impersonate trusted components.", "references": ["ASVS V2.1", "CWE-287"], "recommended_action": "Enforce mutual authentication (e.g., mTLS or signed tokens) between app and db.", "evidence": {"nodes": ["app", "db"], "edges": ["app->db"]}}]};
+  </script>
+  <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <script>
+    (function() {
+      const report = window.THREAT_REPORT || {};
+      const nodes = (report.graph && report.graph.nodes) || [];
+      const edges = (report.graph && report.graph.edges) || [];
+      const container = document.getElementById('graph');
+      if (!container) return;
+      let initialZoom = 1;
+      const cssEscape = (value) => (window.CSS && CSS.escape ? CSS.escape(value) : value);
+
+      function clearCyHighlight(cy) {
+        cy.elements().removeClass('cy-highlight cy-dim');
+      }
+
+      function highlightThreat(cy, reportObj, threatId) {
+        if (!threatId) return;
+        const threat = (reportObj.threats || []).find((t) => t.id === threatId);
+        clearCyHighlight(cy);
+        if (!threat) return;
+        const nodeIds = (threat.evidence && threat.evidence.nodes) || [];
+        const edgeIds = (threat.evidence && threat.evidence.edges) || [];
+        const threatNodes = cy.nodes().filter((n) => nodeIds.includes(n.id()));
+        const threatEdges = cy.edges().filter((e) => edgeIds.includes(e.id()));
+        const targets = threatNodes.union(threatEdges);
+        if (targets.length) {
+          targets.addClass('cy-highlight');
+          cy.elements().difference(targets).addClass('cy-dim');
+          try {
+            cy.fit(targets, 60);
+            const bbox = targets.boundingBox();
+            const center = { x: (bbox.x1 + bbox.x2) / 2, y: (bbox.y1 + bbox.y2) / 2 };
+            const clampedZoom = Math.min(cy.zoom(), initialZoom * 1.2);
+            if (cy.zoom() > clampedZoom) {
+              cy.zoom({ level: clampedZoom, position: center });
+            }
+          } catch (err) {}
+        }
+      }
+
+      function clearDomHighlights() {
+        document.querySelectorAll('.dom-highlight').forEach((el) => el.classList.remove('dom-highlight'));
+      }
+
+      function scrollToThreat(threatId) {
+        const detail = document.getElementById(threatId);
+        if (detail && typeof detail.scrollIntoView === 'function') {
+          detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function highlightRows(threatIds) {
+        clearDomHighlights();
+        threatIds.forEach((tid) => {
+          const row = document.querySelector(`.threat-row[data-threat-id="${cssEscape(tid)}"]`);
+          if (row) row.classList.add('dom-highlight');
+        });
+      }
+
+      function bindInteractions(cy) {
+        const rows = Array.from(document.querySelectorAll('.threat-row[data-threat-id]'));
+        rows.forEach((row) => {
+          row.addEventListener('click', () => {
+            const tid = row.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        const chips = Array.from(document.querySelectorAll('.chip[data-threat-id]'));
+        chips.forEach((chip) => {
+          chip.addEventListener('click', () => {
+            const tid = chip.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        cy.on('tap', 'node, edge', (evt) => {
+          const elementId = evt.target.id();
+          const matchingThreats = (report.threats || []).filter((t) => {
+            const ev = t.evidence || {};
+            const nids = ev.nodes || [];
+            const eids = ev.edges || [];
+            return nids.includes(elementId) || eids.includes(elementId);
+          });
+          const ids = matchingThreats.map((t) => t.id);
+          highlightRows(ids);
+          clearCyHighlight(cy);
+          evt.target.addClass('cy-highlight');
+          cy.elements().difference(evt.target).addClass('cy-dim');
+        });
+      }
+
+      function createCy() {
+        const palette = ['#0ea5e9','#22c55e','#f97316','#a78bfa','#f43f5e','#14b8a6','#eab308','#3b82f6'];
+        const zoneColor = {};
+        const zones = Array.from(new Set(nodes.map((n) => n.zone).filter(Boolean)));
+        const zoneElements = zones.map((z) => {
+          if (!zoneColor[z]) {
+            zoneColor[z] = palette[Object.keys(zoneColor).length % palette.length];
+          }
+          const zoneId = `zone::${String(z).replace(/\s+/g, '_')}`;
+          return { data: { id: zoneId, label: z, type: 'zone' } };
+        });
+        const elements = {
+          nodes: [
+            ...zoneElements,
+            ...nodes.map((n) => {
+              const zone = n.zone || 'default';
+              if (zone && !zoneColor[zone]) {
+                zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];
+              }
+              const color = zoneColor[zone] || '#0ea5e9';
+              const parent = n.zone ? `zone::${String(n.zone).replace(/\s+/g, '_')}` : undefined;
+              return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };
+            })
+          ],
+          edges: edges.map((e) => ({ data: { id: `${e.src}->${e.dst}`, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } }))
+        };
+        const cy = cytoscape({
+          container,
+          elements,
+          style: [
+            { selector: 'node[type = \"zone\"]', style: { 'background-color': '#f8fafc', 'background-opacity': 0.25, 'shape': 'round-rectangle', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'top', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-weight': 700, 'font-size': 12, 'text-background-color': '#f8fafc', 'text-background-opacity': 0.9, 'text-background-padding': 4, 'text-margin-y': -12, 'border-style': 'dashed', 'border-color': '#94a3b8', 'border-width': 2, 'padding': 18, 'z-compound-depth': 'bottom' } },
+            { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10', 'z-compound-depth': 'top' } },
+            { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2, 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8', 'label': 'data(label)', 'font-size': 8, 'text-background-color': '#fff', 'text-background-opacity': 0.7, 'text-background-padding': 2 } },
+            { selector: 'node.cy-highlight', style: { 'background-color': '#f97316', 'border-color': '#f97316', 'border-width': 3 } },
+            { selector: 'edge.cy-highlight', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } },
+            { selector: '.cy-dim', style: { 'opacity': 0.25 } }
+          ],
+        });
+        try {
+          cy.layout({ name: 'dagre', rankDir: 'LR', padding: 30, nodeSep: 40, edgeSep: 20 }).run();
+        } catch (e) {
+          cy.layout({ name: 'cose', padding: 30, animate: false }).run();
+        }
+        cy.nodes().forEach((n) => n.grabbable(true));
+        initialZoom = cy.zoom();
+        return cy;
+      }
+
+      const cy = createCy();
+      bindInteractions(cy);
+    })();
+  </script>
+</body>
+</html>

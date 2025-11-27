@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Threat Analysis Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { margin-top: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+    h3 { margin-top: 24px; color: #0f172a; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+    th { background: #f8fafc; }
+    .severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .sev-High { background: #fee2e2; color: #b91c1c; }
+    .sev-Medium { background: #fef9c3; color: #b45309; }
+    .sev-Low { background: #dcfce7; color: #166534; }
+    .meta { color: #475569; font-size: 14px; }
+    .section { margin-top: 24px; }
+    .mapping-list { list-style: disc; margin-left: 20px; }
+    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; cursor: pointer; }
+    #graph-container { margin-top: 24px; }
+    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .dom-highlight { box-shadow: 0 0 0 2px #f97316; }
+    .cy-highlight { }
+    .cy-dim { }
+    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Threat Analysis Report</h1>
+  <h2>Threat Summary</h2>
+  <table>
+    <tr><th>ID</th><th>Threat</th><th>Severity</th><th>Score</th></tr>
+    <tr class="threat-row" data-threat-id="T001"><td>T001</td><td>Potential Credential Theft at Ingress Point</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T002"><td>T002</td><td>Unencrypted Traffic Between Load Balancer and ECS Service Exposes Sensitive Data</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T003"><td>T003</td><td>Lack of End-to-End Encryption for PII to Database</td><td><span class="severity sev-High">High</span></td><td>7.0</td></tr>
+    <tr class="threat-row" data-threat-id="T004"><td>T004</td><td>Exposure of Internal Data via S3 Bucket Misconfiguration</td><td><span class="severity sev-Medium">Medium</span></td><td>6.0</td></tr>
+    <tr class="threat-row" data-threat-id="T005"><td>T005</td><td>Insufficient Authentication Between Internal Services</td><td><span class="severity sev-Medium">Medium</span></td><td>6.0</td></tr>
+    <tr class="threat-row" data-threat-id="T006"><td>T006</td><td>Denial of Service Risk at Public Ingress Points</td><td><span class="severity sev-Medium">Medium</span></td><td>5.0</td></tr>
+    <tr class="threat-row" data-threat-id="T007"><td>T007</td><td>Insufficient Access Controls on Internal AWS Resources</td><td><span class="severity sev-Medium">Medium</span></td><td>5.0</td></tr>
+    <tr class="threat-row" data-threat-id="T008"><td>T008</td><td>Lack of Audit Logging for Sensitive Operations</td><td><span class="severity sev-Medium">Medium</span></td><td>5.0</td></tr>
+    <tr class="threat-row" data-threat-id="T009"><td>T009</td><td>Potential for Message Tampering or Replay in SQS/SNS</td><td><span class="severity sev-Medium">Medium</span></td><td>5.0</td></tr>
+    <tr class="threat-row" data-threat-id="T010"><td>T010</td><td>Lack of Input Validation on User-Provided Data</td><td><span class="severity sev-Low">Low</span></td><td>3.0</td></tr>
+  </table>
+  <div id="graph-container">
+    <h2>Architecture Graph</h2>
+    <div id="graph"></div>
+  </div>
+  <h2>Architecture Mapping</h2>
+  <h3>Nodes to Threats</h3>
+  <table>
+    <tr><th>Node</th><th>Zone</th><th>Type</th><th>Threats</th></tr>
+    <tr><td>User [user]</td><td>Internet</td><td>actor</td><td><span class="chip" data-threat-id="T001">T001</span></td></tr>
+    <tr><td>CloudFront [cloudfront]</td><td>DMZ</td><td>ingress</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T006">T006</span></td></tr>
+    <tr><td>Application Load Balancer [application_load_balancer]</td><td>DMZ</td><td>elb</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T005">T005</span> <span class="chip" data-threat-id="T006">T006</span></td></tr>
+    <tr><td>ECS Service (Fargate) [ecs_service_fargate]</td><td>VPC-Private</td><td>service</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T005">T005</span> <span class="chip" data-threat-id="T008">T008</span> <span class="chip" data-threat-id="T009">T009</span> <span class="chip" data-threat-id="T010">T010</span></td></tr>
+    <tr><td>S3 Bucket (assets) [s3_bucket_assets]</td><td>AWS-Managed</td><td>s3</td><td><span class="chip" data-threat-id="T004">T004</span> <span class="chip" data-threat-id="T007">T007</span> <span class="chip" data-threat-id="T008">T008</span></td></tr>
+    <tr><td>Aurora (RDS) [aurora_rds]</td><td>AWS-Managed</td><td>database</td><td><span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T007">T007</span> <span class="chip" data-threat-id="T008">T008</span></td></tr>
+    <tr><td>SQS Queue (jobs) [sqs_queue_jobs]</td><td>AWS-Managed</td><td>queue</td><td><span class="chip" data-threat-id="T007">T007</span> <span class="chip" data-threat-id="T009">T009</span></td></tr>
+    <tr><td>Lambda Worker [lambda_worker]</td><td>AWS-Managed</td><td>lambda</td><td><span class="chip" data-threat-id="T009">T009</span></td></tr>
+    <tr><td>SNS Topic (events) [sns_topic_events]</td><td>AWS-Managed</td><td>service</td><td><span class="chip" data-threat-id="T007">T007</span> <span class="chip" data-threat-id="T009">T009</span></td></tr>
+  </table>
+  <h3>Edges to Threats</h3>
+  <table>
+    <tr><th>Edge</th><th>Protocol</th><th>Threats</th></tr>
+    <tr><td>User [user] -> CloudFront [cloudfront] : HTTPS, Credentials</td><td>HTTPS</td><td><span class="chip" data-threat-id="T001">T001</span></td></tr>
+    <tr><td>CloudFront [cloudfront] -> Application Load Balancer [application_load_balancer] : HTTPS</td><td>HTTPS</td><td><span class="chip" data-threat-id="T006">T006</span></td></tr>
+    <tr><td>Application Load Balancer [application_load_balancer] -> ECS Service (Fargate) [ecs_service_fargate] : HTTP</td><td>HTTP</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T005">T005</span> <span class="chip" data-threat-id="T010">T010</span></td></tr>
+    <tr><td>ECS Service (Fargate) [ecs_service_fargate] -> S3 Bucket (assets) [s3_bucket_assets] : HTTPS, Internal Data</td><td>HTTPS</td><td><span class="chip" data-threat-id="T004">T004</span> <span class="chip" data-threat-id="T008">T008</span></td></tr>
+    <tr><td>ECS Service (Fargate) [ecs_service_fargate] -> SQS Queue (jobs) [sqs_queue_jobs] : HTTPS, Internal Data</td><td>HTTPS</td><td><span class="chip" data-threat-id="T009">T009</span></td></tr>
+    <tr><td>ECS Service (Fargate) [ecs_service_fargate] -> Aurora (RDS) [aurora_rds] : TCP, PII Data</td><td>TCP</td><td><span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T008">T008</span></td></tr>
+    <tr><td>SQS Queue (jobs) [sqs_queue_jobs] -> Lambda Worker [lambda_worker] : HTTPS, Internal Data</td><td>HTTPS</td><td>&mdash;</td></tr>
+    <tr><td>SNS Topic (events) [sns_topic_events] -> Lambda Worker [lambda_worker] : HTTPS, Internal Data</td><td>HTTPS</td><td><span class="chip" data-threat-id="T009">T009</span></td></tr>
+  </table>
+  <h2>Threat Details</h2>
+  <div class="section" id="T001" data-threat-id="T001">
+    <h3>T001: Potential Credential Theft at Ingress Point</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Spoofing, Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> User, CloudFront</p>
+    <p><strong>Why:</strong> Credentials are transmitted from users to CloudFront; if HTTPS is misconfigured, credentials could be intercepted.</p>
+    <p><strong>References:</strong> ASVS V2.1, ASVS V9.1, CWE-522</p>
+    <p><strong>Recommended Actions:</strong><br>Ensure HTTPS with strong TLS configuration is enforced at CloudFront and all credentials are transmitted securely.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] (zone=Internet, type=actor)</li>
+        <li>CloudFront [cloudfront] (zone=DMZ, type=ingress)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>User [user] -&gt; CloudFront [cloudfront] : HTTPS, Credentials (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T002" data-threat-id="T002">
+    <h3>T002: Unencrypted Traffic Between Load Balancer and ECS Service Exposes Sensitive Data</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Information Disclosure, Tampering
+    </div>
+    <p><strong>Affected Components:</strong> Application Load Balancer, ECS Service (Fargate)</p>
+    <p><strong>Why:</strong> HTTP (unencrypted) is used between the load balancer and ECS, risking exposure or manipulation of PII/internal data in transit.</p>
+    <p><strong>References:</strong> ASVS V9.1, CWE-319</p>
+    <p><strong>Recommended Actions:</strong><br>Enforce HTTPS/TLS 1.2+ for all internal traffic between the load balancer and ECS service.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>Application Load Balancer [application_load_balancer] (zone=DMZ, type=elb)</li>
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>Application Load Balancer [application_load_balancer] -&gt; ECS Service (Fargate) [ecs_service_fargate] : HTTP (HTTP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T003" data-threat-id="T003">
+    <h3>T003: Lack of End-to-End Encryption for PII to Database</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 7.0 | STRIDE: Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> ECS Service (Fargate), Aurora (RDS)</p>
+    <p><strong>Why:</strong> PII is sent over TCP from ECS to Aurora RDS, which may not be encrypted if not explicitly configured.</p>
+    <p><strong>References:</strong> ASVS V9.1, ASVS V10.4.1, CWE-319</p>
+    <p><strong>Recommended Actions:</strong><br>Enable TLS encryption for database connections and enforce encrypted client connections.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+        <li>Aurora (RDS) [aurora_rds] (zone=AWS-Managed, type=database)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] -&gt; Aurora (RDS) [aurora_rds] : TCP, PII Data (TCP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T004" data-threat-id="T004">
+    <h3>T004: Exposure of Internal Data via S3 Bucket Misconfiguration</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 6.0 | STRIDE: Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> S3 Bucket (assets)</p>
+    <p><strong>Why:</strong> Internal data stored in S3 could be exposed if bucket policies or ACLs are misconfigured.</p>
+    <p><strong>References:</strong> ASVS V9.4, ASVS V10.5.1, CWE-200</p>
+    <p><strong>Recommended Actions:</strong><br>Restrict S3 bucket access using least privilege IAM policies and enable bucket encryption.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>S3 Bucket (assets) [s3_bucket_assets] (zone=AWS-Managed, type=s3)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] -&gt; S3 Bucket (assets) [s3_bucket_assets] : HTTPS, Internal Data (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T005" data-threat-id="T005">
+    <h3>T005: Insufficient Authentication Between Internal Services</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 6.0 | STRIDE: Elevation of Privilege, Spoofing
+    </div>
+    <p><strong>Affected Components:</strong> Application Load Balancer, ECS Service (Fargate)</p>
+    <p><strong>Why:</strong> No explicit authentication is described between the load balancer and ECS, risking unauthorized access if internal boundaries are breached.</p>
+    <p><strong>References:</strong> ASVS V2.1, ASVS V2.2, CWE-287</p>
+    <p><strong>Recommended Actions:</strong><br>Implement mutual TLS or signed tokens for authentication between internal services.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>Application Load Balancer [application_load_balancer] (zone=DMZ, type=elb)</li>
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>Application Load Balancer [application_load_balancer] -&gt; ECS Service (Fargate) [ecs_service_fargate] : HTTP (HTTP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T006" data-threat-id="T006">
+    <h3>T006: Denial of Service Risk at Public Ingress Points</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 5.0 | STRIDE: Denial of Service
+    </div>
+    <p><strong>Affected Components:</strong> CloudFront, Application Load Balancer</p>
+    <p><strong>Why:</strong> Publicly exposed CloudFront and ALB endpoints could be targeted by volumetric or application-layer DoS attacks.</p>
+    <p><strong>References:</strong> ASVS V1.7, ASVS V9.5, CWE-400</p>
+    <p><strong>Recommended Actions:</strong><br>Implement AWS WAF, rate limiting, and auto-scaling to mitigate DoS risks.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>CloudFront [cloudfront] (zone=DMZ, type=ingress)</li>
+        <li>Application Load Balancer [application_load_balancer] (zone=DMZ, type=elb)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>CloudFront [cloudfront] -&gt; Application Load Balancer [application_load_balancer] : HTTPS (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T007" data-threat-id="T007">
+    <h3>T007: Insufficient Access Controls on Internal AWS Resources</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 5.0 | STRIDE: Elevation of Privilege
+    </div>
+    <p><strong>Affected Components:</strong> S3 Bucket (assets), SQS Queue (jobs), SNS Topic (events), Aurora (RDS)</p>
+    <p><strong>Why:</strong> If IAM roles/policies are overly permissive, attackers could escalate privileges or access sensitive resources.</p>
+    <p><strong>References:</strong> ASVS V4.2, ASVS V4.3, CWE-269</p>
+    <p><strong>Recommended Actions:</strong><br>Review and enforce least privilege IAM roles and resource policies for all AWS resources.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>S3 Bucket (assets) [s3_bucket_assets] (zone=AWS-Managed, type=s3)</li>
+        <li>SQS Queue (jobs) [sqs_queue_jobs] (zone=AWS-Managed, type=queue)</li>
+        <li>SNS Topic (events) [sns_topic_events] (zone=AWS-Managed, type=service)</li>
+        <li>Aurora (RDS) [aurora_rds] (zone=AWS-Managed, type=database)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T008" data-threat-id="T008">
+    <h3>T008: Lack of Audit Logging for Sensitive Operations</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 5.0 | STRIDE: Repudiation
+    </div>
+    <p><strong>Affected Components:</strong> ECS Service (Fargate), Aurora (RDS), S3 Bucket (assets)</p>
+    <p><strong>Why:</strong> No evidence of audit logging for access to PII or internal data, risking undetected misuse or data breaches.</p>
+    <p><strong>References:</strong> ASVS V10.1.1, ASVS V10.2.1, CWE-778</p>
+    <p><strong>Recommended Actions:</strong><br>Enable detailed audit logging for all sensitive data access and changes, and monitor logs for anomalies.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+        <li>Aurora (RDS) [aurora_rds] (zone=AWS-Managed, type=database)</li>
+        <li>S3 Bucket (assets) [s3_bucket_assets] (zone=AWS-Managed, type=s3)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] -&gt; Aurora (RDS) [aurora_rds] : TCP, PII Data (TCP)</li>
+        <li>ECS Service (Fargate) [ecs_service_fargate] -&gt; S3 Bucket (assets) [s3_bucket_assets] : HTTPS, Internal Data (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T009" data-threat-id="T009">
+    <h3>T009: Potential for Message Tampering or Replay in SQS/SNS</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 5.0 | STRIDE: Tampering, Repudiation
+    </div>
+    <p><strong>Affected Components:</strong> ECS Service (Fargate), SQS Queue (jobs), SNS Topic (events), Lambda Worker</p>
+    <p><strong>Why:</strong> Internal data sent via SQS/SNS could be tampered with or replayed if message integrity and authentication are not enforced.</p>
+    <p><strong>References:</strong> ASVS V10.5.2, ASVS V10.6.1, CWE-345</p>
+    <p><strong>Recommended Actions:</strong><br>Enable message signing, enforce authentication, and use idempotency tokens for message processing.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+        <li>SQS Queue (jobs) [sqs_queue_jobs] (zone=AWS-Managed, type=queue)</li>
+        <li>SNS Topic (events) [sns_topic_events] (zone=AWS-Managed, type=service)</li>
+        <li>Lambda Worker [lambda_worker] (zone=AWS-Managed, type=lambda)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] -&gt; SQS Queue (jobs) [sqs_queue_jobs] : HTTPS, Internal Data (HTTPS)</li>
+        <li>SNS Topic (events) [sns_topic_events] -&gt; Lambda Worker [lambda_worker] : HTTPS, Internal Data (HTTPS)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T010" data-threat-id="T010">
+    <h3>T010: Lack of Input Validation on User-Provided Data</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Low">Low</span> | Score: 3.0 | STRIDE: Tampering, Elevation of Privilege
+    </div>
+    <p><strong>Affected Components:</strong> ECS Service (Fargate)</p>
+    <p><strong>Why:</strong> No explicit input validation is described, risking injection or privilege escalation via crafted user input.</p>
+    <p><strong>References:</strong> ASVS V5.3, ASVS V5.4, CWE-20</p>
+    <p><strong>Recommended Actions:</strong><br>Implement strict input validation and sanitization for all user-supplied data.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>ECS Service (Fargate) [ecs_service_fargate] (zone=VPC-Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>Application Load Balancer [application_load_balancer] -&gt; ECS Service (Fargate) [ecs_service_fargate] : HTTP (HTTP)</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    window.THREAT_REPORT = {"graph": {"nodes": [{"id": "user", "label": "User", "zone": "Internet", "type": "actor", "data": ["Credentials"], "auth": null, "notes": null}, {"id": "cloudfront", "label": "CloudFront", "zone": "DMZ", "type": "ingress", "data": ["Credentials"], "auth": true, "notes": null}, {"id": "application_load_balancer", "label": "Application Load Balancer", "zone": "DMZ", "type": "elb", "data": [], "auth": null, "notes": null}, {"id": "ecs_service_fargate", "label": "ECS Service (Fargate)", "zone": "VPC-Private", "type": "service", "data": ["PII", "Internal"], "auth": true, "notes": null}, {"id": "s3_bucket_assets", "label": "S3 Bucket (assets)", "zone": "AWS-Managed", "type": "s3", "data": ["Internal"], "auth": true, "notes": null}, {"id": "aurora_rds", "label": "Aurora (RDS)", "zone": "AWS-Managed", "type": "database", "data": ["PII"], "auth": true, "notes": null}, {"id": "sqs_queue_jobs", "label": "SQS Queue (jobs)", "zone": "AWS-Managed", "type": "queue", "data": ["Internal"], "auth": true, "notes": null}, {"id": "lambda_worker", "label": "Lambda Worker", "zone": "AWS-Managed", "type": "lambda", "data": ["Internal"], "auth": true, "notes": null}, {"id": "sns_topic_events", "label": "SNS Topic (events)", "zone": "AWS-Managed", "type": "service", "data": ["Internal"], "auth": true, "notes": null}], "edges": [{"src": "user", "dst": "cloudfront", "label": "HTTPS, Credentials", "protocol": "HTTPS", "data": ["Credentials"]}, {"src": "cloudfront", "dst": "application_load_balancer", "label": "HTTPS", "protocol": "HTTPS", "data": []}, {"src": "application_load_balancer", "dst": "ecs_service_fargate", "label": "HTTP", "protocol": "HTTP", "data": []}, {"src": "ecs_service_fargate", "dst": "s3_bucket_assets", "label": "HTTPS, Internal Data", "protocol": "HTTPS", "data": ["Internal"]}, {"src": "ecs_service_fargate", "dst": "sqs_queue_jobs", "label": "HTTPS, Internal Data", "protocol": "HTTPS", "data": ["Internal"]}, {"src": "ecs_service_fargate", "dst": "aurora_rds", "label": "TCP, PII Data", "protocol": "TCP", "data": ["PII"]}, {"src": "sqs_queue_jobs", "dst": "lambda_worker", "label": "HTTPS, Internal Data", "protocol": "HTTPS", "data": ["Internal"]}, {"src": "sns_topic_events", "dst": "lambda_worker", "label": "HTTPS, Internal Data", "protocol": "HTTPS", "data": ["Internal"]}]}, "threats": [{"id": "T001", "title": "Potential Credential Theft at Ingress Point", "severity": "High", "score": 8.0, "stride": ["Spoofing", "Information Disclosure"], "affected": ["User", "CloudFront"], "why": "Credentials are transmitted from users to CloudFront; if HTTPS is misconfigured, credentials could be intercepted.", "references": ["ASVS V2.1", "ASVS V9.1", "CWE-522"], "recommended_action": "Ensure HTTPS with strong TLS configuration is enforced at CloudFront and all credentials are transmitted securely.", "evidence": {"nodes": ["user", "cloudfront"], "edges": ["user->cloudfront"]}}, {"id": "T002", "title": "Unencrypted Traffic Between Load Balancer and ECS Service Exposes Sensitive Data", "severity": "High", "score": 8.0, "stride": ["Information Disclosure", "Tampering"], "affected": ["Application Load Balancer", "ECS Service (Fargate)"], "why": "HTTP (unencrypted) is used between the load balancer and ECS, risking exposure or manipulation of PII/internal data in transit.", "references": ["ASVS V9.1", "CWE-319"], "recommended_action": "Enforce HTTPS/TLS 1.2+ for all internal traffic between the load balancer and ECS service.", "evidence": {"nodes": ["application_load_balancer", "ecs_service_fargate"], "edges": ["application_load_balancer->ecs_service_fargate"]}}, {"id": "T003", "title": "Lack of End-to-End Encryption for PII to Database", "severity": "High", "score": 7.0, "stride": ["Information Disclosure"], "affected": ["ECS Service (Fargate)", "Aurora (RDS)"], "why": "PII is sent over TCP from ECS to Aurora RDS, which may not be encrypted if not explicitly configured.", "references": ["ASVS V9.1", "ASVS V10.4.1", "CWE-319"], "recommended_action": "Enable TLS encryption for database connections and enforce encrypted client connections.", "evidence": {"nodes": ["ecs_service_fargate", "aurora_rds"], "edges": ["ecs_service_fargate->aurora_rds"]}}, {"id": "T004", "title": "Exposure of Internal Data via S3 Bucket Misconfiguration", "severity": "Medium", "score": 6.0, "stride": ["Information Disclosure"], "affected": ["S3 Bucket (assets)"], "why": "Internal data stored in S3 could be exposed if bucket policies or ACLs are misconfigured.", "references": ["ASVS V9.4", "ASVS V10.5.1", "CWE-200"], "recommended_action": "Restrict S3 bucket access using least privilege IAM policies and enable bucket encryption.", "evidence": {"nodes": ["s3_bucket_assets"], "edges": ["ecs_service_fargate->s3_bucket_assets"]}}, {"id": "T005", "title": "Insufficient Authentication Between Internal Services", "severity": "Medium", "score": 6.0, "stride": ["Elevation of Privilege", "Spoofing"], "affected": ["Application Load Balancer", "ECS Service (Fargate)"], "why": "No explicit authentication is described between the load balancer and ECS, risking unauthorized access if internal boundaries are breached.", "references": ["ASVS V2.1", "ASVS V2.2", "CWE-287"], "recommended_action": "Implement mutual TLS or signed tokens for authentication between internal services.", "evidence": {"nodes": ["application_load_balancer", "ecs_service_fargate"], "edges": ["application_load_balancer->ecs_service_fargate"]}}, {"id": "T006", "title": "Denial of Service Risk at Public Ingress Points", "severity": "Medium", "score": 5.0, "stride": ["Denial of Service"], "affected": ["CloudFront", "Application Load Balancer"], "why": "Publicly exposed CloudFront and ALB endpoints could be targeted by volumetric or application-layer DoS attacks.", "references": ["ASVS V1.7", "ASVS V9.5", "CWE-400"], "recommended_action": "Implement AWS WAF, rate limiting, and auto-scaling to mitigate DoS risks.", "evidence": {"nodes": ["cloudfront", "application_load_balancer"], "edges": ["cloudfront->application_load_balancer"]}}, {"id": "T007", "title": "Insufficient Access Controls on Internal AWS Resources", "severity": "Medium", "score": 5.0, "stride": ["Elevation of Privilege"], "affected": ["S3 Bucket (assets)", "SQS Queue (jobs)", "SNS Topic (events)", "Aurora (RDS)"], "why": "If IAM roles/policies are overly permissive, attackers could escalate privileges or access sensitive resources.", "references": ["ASVS V4.2", "ASVS V4.3", "CWE-269"], "recommended_action": "Review and enforce least privilege IAM roles and resource policies for all AWS resources.", "evidence": {"nodes": ["s3_bucket_assets", "sqs_queue_jobs", "sns_topic_events", "aurora_rds"], "edges": []}}, {"id": "T008", "title": "Lack of Audit Logging for Sensitive Operations", "severity": "Medium", "score": 5.0, "stride": ["Repudiation"], "affected": ["ECS Service (Fargate)", "Aurora (RDS)", "S3 Bucket (assets)"], "why": "No evidence of audit logging for access to PII or internal data, risking undetected misuse or data breaches.", "references": ["ASVS V10.1.1", "ASVS V10.2.1", "CWE-778"], "recommended_action": "Enable detailed audit logging for all sensitive data access and changes, and monitor logs for anomalies.", "evidence": {"nodes": ["ecs_service_fargate", "aurora_rds", "s3_bucket_assets"], "edges": ["ecs_service_fargate->aurora_rds", "ecs_service_fargate->s3_bucket_assets"]}}, {"id": "T009", "title": "Potential for Message Tampering or Replay in SQS/SNS", "severity": "Medium", "score": 5.0, "stride": ["Tampering", "Repudiation"], "affected": ["ECS Service (Fargate)", "SQS Queue (jobs)", "SNS Topic (events)", "Lambda Worker"], "why": "Internal data sent via SQS/SNS could be tampered with or replayed if message integrity and authentication are not enforced.", "references": ["ASVS V10.5.2", "ASVS V10.6.1", "CWE-345"], "recommended_action": "Enable message signing, enforce authentication, and use idempotency tokens for message processing.", "evidence": {"nodes": ["ecs_service_fargate", "sqs_queue_jobs", "sns_topic_events", "lambda_worker"], "edges": ["ecs_service_fargate->sqs_queue_jobs", "sns_topic_events->lambda_worker"]}}, {"id": "T010", "title": "Lack of Input Validation on User-Provided Data", "severity": "Low", "score": 3.0, "stride": ["Tampering", "Elevation of Privilege"], "affected": ["ECS Service (Fargate)"], "why": "No explicit input validation is described, risking injection or privilege escalation via crafted user input.", "references": ["ASVS V5.3", "ASVS V5.4", "CWE-20"], "recommended_action": "Implement strict input validation and sanitization for all user-supplied data.", "evidence": {"nodes": ["ecs_service_fargate"], "edges": ["application_load_balancer->ecs_service_fargate"]}}]};
+  </script>
+  <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <script>
+    (function() {
+      const report = window.THREAT_REPORT || {};
+      const nodes = (report.graph && report.graph.nodes) || [];
+      const edges = (report.graph && report.graph.edges) || [];
+      const container = document.getElementById('graph');
+      if (!container) return;
+      let initialZoom = 1;
+      const cssEscape = (value) => (window.CSS && CSS.escape ? CSS.escape(value) : value);
+
+      function clearCyHighlight(cy) {
+        cy.elements().removeClass('cy-highlight cy-dim');
+      }
+
+      function highlightThreat(cy, reportObj, threatId) {
+        if (!threatId) return;
+        const threat = (reportObj.threats || []).find((t) => t.id === threatId);
+        clearCyHighlight(cy);
+        if (!threat) return;
+        const nodeIds = (threat.evidence && threat.evidence.nodes) || [];
+        const edgeIds = (threat.evidence && threat.evidence.edges) || [];
+        const threatNodes = cy.nodes().filter((n) => nodeIds.includes(n.id()));
+        const threatEdges = cy.edges().filter((e) => edgeIds.includes(e.id()));
+        const targets = threatNodes.union(threatEdges);
+        if (targets.length) {
+          targets.addClass('cy-highlight');
+          cy.elements().difference(targets).addClass('cy-dim');
+          try {
+            cy.fit(targets, 60);
+            const bbox = targets.boundingBox();
+            const center = { x: (bbox.x1 + bbox.x2) / 2, y: (bbox.y1 + bbox.y2) / 2 };
+            const clampedZoom = Math.min(cy.zoom(), initialZoom * 1.2);
+            if (cy.zoom() > clampedZoom) {
+              cy.zoom({ level: clampedZoom, position: center });
+            }
+          } catch (err) {}
+        }
+      }
+
+      function clearDomHighlights() {
+        document.querySelectorAll('.dom-highlight').forEach((el) => el.classList.remove('dom-highlight'));
+      }
+
+      function scrollToThreat(threatId) {
+        const detail = document.getElementById(threatId);
+        if (detail && typeof detail.scrollIntoView === 'function') {
+          detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function highlightRows(threatIds) {
+        clearDomHighlights();
+        threatIds.forEach((tid) => {
+          const row = document.querySelector(`.threat-row[data-threat-id="${cssEscape(tid)}"]`);
+          if (row) row.classList.add('dom-highlight');
+        });
+      }
+
+      function bindInteractions(cy) {
+        const rows = Array.from(document.querySelectorAll('.threat-row[data-threat-id]'));
+        rows.forEach((row) => {
+          row.addEventListener('click', () => {
+            const tid = row.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        const chips = Array.from(document.querySelectorAll('.chip[data-threat-id]'));
+        chips.forEach((chip) => {
+          chip.addEventListener('click', () => {
+            const tid = chip.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        cy.on('tap', 'node, edge', (evt) => {
+          const elementId = evt.target.id();
+          const matchingThreats = (report.threats || []).filter((t) => {
+            const ev = t.evidence || {};
+            const nids = ev.nodes || [];
+            const eids = ev.edges || [];
+            return nids.includes(elementId) || eids.includes(elementId);
+          });
+          const ids = matchingThreats.map((t) => t.id);
+          highlightRows(ids);
+          clearCyHighlight(cy);
+          evt.target.addClass('cy-highlight');
+          cy.elements().difference(evt.target).addClass('cy-dim');
+        });
+      }
+
+      function createCy() {
+        const palette = ['#0ea5e9','#22c55e','#f97316','#a78bfa','#f43f5e','#14b8a6','#eab308','#3b82f6'];
+        const zoneColor = {};
+        const zones = Array.from(new Set(nodes.map((n) => n.zone).filter(Boolean)));
+        const zoneElements = zones.map((z) => {
+          if (!zoneColor[z]) {
+            zoneColor[z] = palette[Object.keys(zoneColor).length % palette.length];
+          }
+          const zoneId = `zone::${String(z).replace(/\s+/g, '_')}`;
+          return { data: { id: zoneId, label: z, type: 'zone' } };
+        });
+        const elements = {
+          nodes: [
+            ...zoneElements,
+            ...nodes.map((n) => {
+              const zone = n.zone || 'default';
+              if (zone && !zoneColor[zone]) {
+                zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];
+              }
+              const color = zoneColor[zone] || '#0ea5e9';
+              const parent = n.zone ? `zone::${String(n.zone).replace(/\s+/g, '_')}` : undefined;
+              return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };
+            })
+          ],
+          edges: edges.map((e) => ({ data: { id: `${e.src}->${e.dst}`, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } }))
+        };
+        const cy = cytoscape({
+          container,
+          elements,
+          style: [
+            { selector: 'node[type = \"zone\"]', style: { 'background-color': '#f8fafc', 'background-opacity': 0.25, 'shape': 'round-rectangle', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'top', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-weight': 700, 'font-size': 12, 'text-background-color': '#f8fafc', 'text-background-opacity': 0.9, 'text-background-padding': 4, 'text-margin-y': -12, 'border-style': 'dashed', 'border-color': '#94a3b8', 'border-width': 2, 'padding': 18, 'z-compound-depth': 'bottom' } },
+            { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10', 'z-compound-depth': 'top' } },
+            { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2, 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8', 'label': 'data(label)', 'font-size': 8, 'text-background-color': '#fff', 'text-background-opacity': 0.7, 'text-background-padding': 2 } },
+            { selector: 'node.cy-highlight', style: { 'background-color': '#f97316', 'border-color': '#f97316', 'border-width': 3 } },
+            { selector: 'edge.cy-highlight', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } },
+            { selector: '.cy-dim', style: { 'opacity': 0.25 } }
+          ],
+        });
+        try {
+          cy.layout({ name: 'dagre', rankDir: 'LR', padding: 30, nodeSep: 40, edgeSep: 20 }).run();
+        } catch (e) {
+          cy.layout({ name: 'cose', padding: 30, animate: false }).run();
+        }
+        cy.nodes().forEach((n) => n.grabbable(true));
+        initialZoom = cy.zoom();
+        return cy;
+      }
+
+      const cy = createCy();
+      bindInteractions(cy);
+    })();
+  </script>
+</body>
+</html>

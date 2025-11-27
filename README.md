@@ -52,7 +52,6 @@ uv pip install -e . -r requirements.txt
 ### CLI Usage
 Here is an example of command using CLI mode.
 
-Reports are always written as JSON, Markdown, and HTML. Use `--out-dir` to choose the destination; filenames are derived from the diagram name (e.g., `system_report.json/md/html`). Optionally set `--out-name` to override the base filename.
 
 ```bash
 # Think: Analyze a mermaid diagram
@@ -105,13 +104,14 @@ Threat Thinker can enrich LLM reasoning with locally stored guidance (OWASP, MIT
 3. Inspect or search the KB:  
    ```bash
    threat-thinker kb list
-   threat-thinker kb search <kb_name> "lateral movement" --topk 5 --show
+   threat-thinker kb search <kb_name> "api" --topk 5 --show
    ```
 4. Use the KB during analysis:  
    ```bash
    threat-thinker think --mermaid diagram.mmd --rag --kb <kb_name> \
        --rag-topk 8 --llm-api openai --llm-model gpt-4.1
    ```
+For details (KB layout, build/search/usage) see [docs/rag.md](./docs/rag.md). Source docs stay local, but inference uses your configured remote LLM.
 
 ### Web UI
 
@@ -131,11 +131,22 @@ Then visit http://localhost:7860 to use Threat Thinker interactively:
 Here is the demo screen for the Web UI.
 
 ## Tutorials
-You can see examples of using Threat Thinker to analyze potential threats of several system architecture diagrams.
+Examples of running Threat Thinker on web, AWS, and diff scenarios. See [docs/tutorials.md](./docs/tutorials.md).
 
-[docs/tutorials.md](./docs/tutorials.md)
+## CLI Quick Reference
+Key flags for think/diff runs. See [docs/cli.md](./docs/cli.md).
 
 ## Design & Architecture
-Learn about Threat Thinker's 5-layer architecture, processing flow, and key technical concepts.
+Overview of the 5-layer architecture, processing flow, and key concepts. See [docs/design.md](./docs/design.md).
 
-[docs/design.md](./docs/design.md)
+## Hint YAML
+How to supply zones, protocols, data classifications, and other attributes so analysis uses the right context. See [docs/hints.md](./docs/hints.md).
+
+## Reports
+What each output format contains and when to use it for think/diff runs. See [docs/reports.md](./docs/reports.md).
+
+## Knowledge Base (RAG)
+Use local docs to guide analysis (sources stay local; inference still uses your configured remote LLM). See [docs/rag.md](./docs/rag.md) for build/search/usage details in CLI and Web UI.
+
+## Troubleshooting & Safety
+Common issues, security notes, and Web UI tips. See [docs/troubleshooting.md](./docs/troubleshooting.md).
