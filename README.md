@@ -131,20 +131,16 @@ Then visit http://localhost:7860 to use Threat Thinker interactively:
 Here is the demo screen for the Web UI.
 
 ## Tutorials
-You can see examples of using Threat Thinker to analyze potential threats of several system architecture diagrams.
-
-[docs/tutorials.md](./docs/tutorials.md)
+Examples of running Threat Thinker on web, AWS, and diff scenarios. See [docs/tutorials.md](./docs/tutorials.md).
 
 ## Design & Architecture
-Learn about Threat Thinker's 5-layer architecture, processing flow, and key technical concepts.
+Overview of the 5-layer architecture, processing flow, and key concepts. See [docs/design.md](./docs/design.md).
 
-[docs/design.md](./docs/design.md)
+## Hint YAML
+How to supply zones, protocols, data classifications, and other attributes so analysis uses the right context. See [docs/hints.md](./docs/hints.md).
 
-## Hint YAML (manual overrides)
-Provide zones, protocols, data classifications, and other attributes alongside your diagrams so Threat Thinker generates threats with the right context. See [docs/hints.md](./docs/hints.md) for concepts, schema, and examples.
-
-## Reports (Markdown / JSON / HTML)
-Threat Thinker emits three report formats per run. See [docs/reports.md](./docs/reports.md) for what each format contains and when to use it.
+## Reports
+What each output format contains and when to use it for think/diff runs. See [docs/reports.md](./docs/reports.md).
 
 ## Knowledge Base (RAG)
-Enrich threat analysis with your own guidance (OWASP, MITRE, internal standards) via a local knowledge base. See [docs/rag.md](./docs/rag.md) for how to build, search, and use RAG in CLI/Web UI.
+Use local docs to guide analysis (sources stay local; inference still uses your configured remote LLM). See [docs/rag.md](./docs/rag.md) for build/search/usage details in CLI and Web UI.
