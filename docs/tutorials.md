@@ -22,7 +22,7 @@ threat-thinker think \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir reports/
+    --out-dir examples/web/reports/
 ```
 You can optionally set `--out-name` if you want to override the base report filename.
 
@@ -35,8 +35,9 @@ You can optionally set `--out-name` if you want to override the base report file
 | T004 | No Input Validation on API Endpoints | Medium | 5.0 |
 | T005 | Potential Information Disclosure from API in DMZ | Medium | 5.0 |
 
-- [Markdown Report](../examples/web/report.md)
-- [JSON Report](../examples/web/report.json)
+- [Markdown Report](../examples/web/reports/system_report.md)
+- [JSON Report](../examples/web/reports/system_report.json)
+- [HTML Report](../examples/web/reports/system_report.html)
 
 ### What Was Discovered
 The analysis identified 5 critical security threats in this simple web application:
@@ -74,7 +75,7 @@ threat-thinker think \
     --topn 10 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir reports/
+    --out-dir examples/aws/reports/
 ```
 
 ### Discovered potential threats
@@ -92,8 +93,9 @@ threat-thinker think \
 | T009 | Over-Privileged Lambda Worker Access | Medium | 5.0 |
 | T010 | Potential Information Disclosure via SNS/SQS Misconfiguration | Medium | 5.0 |
 
-- [Markdown Report](../examples/aws/report.md)
-- [JSON Report](../examples/aws/report.json)
+- [Markdown Report](../examples/aws/reports/system_report.md)
+- [JSON Report](../examples/aws/reports/system_report.json)
+- [HTML Report](../examples/aws/reports/system_report.html)
 
 ### What Was Discovered
 The AWS architecture analysis revealed 10 significant security threats, highlighting the complexity of cloud security:
@@ -135,16 +137,17 @@ In this example, we will analyze the differences between the threat analysis res
 
 ```bash
 threat-thinker diff \
-    --after examples/web/updated-report.json \
-    --before examples/web/report.json \
+    --after examples/web/reports/system-updated_report.json \
+    --before examples/web/reports/system_report.json \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir examples/web/ \
+    --out-dir examples/web/reports/ \
+    --out-name diff \
     --lang en
 ```
 
-- [Markdown Report](../examples/web/diff-analysis.md)
-- [JSON Report](../examples/web/diff-analysis.json)
+- [Markdown Report](../examples/web/reports/diff.md)
+- [JSON Report](../examples/web/reports/diff.json)
 
 ### What Was Discovered
 The difference analysis between the original and updated web application architecture revealed significant security improvements alongside new considerations:

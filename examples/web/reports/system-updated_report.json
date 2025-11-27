@@ -1,76 +1,34 @@
 {
-  "generated_at": "2025-11-02T12:41:25.922324+00:00Z",
+  "generated_at": "2025-11-26T23:54:42.084766+00:00Z",
   "count": 5,
   "threats": [
     {
       "id": "T001",
-      "title": "Unencrypted Internal API Communication Exposes PII",
+      "title": "Lack of Authentication on Internal Services (Cache, Logs, Analytics, Monitor, Alerts)",
       "stride": [
-        "Information Disclosure",
+        "Elevation of Privilege",
         "Tampering"
       ],
       "severity": "High",
       "score": 8.0,
       "affected": [
-        "api",
-        "app"
-      ],
-      "why": "API communicates with app over HTTP (not HTTPS), risking PII exposure and tampering in transit.",
-      "recommended_action": "Enforce TLS 1.2+ for all internal service-to-service communications, especially where PII is present.",
-      "references": [
-        "ASVS V9.1.1",
-        "ASVS V10.2.1",
-        "CWE-319"
-      ],
-      "evidence": {
-        "nodes": [
-          "api",
-          "app"
-        ],
-        "edges": [
-          "api->app"
-        ]
-      },
-      "confidence": 0.95
-    },
-    {
-      "id": "T002",
-      "title": "Unknown Protocols on Sensitive Internal Connections",
-      "stride": [
-        "Information Disclosure",
-        "Tampering"
-      ],
-      "severity": "High",
-      "score": 8.0,
-      "affected": [
-        "api",
         "cache",
-        "app",
-        "logs",
         "logs",
         "analytics",
-        "app",
-        "monitor",
         "monitor",
         "alerts"
       ],
-      "why": "Several internal edges use 'unknown' protocols, risking unencrypted or unauthenticated data transfer.",
-      "recommended_action": "Explicitly specify and enforce secure protocols (e.g., HTTPS, TLS) for all internal service connections.",
+      "why": "Internal services do not require authentication, allowing unauthorized access or manipulation if perimeter controls fail.",
+      "recommended_action": "Implement mutual authentication (e.g., mTLS or API keys) for all internal service endpoints.",
       "references": [
-        "ASVS V9.1.1",
-        "ASVS V10.2.1",
-        "CWE-319"
+        "ASVS V2.1.1",
+        "CWE-306"
       ],
       "evidence": {
         "nodes": [
-          "api",
           "cache",
-          "app",
-          "logs",
           "logs",
           "analytics",
-          "app",
-          "monitor",
           "monitor",
           "alerts"
         ],
@@ -85,40 +43,51 @@
       "confidence": 0.9
     },
     {
-      "id": "T003",
-      "title": "Cache Service Lacks Authentication Controls",
+      "id": "T002",
+      "title": "Unencrypted Internal Communications to Cache, Logs, Analytics, and Monitor",
       "stride": [
-        "Elevation of Privilege",
-        "Information Disclosure"
+        "Information Disclosure",
+        "Tampering"
       ],
       "severity": "High",
-      "score": 7.0,
+      "score": 8.0,
       "affected": [
-        "cache"
+        "api",
+        "cache",
+        "app",
+        "logs",
+        "analytics",
+        "monitor"
       ],
-      "why": "Cache node has null 'auth', risking unauthorized access to internal data.",
-      "recommended_action": "Implement strong authentication and access controls for the cache service.",
+      "why": "Several internal edges use 'unknown' protocol, risking sensitive data exposure or tampering if not encrypted.",
+      "recommended_action": "Enforce TLS 1.2+ encryption for all internal service communications, including cache, logs, analytics, and monitoring.",
       "references": [
-        "ASVS V2.1.1",
-        "ASVS V4.1.1",
-        "CWE-284"
+        "ASVS V9.1.1",
+        "CWE-319"
       ],
       "evidence": {
         "nodes": [
-          "cache"
+          "api",
+          "cache",
+          "app",
+          "logs",
+          "analytics",
+          "monitor"
         ],
         "edges": [
-          "api->cache"
+          "api->cache",
+          "app->logs",
+          "logs->analytics",
+          "app->monitor"
         ]
       },
       "confidence": 0.9
     },
     {
-      "id": "T004",
-      "title": "No Evidence of Secrets Management for Credentials in App and DB",
+      "id": "T003",
+      "title": "PII Exposure Risk in Database Communications",
       "stride": [
-        "Information Disclosure",
-        "Elevation of Privilege"
+        "Information Disclosure"
       ],
       "severity": "High",
       "score": 7.0,
@@ -126,12 +95,12 @@
         "app",
         "db"
       ],
-      "why": "App and DB nodes store credentials and secrets, but no evidence of secure secrets management.",
-      "recommended_action": "Use a centralized secrets management solution (e.g., HashiCorp Vault, AWS Secrets Manager) for all credentials.",
+      "why": "Database connection uses plain TCP and handles PII, risking data exposure if not encrypted.",
+      "recommended_action": "Enforce encrypted database connections (e.g., TLS) and enable encryption at rest for PII data.",
       "references": [
-        "ASVS V10.3.1",
-        "ASVS V10.3.2",
-        "CWE-798"
+        "ASVS V9.1.1",
+        "ASVS V9.4.1",
+        "CWE-311"
       ],
       "evidence": {
         "nodes": [
@@ -142,41 +111,80 @@
           "app->db"
         ]
       },
-      "confidence": 0.85
+      "confidence": 0.8
     },
     {
-      "id": "T005",
-      "title": "Sensitive Data in Database May Be Unencrypted at Rest",
+      "id": "T004",
+      "title": "Potential Logging of Sensitive Data Without Proper Controls",
       "stride": [
-        "Information Disclosure"
+        "Information Disclosure",
+        "Repudiation"
       ],
-      "severity": "High",
-      "score": 7.0,
+      "severity": "Medium",
+      "score": 6.0,
       "affected": [
-        "db"
+        "app",
+        "logs",
+        "analytics"
       ],
-      "why": "Database node stores PII, secrets, and credentials, but no evidence of encryption at rest.",
-      "recommended_action": "Enable strong encryption at rest for all sensitive data in the database.",
+      "why": "Logs and analytics services are unauthenticated and may receive sensitive data without access controls or redaction.",
+      "recommended_action": "Implement log data sanitization, restrict log access, and ensure logs do not contain PII or secrets.",
       "references": [
-        "ASVS V10.1.1",
-        "ASVS V10.2.1",
-        "CWE-311"
+        "ASVS V10.3.1",
+        "ASVS V10.4.1",
+        "CWE-532"
       ],
       "evidence": {
         "nodes": [
-          "db"
+          "app",
+          "logs",
+          "analytics"
         ],
         "edges": [
-          "app->db"
+          "app->logs",
+          "logs->analytics"
         ]
       },
-      "confidence": 0.85
+      "confidence": 0.8
+    },
+    {
+      "id": "T005",
+      "title": "Insufficient Segmentation Between DMZ and Private Zones",
+      "stride": [
+        "Elevation of Privilege",
+        "Information Disclosure"
+      ],
+      "severity": "Medium",
+      "score": 5.0,
+      "affected": [
+        "api",
+        "app",
+        "cache"
+      ],
+      "why": "API in DMZ can directly access internal services, increasing risk if API is compromised.",
+      "recommended_action": "Implement strict network segmentation and firewall rules to limit DMZ-to-Private zone access to only necessary services and ports.",
+      "references": [
+        "ASVS V1.4.2",
+        "CWE-284"
+      ],
+      "evidence": {
+        "nodes": [
+          "api",
+          "app",
+          "cache"
+        ],
+        "edges": [
+          "api->app",
+          "api->cache"
+        ]
+      },
+      "confidence": 0.7
     }
   ],
   "import_metrics": {
     "total_lines": 13,
-    "edge_candidates": 8,
-    "edges_parsed": 8,
+    "edge_candidates": 9,
+    "edges_parsed": 9,
     "node_label_candidates": 1,
     "node_labels_parsed": 1,
     "import_success_rate": 1.0
@@ -184,25 +192,31 @@
   "graph": {
     "nodes": [
       {
+        "id": "user",
+        "label": "User",
+        "zone": "Internet",
+        "type": "actor",
+        "data": [],
+        "auth": null,
+        "notes": ""
+      },
+      {
         "id": "waf",
         "label": "waf",
         "zone": "DMZ",
-        "type": "ingress",
+        "type": "service",
         "data": [],
         "auth": false,
-        "notes": null
+        "notes": "Web Application Firewall"
       },
       {
         "id": "api",
         "label": "api",
-        "zone": "Private",
+        "zone": "DMZ",
         "type": "service",
-        "data": [
-          "Internal",
-          "PII"
-        ],
+        "data": [],
         "auth": true,
-        "notes": null
+        "notes": ""
       },
       {
         "id": "app",
@@ -210,12 +224,10 @@
         "zone": "Private",
         "type": "service",
         "data": [
-          "Internal",
-          "PII",
-          "Credentials"
+          "Internal"
         ],
         "auth": true,
-        "notes": null
+        "notes": ""
       },
       {
         "id": "cache",
@@ -225,8 +237,8 @@
         "data": [
           "Internal"
         ],
-        "auth": null,
-        "notes": null
+        "auth": false,
+        "notes": ""
       },
       {
         "id": "db",
@@ -234,13 +246,10 @@
         "zone": "Private",
         "type": "database",
         "data": [
-          "Internal",
-          "PII",
-          "Secrets",
-          "Credentials"
+          "PII"
         ],
         "auth": true,
-        "notes": null
+        "notes": ""
       },
       {
         "id": "logs",
@@ -250,8 +259,8 @@
         "data": [
           "Internal"
         ],
-        "auth": null,
-        "notes": null
+        "auth": false,
+        "notes": "Application logs"
       },
       {
         "id": "analytics",
@@ -261,8 +270,8 @@
         "data": [
           "Internal"
         ],
-        "auth": null,
-        "notes": null
+        "auth": false,
+        "notes": ""
       },
       {
         "id": "monitor",
@@ -272,8 +281,8 @@
         "data": [
           "Internal"
         ],
-        "auth": null,
-        "notes": null
+        "auth": false,
+        "notes": "Monitoring system"
       },
       {
         "id": "alerts",
@@ -281,38 +290,32 @@
         "zone": "Private",
         "type": "service",
         "data": [],
-        "auth": null,
-        "notes": null
-      },
-      {
-        "id": "user",
-        "label": "User",
-        "zone": "Internet",
-        "type": "actor",
-        "data": [],
-        "auth": null,
-        "notes": null
+        "auth": false,
+        "notes": "Alerting/notification"
       }
     ],
     "edges": [
+      {
+        "src": "user",
+        "dst": "waf",
+        "label": null,
+        "protocol": "HTTPS",
+        "data": []
+      },
       {
         "src": "waf",
         "dst": "api",
         "label": null,
         "protocol": "HTTPS",
-        "data": [
-          "Internal",
-          "PII"
-        ]
+        "data": []
       },
       {
         "src": "api",
         "dst": "app",
         "label": null,
-        "protocol": "HTTP",
+        "protocol": "HTTPS",
         "data": [
-          "Internal",
-          "PII"
+          "Internal"
         ]
       },
       {
@@ -330,10 +333,7 @@
         "label": null,
         "protocol": "TCP",
         "data": [
-          "Internal",
-          "PII",
-          "Secrets",
-          "Credentials"
+          "PII"
         ]
       },
       {

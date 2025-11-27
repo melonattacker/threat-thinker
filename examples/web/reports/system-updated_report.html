@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Threat Analysis Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    h2 { margin-top: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+    h3 { margin-top: 24px; color: #0f172a; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+    th { background: #f8fafc; }
+    .severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .sev-High { background: #fee2e2; color: #b91c1c; }
+    .sev-Medium { background: #fef9c3; color: #b45309; }
+    .sev-Low { background: #dcfce7; color: #166534; }
+    .meta { color: #475569; font-size: 14px; }
+    .section { margin-top: 24px; }
+    .mapping-list { list-style: disc; margin-left: 20px; }
+    .chip { background: #e2e8f0; padding: 2px 6px; border-radius: 8px; margin-right: 4px; display: inline-block; cursor: pointer; }
+    #graph-container { margin-top: 24px; }
+    #graph { width: 100%; height: 520px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .dom-highlight { box-shadow: 0 0 0 2px #f97316; }
+    .cy-highlight { }
+    .cy-dim { }
+    .zone { background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Threat Analysis Report</h1>
+  <h2>Threat Summary</h2>
+  <table>
+    <tr><th>ID</th><th>Threat</th><th>Severity</th><th>Score</th></tr>
+    <tr class="threat-row" data-threat-id="T001"><td>T001</td><td>Lack of Authentication on Internal Services (Cache, Logs, Analytics, Monitor, Alerts)</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T002"><td>T002</td><td>Unencrypted Internal Communications to Cache, Logs, Analytics, and Monitor</td><td><span class="severity sev-High">High</span></td><td>8.0</td></tr>
+    <tr class="threat-row" data-threat-id="T003"><td>T003</td><td>PII Exposure Risk in Database Communications</td><td><span class="severity sev-High">High</span></td><td>7.0</td></tr>
+    <tr class="threat-row" data-threat-id="T004"><td>T004</td><td>Potential Logging of Sensitive Data Without Proper Controls</td><td><span class="severity sev-Medium">Medium</span></td><td>6.0</td></tr>
+    <tr class="threat-row" data-threat-id="T005"><td>T005</td><td>Insufficient Segmentation Between DMZ and Private Zones</td><td><span class="severity sev-Medium">Medium</span></td><td>5.0</td></tr>
+  </table>
+  <div id="graph-container">
+    <h2>Architecture Graph</h2>
+    <div id="graph"></div>
+  </div>
+  <h2>Architecture Mapping</h2>
+  <h3>Nodes to Threats</h3>
+  <table>
+    <tr><th>Node</th><th>Zone</th><th>Type</th><th>Threats</th></tr>
+    <tr><td>User [user]</td><td>Internet</td><td>actor</td><td>&mdash;</td></tr>
+    <tr><td>waf [waf]</td><td>DMZ</td><td>service</td><td>&mdash;</td></tr>
+    <tr><td>api [api]</td><td>DMZ</td><td>service</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>app [app]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T003">T003</span> <span class="chip" data-threat-id="T004">T004</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>cache [cache]</td><td>Private</td><td>cache</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>db [db]</td><td>Private</td><td>database</td><td><span class="chip" data-threat-id="T003">T003</span></td></tr>
+    <tr><td>logs [logs]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>analytics [analytics]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>monitor [monitor]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span></td></tr>
+    <tr><td>alerts [alerts]</td><td>Private</td><td>service</td><td><span class="chip" data-threat-id="T001">T001</span></td></tr>
+  </table>
+  <h3>Edges to Threats</h3>
+  <table>
+    <tr><th>Edge</th><th>Protocol</th><th>Threats</th></tr>
+    <tr><td>User [user] -> waf [waf]</td><td>HTTPS</td><td>&mdash;</td></tr>
+    <tr><td>waf [waf] -> api [api]</td><td>HTTPS</td><td>&mdash;</td></tr>
+    <tr><td>api [api] -> app [app]</td><td>HTTPS</td><td><span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>api [api] -> cache [cache]</td><td>unknown</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T005">T005</span></td></tr>
+    <tr><td>app [app] -> db [db]</td><td>TCP</td><td><span class="chip" data-threat-id="T003">T003</span></td></tr>
+    <tr><td>app [app] -> logs [logs]</td><td>unknown</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>logs [logs] -> analytics [analytics]</td><td>unknown</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span> <span class="chip" data-threat-id="T004">T004</span></td></tr>
+    <tr><td>app [app] -> monitor [monitor]</td><td>unknown</td><td><span class="chip" data-threat-id="T001">T001</span> <span class="chip" data-threat-id="T002">T002</span></td></tr>
+    <tr><td>monitor [monitor] -> alerts [alerts]</td><td>unknown</td><td><span class="chip" data-threat-id="T001">T001</span></td></tr>
+  </table>
+  <h2>Threat Details</h2>
+  <div class="section" id="T001" data-threat-id="T001">
+    <h3>T001: Lack of Authentication on Internal Services (Cache, Logs, Analytics, Monitor, Alerts)</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Elevation of Privilege, Tampering
+    </div>
+    <p><strong>Affected Components:</strong> cache, logs, analytics, monitor, alerts</p>
+    <p><strong>Why:</strong> Internal services do not require authentication, allowing unauthorized access or manipulation if perimeter controls fail.</p>
+    <p><strong>References:</strong> ASVS V2.1.1, CWE-306</p>
+    <p><strong>Recommended Actions:</strong><br>Implement mutual authentication (e.g., mTLS or API keys) for all internal service endpoints.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>cache [cache] (zone=Private, type=cache)</li>
+        <li>logs [logs] (zone=Private, type=service)</li>
+        <li>analytics [analytics] (zone=Private, type=service)</li>
+        <li>monitor [monitor] (zone=Private, type=service)</li>
+        <li>alerts [alerts] (zone=Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] -&gt; cache [cache] (unknown)</li>
+        <li>app [app] -&gt; logs [logs] (unknown)</li>
+        <li>logs [logs] -&gt; analytics [analytics] (unknown)</li>
+        <li>app [app] -&gt; monitor [monitor] (unknown)</li>
+        <li>monitor [monitor] -&gt; alerts [alerts] (unknown)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T002" data-threat-id="T002">
+    <h3>T002: Unencrypted Internal Communications to Cache, Logs, Analytics, and Monitor</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 8.0 | STRIDE: Information Disclosure, Tampering
+    </div>
+    <p><strong>Affected Components:</strong> api, cache, app, logs, analytics, monitor</p>
+    <p><strong>Why:</strong> Several internal edges use &#x27;unknown&#x27; protocol, risking sensitive data exposure or tampering if not encrypted.</p>
+    <p><strong>References:</strong> ASVS V9.1.1, CWE-319</p>
+    <p><strong>Recommended Actions:</strong><br>Enforce TLS 1.2+ encryption for all internal service communications, including cache, logs, analytics, and monitoring.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] (zone=DMZ, type=service)</li>
+        <li>cache [cache] (zone=Private, type=cache)</li>
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>logs [logs] (zone=Private, type=service)</li>
+        <li>analytics [analytics] (zone=Private, type=service)</li>
+        <li>monitor [monitor] (zone=Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] -&gt; cache [cache] (unknown)</li>
+        <li>app [app] -&gt; logs [logs] (unknown)</li>
+        <li>logs [logs] -&gt; analytics [analytics] (unknown)</li>
+        <li>app [app] -&gt; monitor [monitor] (unknown)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T003" data-threat-id="T003">
+    <h3>T003: PII Exposure Risk in Database Communications</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-High">High</span> | Score: 7.0 | STRIDE: Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> app, db</p>
+    <p><strong>Why:</strong> Database connection uses plain TCP and handles PII, risking data exposure if not encrypted.</p>
+    <p><strong>References:</strong> ASVS V9.1.1, ASVS V9.4.1, CWE-311</p>
+    <p><strong>Recommended Actions:</strong><br>Enforce encrypted database connections (e.g., TLS) and enable encryption at rest for PII data.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>db [db] (zone=Private, type=database)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] -&gt; db [db] (TCP)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T004" data-threat-id="T004">
+    <h3>T004: Potential Logging of Sensitive Data Without Proper Controls</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 6.0 | STRIDE: Information Disclosure, Repudiation
+    </div>
+    <p><strong>Affected Components:</strong> app, logs, analytics</p>
+    <p><strong>Why:</strong> Logs and analytics services are unauthenticated and may receive sensitive data without access controls or redaction.</p>
+    <p><strong>References:</strong> ASVS V10.3.1, ASVS V10.4.1, CWE-532</p>
+    <p><strong>Recommended Actions:</strong><br>Implement log data sanitization, restrict log access, and ensure logs do not contain PII or secrets.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>logs [logs] (zone=Private, type=service)</li>
+        <li>analytics [analytics] (zone=Private, type=service)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>app [app] -&gt; logs [logs] (unknown)</li>
+        <li>logs [logs] -&gt; analytics [analytics] (unknown)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section" id="T005" data-threat-id="T005">
+    <h3>T005: Insufficient Segmentation Between DMZ and Private Zones</h3>
+    <div class="meta">
+      Severity: <span class="severity sev-Medium">Medium</span> | Score: 5.0 | STRIDE: Elevation of Privilege, Information Disclosure
+    </div>
+    <p><strong>Affected Components:</strong> api, app, cache</p>
+    <p><strong>Why:</strong> API in DMZ can directly access internal services, increasing risk if API is compromised.</p>
+    <p><strong>References:</strong> ASVS V1.4.2, CWE-284</p>
+    <p><strong>Recommended Actions:</strong><br>Implement strict network segmentation and firewall rules to limit DMZ-to-Private zone access to only necessary services and ports.</p>
+    <div class="section">
+      <h4>Evidence Mapping</h4>
+      <p><em>Nodes:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] (zone=DMZ, type=service)</li>
+        <li>app [app] (zone=Private, type=service)</li>
+        <li>cache [cache] (zone=Private, type=cache)</li>
+      </ul>
+      <p><em>Edges:</em></p>
+      <ul class="mapping-list">
+        <li>api [api] -&gt; app [app] (HTTPS)</li>
+        <li>api [api] -&gt; cache [cache] (unknown)</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    window.THREAT_REPORT = {"graph": {"nodes": [{"id": "user", "label": "User", "zone": "Internet", "type": "actor", "data": [], "auth": null, "notes": ""}, {"id": "waf", "label": "waf", "zone": "DMZ", "type": "service", "data": [], "auth": false, "notes": "Web Application Firewall"}, {"id": "api", "label": "api", "zone": "DMZ", "type": "service", "data": [], "auth": true, "notes": ""}, {"id": "app", "label": "app", "zone": "Private", "type": "service", "data": ["Internal"], "auth": true, "notes": ""}, {"id": "cache", "label": "cache", "zone": "Private", "type": "cache", "data": ["Internal"], "auth": false, "notes": ""}, {"id": "db", "label": "db", "zone": "Private", "type": "database", "data": ["PII"], "auth": true, "notes": ""}, {"id": "logs", "label": "logs", "zone": "Private", "type": "service", "data": ["Internal"], "auth": false, "notes": "Application logs"}, {"id": "analytics", "label": "analytics", "zone": "Private", "type": "service", "data": ["Internal"], "auth": false, "notes": ""}, {"id": "monitor", "label": "monitor", "zone": "Private", "type": "service", "data": ["Internal"], "auth": false, "notes": "Monitoring system"}, {"id": "alerts", "label": "alerts", "zone": "Private", "type": "service", "data": [], "auth": false, "notes": "Alerting/notification"}], "edges": [{"src": "user", "dst": "waf", "label": null, "protocol": "HTTPS", "data": []}, {"src": "waf", "dst": "api", "label": null, "protocol": "HTTPS", "data": []}, {"src": "api", "dst": "app", "label": null, "protocol": "HTTPS", "data": ["Internal"]}, {"src": "api", "dst": "cache", "label": null, "protocol": "unknown", "data": ["Internal"]}, {"src": "app", "dst": "db", "label": null, "protocol": "TCP", "data": ["PII"]}, {"src": "app", "dst": "logs", "label": null, "protocol": "unknown", "data": ["Internal"]}, {"src": "logs", "dst": "analytics", "label": null, "protocol": "unknown", "data": ["Internal"]}, {"src": "app", "dst": "monitor", "label": null, "protocol": "unknown", "data": ["Internal"]}, {"src": "monitor", "dst": "alerts", "label": null, "protocol": "unknown", "data": []}]}, "threats": [{"id": "T001", "title": "Lack of Authentication on Internal Services (Cache, Logs, Analytics, Monitor, Alerts)", "severity": "High", "score": 8.0, "stride": ["Elevation of Privilege", "Tampering"], "affected": ["cache", "logs", "analytics", "monitor", "alerts"], "why": "Internal services do not require authentication, allowing unauthorized access or manipulation if perimeter controls fail.", "references": ["ASVS V2.1.1", "CWE-306"], "recommended_action": "Implement mutual authentication (e.g., mTLS or API keys) for all internal service endpoints.", "evidence": {"nodes": ["cache", "logs", "analytics", "monitor", "alerts"], "edges": ["api->cache", "app->logs", "logs->analytics", "app->monitor", "monitor->alerts"]}}, {"id": "T002", "title": "Unencrypted Internal Communications to Cache, Logs, Analytics, and Monitor", "severity": "High", "score": 8.0, "stride": ["Information Disclosure", "Tampering"], "affected": ["api", "cache", "app", "logs", "analytics", "monitor"], "why": "Several internal edges use 'unknown' protocol, risking sensitive data exposure or tampering if not encrypted.", "references": ["ASVS V9.1.1", "CWE-319"], "recommended_action": "Enforce TLS 1.2+ encryption for all internal service communications, including cache, logs, analytics, and monitoring.", "evidence": {"nodes": ["api", "cache", "app", "logs", "analytics", "monitor"], "edges": ["api->cache", "app->logs", "logs->analytics", "app->monitor"]}}, {"id": "T003", "title": "PII Exposure Risk in Database Communications", "severity": "High", "score": 7.0, "stride": ["Information Disclosure"], "affected": ["app", "db"], "why": "Database connection uses plain TCP and handles PII, risking data exposure if not encrypted.", "references": ["ASVS V9.1.1", "ASVS V9.4.1", "CWE-311"], "recommended_action": "Enforce encrypted database connections (e.g., TLS) and enable encryption at rest for PII data.", "evidence": {"nodes": ["app", "db"], "edges": ["app->db"]}}, {"id": "T004", "title": "Potential Logging of Sensitive Data Without Proper Controls", "severity": "Medium", "score": 6.0, "stride": ["Information Disclosure", "Repudiation"], "affected": ["app", "logs", "analytics"], "why": "Logs and analytics services are unauthenticated and may receive sensitive data without access controls or redaction.", "references": ["ASVS V10.3.1", "ASVS V10.4.1", "CWE-532"], "recommended_action": "Implement log data sanitization, restrict log access, and ensure logs do not contain PII or secrets.", "evidence": {"nodes": ["app", "logs", "analytics"], "edges": ["app->logs", "logs->analytics"]}}, {"id": "T005", "title": "Insufficient Segmentation Between DMZ and Private Zones", "severity": "Medium", "score": 5.0, "stride": ["Elevation of Privilege", "Information Disclosure"], "affected": ["api", "app", "cache"], "why": "API in DMZ can directly access internal services, increasing risk if API is compromised.", "references": ["ASVS V1.4.2", "CWE-284"], "recommended_action": "Implement strict network segmentation and firewall rules to limit DMZ-to-Private zone access to only necessary services and ports.", "evidence": {"nodes": ["api", "app", "cache"], "edges": ["api->app", "api->cache"]}}]};
+  </script>
+  <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <script>
+    (function() {
+      const report = window.THREAT_REPORT || {};
+      const nodes = (report.graph && report.graph.nodes) || [];
+      const edges = (report.graph && report.graph.edges) || [];
+      const container = document.getElementById('graph');
+      if (!container) return;
+      let initialZoom = 1;
+      const cssEscape = (value) => (window.CSS && CSS.escape ? CSS.escape(value) : value);
+
+      function clearCyHighlight(cy) {
+        cy.elements().removeClass('cy-highlight cy-dim');
+      }
+
+      function highlightThreat(cy, reportObj, threatId) {
+        if (!threatId) return;
+        const threat = (reportObj.threats || []).find((t) => t.id === threatId);
+        clearCyHighlight(cy);
+        if (!threat) return;
+        const nodeIds = (threat.evidence && threat.evidence.nodes) || [];
+        const edgeIds = (threat.evidence && threat.evidence.edges) || [];
+        const threatNodes = cy.nodes().filter((n) => nodeIds.includes(n.id()));
+        const threatEdges = cy.edges().filter((e) => edgeIds.includes(e.id()));
+        const targets = threatNodes.union(threatEdges);
+        if (targets.length) {
+          targets.addClass('cy-highlight');
+          cy.elements().difference(targets).addClass('cy-dim');
+          try {
+            cy.fit(targets, 60);
+            const bbox = targets.boundingBox();
+            const center = { x: (bbox.x1 + bbox.x2) / 2, y: (bbox.y1 + bbox.y2) / 2 };
+            const clampedZoom = Math.min(cy.zoom(), initialZoom * 1.2);
+            if (cy.zoom() > clampedZoom) {
+              cy.zoom({ level: clampedZoom, position: center });
+            }
+          } catch (err) {}
+        }
+      }
+
+      function clearDomHighlights() {
+        document.querySelectorAll('.dom-highlight').forEach((el) => el.classList.remove('dom-highlight'));
+      }
+
+      function scrollToThreat(threatId) {
+        const detail = document.getElementById(threatId);
+        if (detail && typeof detail.scrollIntoView === 'function') {
+          detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function highlightRows(threatIds) {
+        clearDomHighlights();
+        threatIds.forEach((tid) => {
+          const row = document.querySelector(`.threat-row[data-threat-id="${cssEscape(tid)}"]`);
+          if (row) row.classList.add('dom-highlight');
+        });
+      }
+
+      function bindInteractions(cy) {
+        const rows = Array.from(document.querySelectorAll('.threat-row[data-threat-id]'));
+        rows.forEach((row) => {
+          row.addEventListener('click', () => {
+            const tid = row.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        const chips = Array.from(document.querySelectorAll('.chip[data-threat-id]'));
+        chips.forEach((chip) => {
+          chip.addEventListener('click', () => {
+            const tid = chip.getAttribute('data-threat-id');
+            highlightRows([tid]);
+            highlightThreat(cy, report, tid);
+          });
+        });
+
+        cy.on('tap', 'node, edge', (evt) => {
+          const elementId = evt.target.id();
+          const matchingThreats = (report.threats || []).filter((t) => {
+            const ev = t.evidence || {};
+            const nids = ev.nodes || [];
+            const eids = ev.edges || [];
+            return nids.includes(elementId) || eids.includes(elementId);
+          });
+          const ids = matchingThreats.map((t) => t.id);
+          highlightRows(ids);
+          clearCyHighlight(cy);
+          evt.target.addClass('cy-highlight');
+          cy.elements().difference(evt.target).addClass('cy-dim');
+        });
+      }
+
+      function createCy() {
+        const palette = ['#0ea5e9','#22c55e','#f97316','#a78bfa','#f43f5e','#14b8a6','#eab308','#3b82f6'];
+        const zoneColor = {};
+        const zones = Array.from(new Set(nodes.map((n) => n.zone).filter(Boolean)));
+        const zoneElements = zones.map((z) => {
+          if (!zoneColor[z]) {
+            zoneColor[z] = palette[Object.keys(zoneColor).length % palette.length];
+          }
+          const zoneId = `zone::${String(z).replace(/\s+/g, '_')}`;
+          return { data: { id: zoneId, label: z, type: 'zone' } };
+        });
+        const elements = {
+          nodes: [
+            ...zoneElements,
+            ...nodes.map((n) => {
+              const zone = n.zone || 'default';
+              if (zone && !zoneColor[zone]) {
+                zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];
+              }
+              const color = zoneColor[zone] || '#0ea5e9';
+              const parent = n.zone ? `zone::${String(n.zone).replace(/\s+/g, '_')}` : undefined;
+              return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };
+            })
+          ],
+          edges: edges.map((e) => ({ data: { id: `${e.src}->${e.dst}`, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } }))
+        };
+        const cy = cytoscape({
+          container,
+          elements,
+          style: [
+            { selector: 'node[type = \"zone\"]', style: { 'background-color': '#f8fafc', 'background-opacity': 0.25, 'shape': 'round-rectangle', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'top', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-weight': 700, 'font-size': 12, 'text-background-color': '#f8fafc', 'text-background-opacity': 0.9, 'text-background-padding': 4, 'text-margin-y': -12, 'border-style': 'dashed', 'border-color': '#94a3b8', 'border-width': 2, 'padding': 18, 'z-compound-depth': 'bottom' } },
+            { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#0f172a', 'text-valign': 'center', 'text-halign': 'center', 'text-wrap': 'wrap', 'font-size': 10, 'border-width': 1, 'border-color': '#0f172a10', 'z-compound-depth': 'top' } },
+            { selector: 'edge', style: { 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2, 'line-color': '#94a3b8', 'target-arrow-color': '#94a3b8', 'label': 'data(label)', 'font-size': 8, 'text-background-color': '#fff', 'text-background-opacity': 0.7, 'text-background-padding': 2 } },
+            { selector: 'node.cy-highlight', style: { 'background-color': '#f97316', 'border-color': '#f97316', 'border-width': 3 } },
+            { selector: 'edge.cy-highlight', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', 'width': 3 } },
+            { selector: '.cy-dim', style: { 'opacity': 0.25 } }
+          ],
+        });
+        try {
+          cy.layout({ name: 'dagre', rankDir: 'LR', padding: 30, nodeSep: 40, edgeSep: 20 }).run();
+        } catch (e) {
+          cy.layout({ name: 'cose', padding: 30, animate: false }).run();
+        }
+        cy.nodes().forEach((n) => n.grabbable(true));
+        initialZoom = cy.zoom();
+        return cy;
+      }
+
+      const cy = createCy();
+      bindInteractions(cy);
+    })();
+  </script>
+</body>
+</html>
