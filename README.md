@@ -131,26 +131,22 @@ Then visit http://localhost:7860 to use Threat Thinker interactively:
 Here is the demo screen for the Web UI.
 
 ## Tutorials
-Examples of running Threat Thinker on web, AWS, and diff scenarios. 
+Examples of running Threat Thinker on web, AWS, and diff scenarios. See [docs/tutorials.md](./docs/tutorials.md).
 
-See [docs/tutorials.md](./docs/tutorials.md).
+## CLI Quick Reference
+Key flags for think/diff runs. See [docs/cli.md](./docs/cli.md).
 
 ## Design & Architecture
-Overview of the 5-layer architecture, processing flow, and key concepts. 
-
-See [docs/design.md](./docs/design.md).
+Overview of the 5-layer architecture, processing flow, and key concepts. See [docs/design.md](./docs/design.md).
 
 ## Hint YAML
-How to supply zones, protocols, data classifications, and other attributes so analysis uses the right context. 
-
-See [docs/hints.md](./docs/hints.md).
+How to supply zones, protocols, data classifications, and other attributes so analysis uses the right context. See [docs/hints.md](./docs/hints.md).
 
 ## Reports
-What each output format contains and when to use it for think/diff runs. 
-
-See [docs/reports.md](./docs/reports.md).
+What each output format contains and when to use it for think/diff runs. See [docs/reports.md](./docs/reports.md).
 
 ## Knowledge Base (RAG)
-Use local docs to guide analysis (sources stay local; inference still uses your configured remote LLM). 
+Use local docs to guide analysis (sources stay local; inference still uses your configured remote LLM). See [docs/rag.md](./docs/rag.md) for build/search/usage details in CLI and Web UI.
 
-See [docs/rag.md](./docs/rag.md) for build/search/usage details in CLI and Web UI.
+## Troubleshooting & Safety
+Common issues, security notes, and Web UI tips. See [docs/troubleshooting.md](./docs/troubleshooting.md).
