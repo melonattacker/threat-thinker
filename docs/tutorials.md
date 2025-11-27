@@ -29,27 +29,27 @@ You can optionally set `--out-name` if you want to override the base report file
 ### Discovered potential threats
 | ID | Threat | Severity | Score |
 |----|---------|---------|-------|
-| T001 | Lack of Authentication on API Endpoint | High | 8.0 |
-| T002 | Unencrypted HTTP Communication Between API and App | High | 8.0 |
-| T003 | No Authentication or Authorization Between App and Database | High | 7.0 |
-| T004 | No Input Validation on API Endpoints | Medium | 5.0 |
-| T005 | Potential Information Disclosure from API in DMZ | Medium | 5.0 |
+| T001 | Exposure of Sensitive Data in Transit | High | 8.0 |
+| T002 | Potential Lack of Input Validation on API | High | 8.0 |
+| T003 | Unencrypted Internal API Communication | High | 8.0 |
+| T004 | Denial of Service via Unauthenticated API Access | Medium | 6.0 |
+| T005 | Insufficient Authentication on Internal Services | Medium | 6.0 |
 
 - [Markdown Report](../examples/web/reports/system_report.md)
 - [JSON Report](../examples/web/reports/system_report.json)
 - [HTML Report](../examples/web/reports/system_report.html)
 
 ### What Was Discovered
-The analysis identified 5 critical security threats in this simple web application:
+The analysis identified 5 threats in this simple web application:
 
 **High Severity Threats:**
-- **Lack of Authentication on API Endpoint**: API in DMZ lacks authentication, allowing unauthorized access from the Internet
-- **Unencrypted HTTP Communication Between API and App**: HTTP protocol between 'api' and 'app' in DMZ/Private zones exposes data to interception and tampering
-- **No Authentication or Authorization Between App and Database**: No authentication or access control is specified for the app-to-db connection, risking unauthorized data access
+- **Exposure of Sensitive Data in Transit (app → db)**: TCP without encryption could leak data if the network is compromised.
+- **Potential Lack of Input Validation on API**: Internet-facing API may be vulnerable to injection without strong validation.
+- **Unencrypted Internal API Communication (api → app)**: HTTP inside DMZ/Private risks interception/tampering.
 
 **Medium Severity Threats:**
-- **No Input Validation on API Endpoints**: API may be vulnerable to injection or malformed input attacks due to missing validation
-- **Potential Information Disclosure from API in DMZ**: API in DMZ may expose sensitive internal data if not properly filtered or sanitized
+- **Denial of Service via Unauthenticated API Access**: Missing rate limiting/auth could allow request floods.
+- **Insufficient Authentication on Internal Services (app/db)**: Weak service-to-service auth enables lateral impersonation.
 
 ## Tutorial 2: Analyze AWS system
 In this example, we analyze the architecture diagram of the AWS-based system shown in the screenshot to identify potential threats.
@@ -82,37 +82,37 @@ threat-thinker think \
 
 | ID | Threat | Severity | Score |
 |----|---------|---------|-------|
-| T001 | Potential Exposure of PII Over Unencrypted Database Connection | High | 8.0 |
-| T002 | Unencrypted Traffic Between Load Balancer and ECS Service | High | 8.0 |
-| T003 | Lack of Authentication on Application Load Balancer | High | 7.0 |
-| T004 | Insufficient Access Controls on S3 Bucket (Assets) | Medium | 6.0 |
-| T005 | Potential Lack of Input Validation on ECS Service | Medium | 6.0 |
-| T006 | Denial of Service via Unrestricted Public Entry Points | Medium | 5.0 |
-| T007 | Insufficient Logging and Auditing for Sensitive Operations | Medium | 5.0 |
-| T008 | Lack of Encryption at Rest for Sensitive Data Stores | Medium | 5.0 |
-| T009 | Over-Privileged Lambda Worker Access | Medium | 5.0 |
-| T010 | Potential Information Disclosure via SNS/SQS Misconfiguration | Medium | 5.0 |
+| T001 | Potential Credential Theft at Ingress Point | High | 8.0 |
+| T002 | Unencrypted Traffic Between Load Balancer and ECS Service Exposes Sensitive Data | High | 8.0 |
+| T003 | Lack of End-to-End Encryption for PII to Database | High | 7.0 |
+| T004 | Exposure of Internal Data via S3 Bucket Misconfiguration | Medium | 6.0 |
+| T005 | Insufficient Authentication Between Internal Services | Medium | 6.0 |
+| T006 | Denial of Service Risk at Public Ingress Points | Medium | 5.0 |
+| T007 | Insufficient Access Controls on Internal AWS Resources | Medium | 5.0 |
+| T008 | Lack of Audit Logging for Sensitive Operations | Medium | 5.0 |
+| T009 | Potential for Message Tampering or Replay in SQS/SNS | Medium | 5.0 |
+| T010 | Lack of Input Validation on User-Provided Data | Low | 3.0 |
 
 - [Markdown Report](../examples/aws/reports/system_report.md)
 - [JSON Report](../examples/aws/reports/system_report.json)
 - [HTML Report](../examples/aws/reports/system_report.html)
 
 ### What Was Discovered
-The AWS architecture analysis revealed 10 significant security threats, highlighting the complexity of cloud security:
+The AWS architecture analysis revealed 10 threats:
 
 **High Severity Threats:**
-- **Potential Exposure of PII Over Unencrypted Database Connection**: PII is transmitted over a generic TCP connection, which may not be encrypted, risking data exposure
-- **Unencrypted Traffic Between Load Balancer and ECS Service**: Traffic between the load balancer and ECS service uses HTTP, exposing sensitive data to interception or modification
-- **Lack of Authentication on Application Load Balancer**: The load balancer does not enforce authentication, allowing unauthenticated access to backend services
+- **Potential Credential Theft at Ingress (User → CloudFront)**: Misconfigured HTTPS could expose credentials.
+- **Unencrypted Traffic Between ALB and ECS**: HTTP inside the VPC exposes PII/internal data.
+- **Lack of End-to-End Encryption for PII to Database**: TCP to RDS may be unencrypted.
 
-**Medium Severity Threats Include:**
-- **Insufficient Access Controls on S3 Bucket (Assets)**: S3 bucket contains internal data and may be accessed by unauthorized entities if IAM policies are misconfigured
-- **Potential Lack of Input Validation on ECS Service**: User input flows from the internet to ECS service, risking injection attacks if not validated
-- **Denial of Service via Unrestricted Public Entry Points**: Public-facing endpoints may be targeted for DoS attacks due to lack of rate limiting or WAF
-- **Insufficient Logging and Auditing for Sensitive Operations**: Lack of comprehensive logging may hinder detection and investigation of security incidents involving PII or internal data
-- **Lack of Encryption at Rest for Sensitive Data Stores**: Sensitive data may be stored unencrypted at rest, risking exposure if storage is compromised
-- **Over-Privileged Lambda Worker Access**: Lambda worker may have excessive permissions to queues, increasing risk if compromised
-- **Potential Information Disclosure via SNS/SQS Misconfiguration**: Internal data in queues/topics could be exposed if access policies are too permissive
+**Medium/Low Severity Threats:**
+- **S3 Bucket Misconfiguration**: Internal data could leak via permissive policies.
+- **Insufficient Authentication Between Internal Services**: ALB ↔ ECS not authenticated.
+- **DoS Risk at Public Ingress Points**: CloudFront/ALB need WAF/rate limits.
+- **Insufficient Access Controls on AWS Resources**: Overly permissive IAM on S3/SQS/SNS/RDS.
+- **Lack of Audit Logging**: Missing audit trails on ECS/RDS/S3.
+- **Message Tampering/Replay in SQS/SNS**: Integrity/auth not enforced.
+- **Lack of Input Validation on User Data**: ECS endpoints may be exploitable without validation.
 
 ## Tutorial 3: Analyze the difference between before and after reports
 In this example, we will analyze the differences between the threat analysis results for an updated web application diagram and those for the previous version of the diagram.
@@ -150,27 +150,9 @@ threat-thinker diff \
 - [JSON Report](../examples/web/reports/diff.json)
 
 ### What Was Discovered
-The difference analysis between the original and updated web application architecture revealed significant security improvements alongside new considerations:
+The diff shows major architecture changes but no documented threat changes:
 
-**Architectural Enhancements:**
-- **6 New Components Added**: WAF (ingress protection), Cache (performance), Logging Service, Analytics DB, Monitoring Service, and Alert Manager
-- **Improved Defense in Depth**: Multiple layers of protection and observability now protect the core application
-- **Enhanced Incident Response**: Comprehensive logging, monitoring, and alerting capabilities enable faster threat detection and response
-
-**Security Improvements:**
-- **Web Application Firewall (WAF)**: Provides critical ingress filtering to block common web attacks (SQL injection, XSS, etc.)
-- **Comprehensive Observability**: Logging, monitoring, and alerting enable detection of suspicious behavior and compliance with security best practices
-- **Advanced Threat Detection**: Analytics on logs can identify subtle attack patterns that basic monitoring might miss
-
-**New Risks Introduced:**
-- **Expanded Attack Surface**: 6 new components create additional potential entry points for attackers
-- **Configuration Complexity**: More components increase the risk of misconfigurations that could expose sensitive data
-- **Protocol Security Gaps**: Several new internal connections use 'unknown' protocols, potentially lacking encryption
-
-**Critical Gaps Identified:**
-- **Threat Model Not Updated**: Despite significant architectural changes, the threat model wasn't updated to address new components and flows
-- **Authentication Issues**: Cache, logs, analytics, monitor, and alerts services lack proper authentication controls
-- **Internal Communication Security**: New service-to-service communications may not use secure protocols
-
-**Recommendations:**
-The analysis recommended updating the threat model to include all new components, securing new services with proper authentication and encrypted communications, and conducting regular security audits of the expanded infrastructure.
+- **Graph changes:** Added WAF, cache, logging, analytics, monitoring, and alerting nodes; user now routes through WAF; added logging/monitoring flows; removed direct user → api edge.
+- **Threat changes:** None recorded (0 added/removed), highlighting a gap—threats were not updated for the new components.
+- **Impact:** Security posture likely improves (WAF, observability, cache) but new components add attack surface and must be hardened (WAF rules, log protection, cache security).
+- **Recommendation:** Update the threat model to include new nodes/edges and assess threats specific to WAF, cache, logging/analytics, monitoring/alerts.
