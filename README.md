@@ -4,7 +4,7 @@
 
 **Threat Thinker** is an open-source tool that automatically performs **threat modeling from system architecture diagrams**.  
 
-It analyzes diagrams written in **Mermaid**, **draw.io**, or extracted from **images** to identify **components**, **data flows**, and **trust boundaries** using a **hybrid of syntax parsing and LLM reasoning**. The tool then generates a **prioritized list of potential threats** with concise explanations and references to standards like **OWASP ASVS** and **CWE**.  
+It analyzes diagrams written in **Mermaid**, **draw.io**, **Threat Dragon JSON**, or extracted from **images** to identify **components**, **data flows**, and **trust boundaries** using a **hybrid of syntax parsing and LLM reasoning**. The tool then generates a **prioritized list of potential threats** with concise explanations and references to standards like **OWASP ASVS** and **CWE**.  
 
 Designed for **simplicity** and **low noise**, Threat Thinker enables teams to keep their **threat models up to date** with minimal manual effort.
 
@@ -66,6 +66,15 @@ threat-thinker think \
 # Think: Analyze a draw.io diagram
 threat-thinker think \
     --drawio examples/web/system.xml \
+    --infer-hints \
+    --topn 5 \
+    --llm-api openai \
+    --llm-model gpt-4.1 \
+    --out-dir reports/
+
+# Think: Analyze a Threat Dragon JSON diagram
+threat-thinker think \
+    --threat-dragon examples/web/system.json \
     --infer-hints \
     --topn 5 \
     --llm-api openai \

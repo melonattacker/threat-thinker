@@ -379,6 +379,8 @@ def _generate_report(
             file_suffix = ".mmd"
         elif diagram_format == "drawio":
             file_suffix = ".drawio"
+        elif diagram_format == "threat-dragon":
+            file_suffix = ".json"
         else:
             file_suffix = ".txt"
 
@@ -404,6 +406,11 @@ def _generate_report(
                 graph, metrics = cli.parse_drawio(diagram_path)
                 status_lines.append(
                     f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+                )
+            elif diagram_format == "threat-dragon":
+                graph, metrics = cli.parse_threat_dragon(diagram_path)
+                status_lines.append(
+                    f"Parsed Threat Dragon diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
                 )
             else:
                 raise gr.Error(f"Unsupported diagram format: {diagram_format}")
@@ -565,14 +572,14 @@ def launch_webui(
                 # Text input (visible by default)
                 diagram_input = gr.TextArea(
                     label="Diagram Content",
-                    placeholder="Paste your diagram content here (Mermaid or Draw.io XML)...",
+                    placeholder="Paste your diagram content here (Mermaid, Draw.io XML, or Threat Dragon JSON)...",
                     lines=20,
                     autofocus=True,
                     visible=True,
                 )
                 diagram_format_input = gr.Radio(
                     label="Diagram Format",
-                    choices=["mermaid", "drawio"],
+                    choices=["mermaid", "drawio", "threat-dragon"],
                     value="mermaid",
                     visible=True,
                 )

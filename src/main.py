@@ -50,6 +50,10 @@ from pathlib import Path
 from parsers.mermaid_parser import parse_mermaid
 from parsers.drawio_parser import parse_drawio
 from parsers.image_parser import parse_image
+from parsers.threat_dragon_parser import (
+    is_threat_dragon_json,
+    parse_threat_dragon,
+)
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
@@ -112,6 +116,9 @@ def main():
     )
     p_think.add_argument("--mermaid", type=str, help="Path to Mermaid (.mmd/.mermaid)")
     p_think.add_argument("--drawio", type=str, help="Path to Draw.io (.drawio/.xml)")
+    p_think.add_argument(
+        "--threat-dragon", type=str, help="Path to Threat Dragon JSON (.json)"
+    )
     p_think.add_argument(
         "--image", type=str, help="Path to image file (.jpg/.jpeg/.png/.gif/.bmp/.webp)"
     )
@@ -329,6 +336,15 @@ def main():
                 diagram_format = "mermaid"
             elif diagram_file.lower().endswith((".drawio", ".xml")):
                 diagram_format = "drawio"
+            elif diagram_file.lower().endswith(".json"):
+                if is_threat_dragon_json(diagram_file):
+                    diagram_format = "threat-dragon"
+                else:
+                    ui.error(
+                        f"Unsupported diagram file format for {diagram_file}",
+                        "Only Threat Dragon v2 JSON files are accepted for .json inputs.",
+                    )
+                    sys.exit(2)
             elif diagram_file.lower().endswith(
                 (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp")
             ):
@@ -336,7 +352,7 @@ def main():
             else:
                 ui.error(
                     f"Unsupported diagram file format for {diagram_file}",
-                    "Supported: .mmd, .mermaid, .drawio, .xml, .jpg, .jpeg, .png, .gif, .bmp, .webp",
+                    "Supported: Mermaid (.mmd/.mermaid), Draw.io (.drawio/.xml), Threat Dragon JSON (.json), or images (.jpg/.jpeg/.png/.gif/.bmp/.webp)",
                 )
                 sys.exit(2)
         elif args.mermaid:
@@ -345,13 +361,16 @@ def main():
         elif args.drawio:
             diagram_file = args.drawio
             diagram_format = "drawio"
+        elif args.threat_dragon:
+            diagram_file = args.threat_dragon
+            diagram_format = "threat-dragon"
         elif args.image:
             diagram_file = args.image
             diagram_format = "image"
         else:
             ui.error(
                 "No diagram file specified",
-                "Please specify a diagram file using --diagram, --mermaid, --drawio, or --image",
+                "Please specify a diagram file using --diagram, --mermaid, --drawio, --threat-dragon, or --image",
             )
             sys.exit(2)
 
@@ -420,6 +439,8 @@ def main():
                 g, metrics = parse_mermaid(diagram_file)
             elif diagram_format == "drawio":
                 g, metrics = parse_drawio(diagram_file)
+            elif diagram_format == "threat-dragon":
+                g, metrics = parse_threat_dragon(diagram_file)
             elif diagram_format == "image":
                 g, metrics = parse_image(
                     diagram_file,
