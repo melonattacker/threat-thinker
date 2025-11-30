@@ -1,0 +1,1185 @@
+{
+  "version": "2.5.0",
+  "summary": {
+    "title": "AWS example A",
+    "owner": "qa",
+    "description": "Mermaid AWS example converted to Threat Dragon",
+    "id": 0
+  },
+  "detail": {
+    "contributors": [],
+    "diagrams": [
+      {
+        "id": 1,
+        "title": "AWS example A",
+        "diagramType": "STRIDE",
+        "placeholder": "AWS example A diagram",
+        "thumbnail": "./public/content/images/thumbnail.stride.jpg",
+        "version": "2.5.0",
+        "cells": [
+          {
+            "position": { "x": 40, "y": 160 },
+            "size": { "width": 110, "height": 60 },
+            "attrs": {
+              "text": { "text": "User" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "actor",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "user-port-top" },
+                { "group": "right", "id": "user-port-right" },
+                { "group": "bottom", "id": "user-port-bottom" },
+                { "group": "left", "id": "user-port-left" }
+              ]
+            },
+            "id": "node-user",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Actor",
+              "name": "User",
+              "description": "",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "providesAuthentication": false,
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 220, "y": 160 },
+            "size": { "width": 110, "height": 60 },
+            "attrs": {
+              "text": { "text": "CloudFront" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "process",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "cf-port-top" },
+                { "group": "right", "id": "cf-port-right" },
+                { "group": "bottom", "id": "cf-port-bottom" },
+                { "group": "left", "id": "cf-port-left" }
+              ]
+            },
+            "id": "node-cf",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Process",
+              "name": "CloudFront",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "handlesCardPayment": false,
+              "handlesGoodsOrServices": false,
+              "isWebApplication": false,
+              "privilegeLevel": "",
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 400, "y": 160 },
+            "size": { "width": 110, "height": 60 },
+            "attrs": {
+              "text": { "text": "ALB" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "process",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "alb-port-top" },
+                { "group": "right", "id": "alb-port-right" },
+                { "group": "bottom", "id": "alb-port-bottom" },
+                { "group": "left", "id": "alb-port-left" }
+              ]
+            },
+            "id": "node-alb",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Process",
+              "name": "ALB",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "handlesCardPayment": false,
+              "handlesGoodsOrServices": false,
+              "isWebApplication": false,
+              "privilegeLevel": "",
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 580, "y": 160 },
+            "size": { "width": 130, "height": 60 },
+            "attrs": {
+              "text": { "text": "ECS Service" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "process",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "ecs-port-top" },
+                { "group": "right", "id": "ecs-port-right" },
+                { "group": "bottom", "id": "ecs-port-bottom" },
+                { "group": "left", "id": "ecs-port-left" }
+              ]
+            },
+            "id": "node-ecs",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Process",
+              "name": "ECS Service",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "handlesCardPayment": false,
+              "handlesGoodsOrServices": false,
+              "isWebApplication": false,
+              "privilegeLevel": "",
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 780, "y": 120 },
+            "size": { "width": 130, "height": 60 },
+            "attrs": {
+              "text": { "text": "Customer RDS" },
+              "topLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "store",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "rds-port-top" },
+                { "group": "right", "id": "rds-port-right" },
+                { "group": "bottom", "id": "rds-port-bottom" },
+                { "group": "left", "id": "rds-port-left" }
+              ]
+            },
+            "id": "node-rds",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Store",
+              "name": "Customer RDS",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isALog": false,
+              "isEncrypted": false,
+              "isSigned": false,
+              "storesCredentials": false,
+              "storesInventory": false,
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 780, "y": 200 },
+            "size": { "width": 120, "height": 60 },
+            "attrs": {
+              "text": { "text": "S3 Bucket" },
+              "topLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "store",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "s3-port-top" },
+                { "group": "right", "id": "s3-port-right" },
+                { "group": "bottom", "id": "s3-port-bottom" },
+                { "group": "left", "id": "s3-port-left" }
+              ]
+            },
+            "id": "node-s3",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Store",
+              "name": "S3 Bucket",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isALog": false,
+              "isEncrypted": false,
+              "isSigned": false,
+              "storesCredentials": false,
+              "storesInventory": false,
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 580, "y": 280 },
+            "size": { "width": 120, "height": 60 },
+            "attrs": {
+              "text": { "text": "SQS Queue" },
+              "topLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              },
+              "bottomLine": {
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "store",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "sqs-port-top" },
+                { "group": "right", "id": "sqs-port-right" },
+                { "group": "bottom", "id": "sqs-port-bottom" },
+                { "group": "left", "id": "sqs-port-left" }
+              ]
+            },
+            "id": "node-sqs",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Store",
+              "name": "SQS Queue",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isALog": false,
+              "isEncrypted": false,
+              "isSigned": false,
+              "storesCredentials": false,
+              "storesInventory": false,
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 220, "y": 280 },
+            "size": { "width": 120, "height": 60 },
+            "attrs": {
+              "text": { "text": "SNS Topic" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "process",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "sns-port-top" },
+                { "group": "right", "id": "sns-port-right" },
+                { "group": "bottom", "id": "sns-port-bottom" },
+                { "group": "left", "id": "sns-port-left" }
+              ]
+            },
+            "id": "node-sns",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Process",
+              "name": "SNS Topic",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "handlesCardPayment": false,
+              "handlesGoodsOrServices": false,
+              "isWebApplication": false,
+              "privilegeLevel": "",
+              "threats": []
+            }
+          },
+          {
+            "position": { "x": 400, "y": 280 },
+            "size": { "width": 130, "height": 60 },
+            "attrs": {
+              "text": { "text": "Lambda Worker" },
+              "body": {
+                "stroke": "#333333",
+                "strokeWidth": 1.5,
+                "strokeDasharray": null
+              }
+            },
+            "visible": true,
+            "shape": "process",
+            "ports": {
+              "groups": {
+                "top": {
+                  "position": "top",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "right": {
+                  "position": "right",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "bottom": {
+                  "position": "bottom",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                },
+                "left": {
+                  "position": "left",
+                  "attrs": {
+                    "circle": {
+                      "r": 4,
+                      "magnet": true,
+                      "stroke": "#5F95FF",
+                      "strokeWidth": 1,
+                      "fill": "#fff",
+                      "style": { "visibility": "hidden" }
+                    }
+                  }
+                }
+              },
+              "items": [
+                { "group": "top", "id": "lambda-port-top" },
+                { "group": "right", "id": "lambda-port-right" },
+                { "group": "bottom", "id": "lambda-port-bottom" },
+                { "group": "left", "id": "lambda-port-left" }
+              ]
+            },
+            "id": "node-lambda",
+            "zIndex": 3,
+            "data": {
+              "type": "tm.Process",
+              "name": "Lambda Worker",
+              "description": "",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "handlesCardPayment": false,
+              "handlesGoodsOrServices": false,
+              "isWebApplication": false,
+              "privilegeLevel": "",
+              "threats": []
+            }
+          },
+
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "HTTPS request",
+              "description": "User sends HTTPS request via CloudFront",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["HTTPS request"],
+            "id": "flow-user-cf",
+            "source": {
+              "cell": "node-user",
+              "port": "user-port-right"
+            },
+            "target": {
+              "cell": "node-cf",
+              "port": "cf-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Forwarded request",
+              "description": "CloudFront forwards request to ALB",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["Forwarded request"],
+            "id": "flow-cf-alb",
+            "source": {
+              "cell": "node-cf",
+              "port": "cf-port-right"
+            },
+            "target": {
+              "cell": "node-alb",
+              "port": "alb-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Load-balanced request",
+              "description": "ALB forwards request to ECS service",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTP/HTTPS",
+              "threats": []
+            },
+            "labels": ["Load-balanced request"],
+            "id": "flow-alb-ecs",
+            "source": {
+              "cell": "node-alb",
+              "port": "alb-port-right"
+            },
+            "target": {
+              "cell": "node-ecs",
+              "port": "ecs-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "DB query",
+              "description": "ECS service performs queries to RDS",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "TLS",
+              "threats": []
+            },
+            "labels": ["DB query"],
+            "id": "flow-ecs-rds",
+            "source": {
+              "cell": "node-ecs",
+              "port": "ecs-port-right"
+            },
+            "target": {
+              "cell": "node-rds",
+              "port": "rds-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Object storage access",
+              "description": "ECS reads/writes objects in S3 bucket",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["Object storage access"],
+            "id": "flow-ecs-s3",
+            "source": {
+              "cell": "node-ecs",
+              "port": "ecs-port-right"
+            },
+            "target": {
+              "cell": "node-s3",
+              "port": "s3-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Enqueue message",
+              "description": "ECS enqueues message to SQS queue",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["Enqueue message"],
+            "id": "flow-ecs-sqs",
+            "source": {
+              "cell": "node-ecs",
+              "port": "ecs-port-bottom"
+            },
+            "target": {
+              "cell": "node-sqs",
+              "port": "sqs-port-top"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Notification trigger",
+              "description": "SNS publishes notification to Lambda",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["Notification trigger"],
+            "id": "flow-sns-lambda",
+            "source": {
+              "cell": "node-sns",
+              "port": "sns-port-right"
+            },
+            "target": {
+              "cell": "node-lambda",
+              "port": "lambda-port-left"
+            },
+            "vertices": []
+          },
+          {
+            "shape": "flow",
+            "attrs": {
+              "line": {
+                "stroke": "#333333",
+                "targetMarker": { "name": "block" },
+                "sourceMarker": { "name": "" },
+                "strokeDasharray": null
+              }
+            },
+            "width": 200,
+            "height": 100,
+            "zIndex": 10,
+            "connector": "smooth",
+            "data": {
+              "type": "tm.Flow",
+              "name": "Message delivery",
+              "description": "SQS delivers messages to Lambda worker",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "HTTPS",
+              "threats": []
+            },
+            "labels": ["Message delivery"],
+            "id": "flow-sqs-lambda",
+            "source": {
+              "cell": "node-sqs",
+              "port": "sqs-port-right"
+            },
+            "target": {
+              "cell": "node-lambda",
+              "port": "lambda-port-bottom"
+            },
+            "vertices": []
+          }
+        ]
+      }
+    ],
+    "diagramTop": 2,
+    "reviewer": "qa",
+    "threatTop": 0
+  }
+}
