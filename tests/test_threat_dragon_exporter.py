@@ -81,7 +81,9 @@ def test_export_threat_dragon_maps_threats_and_preserves_layout():
 
     web_cell = cells[web_id]
     assert web_cell["data"]["threats"][0]["id"] == "T001"
-    assert web_cell["data"]["threats"][0]["mitigation"] == "Apply strict input validation"
+    assert (
+        web_cell["data"]["threats"][0]["mitigation"] == "Apply strict input validation"
+    )
     assert web_cell["data"]["hasOpenThreats"] is True
     assert web_cell.get("position") == original_cells[web_id].get("position")
 

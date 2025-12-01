@@ -36,8 +36,8 @@ class ThreatDragonMetadata:
 
     original_model: Dict[str, Any] = field(default_factory=dict)
     cells_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    flow_cells_by_key: Dict[Tuple[str, str, Optional[str]], List[Dict[str, Any]]] = field(
-        default_factory=dict
+    flow_cells_by_key: Dict[Tuple[str, str, Optional[str]], List[Dict[str, Any]]] = (
+        field(default_factory=dict)
     )
 
 

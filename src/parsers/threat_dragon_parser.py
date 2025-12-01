@@ -82,7 +82,9 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
     cells = diagram.get("cells") or []
     meta = ThreatDragonMetadata(original_model=model)
     meta.cells_by_id = {
-        cell.get("id"): cell for cell in cells if isinstance(cell, dict) and cell.get("id")
+        cell.get("id"): cell
+        for cell in cells
+        if isinstance(cell, dict) and cell.get("id")
     }
     meta.flow_cells_by_key = {}
     node_ids = set()

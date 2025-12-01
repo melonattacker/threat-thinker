@@ -213,8 +213,12 @@ def export_html(
         if "->" not in edge_id:
             edge = edge_id_lookup.get(edge_id)
             if edge:
-                src_label = nodes.get(edge.src).label if nodes.get(edge.src) else edge.src
-                dst_label = nodes.get(edge.dst).label if nodes.get(edge.dst) else edge.dst
+                src_label = (
+                    nodes.get(edge.src).label if nodes.get(edge.src) else edge.src
+                )
+                dst_label = (
+                    nodes.get(edge.dst).label if nodes.get(edge.dst) else edge.dst
+                )
                 label_suffix = f" : {edge.label}" if edge.label else ""
                 protocol = f" ({edge.protocol})" if edge.protocol else ""
                 return _safe(
@@ -785,7 +789,9 @@ def export_threat_dragon(
     layout data.
     """
     if not graph or not graph.threat_dragon or not graph.threat_dragon.original_model:
-        raise ValueError("Threat Dragon metadata is missing; cannot export Threat Dragon JSON.")
+        raise ValueError(
+            "Threat Dragon metadata is missing; cannot export Threat Dragon JSON."
+        )
 
     model = copy.deepcopy(graph.threat_dragon.original_model)
     detail = model.get("detail") or {}
@@ -796,7 +802,9 @@ def export_threat_dragon(
     diagram = diagrams[0] or {}
     cells = diagram.get("cells") or []
     cell_lookup = {
-        cell.get("id"): cell for cell in cells if isinstance(cell, dict) and cell.get("id")
+        cell.get("id"): cell
+        for cell in cells
+        if isinstance(cell, dict) and cell.get("id")
     }
     flow_lookup = _build_flow_lookup_for_export(cells)
 

@@ -87,9 +87,7 @@ def test_parse_threat_dragon_basic_graph():
 
     assert graph.source_format == "threat-dragon"
     assert graph.threat_dragon is not None
-    assert (
-        "36d4beb4-5c74-47ab-943e-4d0920e7be74" in graph.threat_dragon.cells_by_id
-    )
+    assert "36d4beb4-5c74-47ab-943e-4d0920e7be74" in graph.threat_dragon.cells_by_id
 
 
 def test_parse_threat_dragon_nested_boundaries():

@@ -508,7 +508,9 @@ def _generate_report(
             try:
                 td_report = cli.export_threat_dragon(filtered, graph, None)
                 td_download_path = _write_temp_file(td_report, ".threat-dragon.json")
-                status_lines.append("Threat Dragon JSON generated from Threat Dragon input.")
+                status_lines.append(
+                    "Threat Dragon JSON generated from Threat Dragon input."
+                )
             except Exception as exc:
                 status_lines.append(f"Threat Dragon export skipped: {exc}")
 
