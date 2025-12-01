@@ -4,7 +4,7 @@ Threat Dragon v2 JSON parser.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from models import Edge, Graph, ImportMetrics, Node
 
@@ -81,6 +81,7 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
     diagram = diagrams[0] or {}
     cells = diagram.get("cells") or []
     node_ids = set()
+    boundaries = _collect_boundaries(cells)
 
     # First pass: collect nodes
     for cell in cells:
@@ -92,7 +93,8 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
             continue
 
         label = _extract_label(cell, data_block)
-        node = Node(id=cell_id, label=label, type=NODE_TYPE_MAP[cell_type])
+        zone = _match_boundary(cell, boundaries)
+        node = Node(id=cell_id, label=label, type=NODE_TYPE_MAP[cell_type], zone=zone)
         g.nodes[cell_id] = node
         node_ids.add(cell_id)
 
@@ -169,3 +171,51 @@ def _extract_flow_label(cell: Dict[str, Any], data_block: Dict[str, Any]) -> str
         if text and str(text).strip():
             return str(text).strip()
     return None
+
+
+def _collect_boundaries(cells: List[Dict[str, Any]]) -> List[Dict[str, float]]:
+    """Extract trust boundary rectangles from Threat Dragon cells."""
+    boundaries: List[Dict[str, float]] = []
+    for cell in cells:
+        if cell.get("shape") != "trust-boundary-box":
+            continue
+        data_block: Dict[str, Any] = cell.get("data") or {}
+        label = _extract_label(cell, data_block)
+        position = cell.get("position") or {}
+        size = cell.get("size") or {}
+        boundaries.append(
+            {
+                "name": label,
+                "x": float(position.get("x") or 0),
+                "y": float(position.get("y") or 0),
+                "width": float(size.get("width") or 0),
+                "height": float(size.get("height") or 0),
+            }
+        )
+    return boundaries
+
+
+def _match_boundary(
+    node_cell: Dict[str, Any], boundaries: List[Dict[str, float]]
+) -> Optional[str]:
+    """Return the containing boundary name for the node center, preferring the smallest area."""
+    position = node_cell.get("position") or {}
+    size = node_cell.get("size") or {}
+    center_x = float(position.get("x") or 0) + float(size.get("width") or 0) / 2
+    center_y = float(position.get("y") or 0) + float(size.get("height") or 0) / 2
+    candidates: List[Tuple[float, str]] = []
+
+    for boundary in boundaries:
+        bx, by = boundary["x"], boundary["y"]
+        bw, bh = boundary["width"], boundary["height"]
+        if bw <= 0 or bh <= 0:
+            continue
+        if bx <= center_x <= bx + bw and by <= center_y <= by + bh:
+            area = bw * bh
+            candidates.append((area, str(boundary["name"])))
+
+    if not candidates:
+        return None
+    # Prefer the smallest area (most specific) boundary. If areas tie, preserve existing order.
+    candidates.sort(key=lambda x: x[0])
+    return candidates[0][1]

@@ -14,6 +14,9 @@ from parsers.threat_dragon_parser import (
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "threat_dragon_simple.json"
+BOUNDARY_FIXTURE_PATH = (
+    Path(__file__).parent / "fixtures" / "threat_dragon_boundaries_nested.json"
+)
 
 
 def test_is_threat_dragon_json_detects_valid_file():
@@ -75,3 +78,29 @@ def test_parse_threat_dragon_basic_graph():
     assert metrics.node_label_candidates == 4
     assert metrics.edge_candidates == 3
     assert metrics.edges_parsed == 2
+
+    # trust boundary detection
+    assert graph.nodes["9e76689c-634c-4824-9081-322a67f286d3"].zone == "Internet"
+    assert graph.nodes["36d4beb4-5c74-47ab-943e-4d0920e7be74"].zone == "DMZ"
+    assert graph.nodes["d1566b36-6b0a-41c7-b9e0-95fb5a94fdce"].zone == "Internal"
+    assert graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zone == "Internal"
+
+
+def test_parse_threat_dragon_nested_boundaries():
+    graph, metrics = parse_threat_dragon(str(BOUNDARY_FIXTURE_PATH))
+
+    assert set(graph.nodes.keys()) == {
+        "service-inside-both",
+        "edge-gateway",
+        "external-caller",
+    }
+    assert metrics.node_labels_parsed == 3
+
+    inside = graph.nodes["service-inside-both"]
+    assert inside.zone == "Inner"
+
+    outer_only = graph.nodes["edge-gateway"]
+    assert outer_only.zone == "Outer"
+
+    outside = graph.nodes["external-caller"]
+    assert outside.zone is None
