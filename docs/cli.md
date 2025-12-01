@@ -4,7 +4,7 @@ Common flags used in `threat-thinker` commands.
 
 | Flag | Purpose | Notes |
 | --- | --- | --- |
-| `--mermaid / --drawio / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, image files, or generic `--diagram` autodetect. |
+| `--mermaid / --drawio / --threat-dragon / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
 | `--infer-hints` | Ask LLM to infer node/edge attributes | Combine with `--hints` to override specific fields. |
 | `--hints <path>` | Apply custom `hint.yaml` | Used after inference; can add missing nodes/edges. |
 | `--rag --kb <name>` | Enable local KB retrieval | Requires a built KB; pairs with `--rag-topk`. |

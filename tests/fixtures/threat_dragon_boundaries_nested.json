@@ -1,0 +1,49 @@
+{
+  "version": "2.5.0",
+  "detail": {
+    "diagrams": [
+      {
+        "id": 1,
+        "title": "Nested Boundaries",
+        "diagramType": "STRIDE",
+        "cells": [
+          {
+            "position": { "x": 0, "y": 0 },
+            "size": { "width": 200, "height": 200 },
+            "shape": "trust-boundary-box",
+            "id": "outer-boundary",
+            "data": { "type": "tm.BoundaryBox", "name": "Outer" }
+          },
+          {
+            "position": { "x": 40, "y": 40 },
+            "size": { "width": 80, "height": 80 },
+            "shape": "trust-boundary-box",
+            "id": "inner-boundary",
+            "data": { "type": "tm.BoundaryBox", "name": "Inner" }
+          },
+          {
+            "position": { "x": 60, "y": 60 },
+            "size": { "width": 40, "height": 40 },
+            "shape": "process",
+            "id": "service-inside-both",
+            "data": { "type": "tm.Process", "name": "Service" }
+          },
+          {
+            "position": { "x": 140, "y": 20 },
+            "size": { "width": 40, "height": 40 },
+            "shape": "process",
+            "id": "edge-gateway",
+            "data": { "type": "tm.Process", "name": "Edge Gateway" }
+          },
+          {
+            "position": { "x": 240, "y": 10 },
+            "size": { "width": 30, "height": 30 },
+            "shape": "process",
+            "id": "external-caller",
+            "data": { "type": "tm.Process", "name": "External Caller" }
+          }
+        ]
+      }
+    ]
+  }
+}
