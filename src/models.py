@@ -3,7 +3,7 @@ Data models for Threat Thinker
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -24,12 +24,29 @@ class Edge:
     label: Optional[str] = None
     protocol: Optional[str] = None  # HTTP/HTTPS/gRPC/etc.
     data: List[str] = field(default_factory=list)
+    id: Optional[str] = None  # Optional diagram-native edge identifier
+
+
+@dataclass
+class ThreatDragonMetadata:
+    """
+    Metadata retained when parsing a Threat Dragon diagram so exporters
+    can reconstruct a Threat Dragon-compatible JSON without regenerating layout.
+    """
+
+    original_model: Dict[str, Any] = field(default_factory=dict)
+    cells_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    flow_cells_by_key: Dict[Tuple[str, str, Optional[str]], List[Dict[str, Any]]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass
 class Graph:
     nodes: Dict[str, Node] = field(default_factory=dict)
     edges: List[Edge] = field(default_factory=list)
+    source_format: Optional[str] = None
+    threat_dragon: Optional[ThreatDragonMetadata] = None
 
 
 @dataclass

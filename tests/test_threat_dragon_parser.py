@@ -85,6 +85,12 @@ def test_parse_threat_dragon_basic_graph():
     assert graph.nodes["d1566b36-6b0a-41c7-b9e0-95fb5a94fdce"].zone == "Internal"
     assert graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zone == "Internal"
 
+    assert graph.source_format == "threat-dragon"
+    assert graph.threat_dragon is not None
+    assert (
+        "36d4beb4-5c74-47ab-943e-4d0920e7be74" in graph.threat_dragon.cells_by_id
+    )
+
 
 def test_parse_threat_dragon_nested_boundaries():
     graph, metrics = parse_threat_dragon(str(BOUNDARY_FIXTURE_PATH))

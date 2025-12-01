@@ -57,7 +57,14 @@ from parsers.threat_dragon_parser import (
 from hint_processor import apply_hints, merge_llm_hints
 from llm.inference import llm_infer_hints, llm_infer_threats
 from threat_analyzer import denoise_threats
-from exporters import export_json, export_md, diff_reports, export_diff_md, export_html
+from exporters import (
+    export_json,
+    export_md,
+    diff_reports,
+    export_diff_md,
+    export_html,
+    export_threat_dragon,
+)
 from cliui import ui, set_verbose
 from rag import (
     KnowledgeBaseError,
@@ -614,6 +621,15 @@ def main():
             json_output = export_json(threats, str(out_json), metrics, g)
             md_output = export_md(threats, str(out_md))
             html_output = export_html(threats, str(out_html), g)
+            td_output = None
+            td_path = None
+            if g.source_format == "threat-dragon" and g.threat_dragon:
+                td_path = out_dir / f"{out_json.stem}.threat-dragon.json"
+                try:
+                    td_output = export_threat_dragon(threats, g, str(td_path))
+                    ui.success(f"Threat Dragon report saved to: {td_path}")
+                except Exception as exc:
+                    ui.warning("Threat Dragon export skipped", str(exc))
 
             ui.success(f"JSON report saved to: {out_json}")
             ui.success(f"Markdown report saved to: {out_md}")
@@ -626,10 +642,15 @@ def main():
                 print(md_output)
                 print("\nHTML Output:")
                 print(html_output)
+                if td_output:
+                    print("\nThreat Dragon Output:")
+                    print(td_output)
             else:
                 ui.debug("JSON output", json_output)
                 ui.debug("Markdown output", md_output)
                 ui.debug("HTML output", html_output)
+                if td_output:
+                    ui.debug("Threat Dragon output", td_output)
 
         except Exception as e:
             ui.error("Failed to export reports", str(e))

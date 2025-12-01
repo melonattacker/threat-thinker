@@ -324,7 +324,7 @@ def _generate_report(
     use_rag: bool,
     kb_names,
     rag_topk: int,
-) -> Tuple[str, str, Optional[str], Optional[str], Optional[str]]:
+) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
         diagram_text = (diagram_text or "").strip()
@@ -332,7 +332,7 @@ def _generate_report(
             raise gr.Error("Diagram input is required.")
 
         diagram_format = (diagram_format or "mermaid").strip().lower()
-        if diagram_format not in ["mermaid", "drawio"]:
+        if diagram_format not in ["mermaid", "drawio", "threat-dragon"]:
             raise gr.Error(f"Unsupported diagram format: {diagram_format}")
     else:  # Image
         if not image_file:
@@ -502,19 +502,31 @@ def _generate_report(
         json_report = cli.export_json(filtered, None, metrics, graph)
         md_report = cli.export_md(filtered, None)
         html_report = cli.export_html(filtered, None, graph)
+        td_report = None
+        td_download_path = None
+        if graph.source_format == "threat-dragon" and graph.threat_dragon:
+            try:
+                td_report = cli.export_threat_dragon(filtered, graph, None)
+                td_download_path = _write_temp_file(td_report, ".threat-dragon.json")
+                status_lines.append("Threat Dragon JSON generated from Threat Dragon input.")
+            except Exception as exc:
+                status_lines.append(f"Threat Dragon export skipped: {exc}")
 
         download_md_path = _write_temp_file(md_report, ".md")
         download_json_path = _write_temp_file(json_report, ".json")
         download_html_path = _write_temp_file(html_report, ".html")
-        _DOWNLOAD_PATHS.update(
-            {download_md_path, download_json_path, download_html_path}
-        )
+        download_paths = {download_md_path, download_json_path, download_html_path}
+        if td_download_path:
+            download_paths.add(td_download_path)
+        _DOWNLOAD_PATHS.update(download_paths)
 
         report_text = (
             f"JSON Report:\n{json_report}\n\n"
             f"Markdown Report:\n{md_report}\n\n"
             f"HTML Report:\n{html_report}"
         )
+        if td_report:
+            report_text += f"\n\nThreat Dragon Report:\n{td_report}"
 
         status_lines.append("Report generated successfully.")
 
@@ -526,6 +538,7 @@ def _generate_report(
             download_md_path,
             download_json_path,
             download_html_path,
+            td_download_path,
         )
     except gr.Error:
         raise
@@ -700,6 +713,9 @@ def launch_webui(
                     download_html_output = gr.File(
                         label="Download HTML report",
                     )
+                    download_td_output = gr.File(
+                        label="Download Threat Dragon JSON (Threat Dragon inputs only)",
+                    )
 
                 generate_button.click(
                     fn=_generate_report,
@@ -728,6 +744,7 @@ def launch_webui(
                         download_md_output,
                         download_json_output,
                         download_html_output,
+                        download_td_output,
                     ],
                     api_name=False,
                 )

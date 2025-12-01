@@ -41,7 +41,7 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
     Returns:
         Tuple of (Graph, ImportMetrics)
     """
-    g = Graph()
+    g = Graph(source_format="mermaid")
     metrics = ImportMetrics()
 
     with open(path, "r", encoding="utf-8") as f:
