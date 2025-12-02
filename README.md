@@ -74,7 +74,7 @@ threat-thinker think \
 
 # Think: Analyze a Threat Dragon JSON diagram
 threat-thinker think \
-    --threat-dragon examples/web/system.json \
+    --threat-dragon examples/web/system.threat-dragon.json \
     --infer-hints \
     --topn 5 \
     --llm-api openai \

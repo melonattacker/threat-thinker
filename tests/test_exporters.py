@@ -194,7 +194,7 @@ class TestExportHtml:
                 "DB": Node(id="DB", label="Database", zone="Private", type="database"),
             },
             edges=[
-                Edge(src="API", dst="DB", label="queries", protocol="TLS"),
+                Edge(src="API", dst="DB", label="queries", protocol="TLS", id="edge-1"),
             ],
         )
         threat = Threat(
@@ -208,7 +208,7 @@ class TestExportHtml:
             references=["ASVS V5.1"],
             recommended_action="Use parameterized queries",
             evidence_nodes=["API", "DB"],
-            evidence_edges=["API->DB"],
+            evidence_edges=["API->DB", "edge-1"],
         )
 
         result = export_html([threat], None, graph)
@@ -218,6 +218,7 @@ class TestExportHtml:
         assert "Database" in result
         assert "queries" in result  # edge label mapping
         assert "TLS" in result  # protocol mapping
+        assert "edge-1" in result  # edge id included for highlighting
         assert "T001" in result  # threat id appears in mapping badges
         assert 'id="graph"' in result  # graph container exists
         assert "window.THREAT_REPORT" in result  # JSON payload embedded

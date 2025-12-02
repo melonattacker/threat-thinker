@@ -19,7 +19,7 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
     Returns:
         Tuple of (Graph, ImportMetrics)
     """
-    g = Graph()
+    g = Graph(source_format="drawio")
     metrics = ImportMetrics()
 
     try:

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from models import Edge, Graph, ImportMetrics, Node
+from models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata
 
 # Mapping from Threat Dragon data.type to internal node.type values
 NODE_TYPE_MAP = {
@@ -50,7 +50,7 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
     Returns:
         Tuple of (Graph, ImportMetrics)
     """
-    g = Graph()
+    g = Graph(source_format="threat-dragon")
     metrics = ImportMetrics()
 
     try:
@@ -80,6 +80,13 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
 
     diagram = diagrams[0] or {}
     cells = diagram.get("cells") or []
+    meta = ThreatDragonMetadata(original_model=model)
+    meta.cells_by_id = {
+        cell.get("id"): cell
+        for cell in cells
+        if isinstance(cell, dict) and cell.get("id")
+    }
+    meta.flow_cells_by_key = {}
     node_ids = set()
     boundaries = _collect_boundaries(cells)
 
@@ -118,7 +125,9 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
 
         label = _extract_flow_label(cell, data_block)
         protocol = data_block.get("protocol") or None
-        edge = Edge(src=source, dst=target, label=label, protocol=protocol)
+        edge = Edge(
+            src=source, dst=target, label=label, protocol=protocol, id=cell.get("id")
+        )
 
         edge_flags = []
         if data_block.get("isEncrypted"):
@@ -132,6 +141,10 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
 
         g.edges.append(edge)
         metrics.edges_parsed += 1
+        flow_key = (source, target, label or None)
+        meta.flow_cells_by_key.setdefault(flow_key, []).append(cell)
+
+    g.threat_dragon = meta
 
     return g, metrics
 

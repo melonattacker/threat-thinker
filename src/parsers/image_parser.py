@@ -35,7 +35,7 @@ def parse_image(
     Returns:
         Tuple of (Graph, ImportMetrics)
     """
-    g = Graph()
+    g = Graph(source_format="image")
     metrics = ImportMetrics()
 
     try:

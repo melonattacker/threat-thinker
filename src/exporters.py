@@ -2,9 +2,10 @@
 Export functionality for reports
 """
 
+import copy
 import json
 from html import escape
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from models import Threat, ImportMetrics, Graph, Node, Edge
 
@@ -143,14 +144,19 @@ def _safe(text: Optional[str]) -> str:
     return escape(text or "")
 
 
-def _edge_lookup(edges: List[Edge]) -> Dict[Tuple[str, str, Optional[str]], Edge]:
+def _edge_lookup(
+    edges: List[Edge],
+) -> Tuple[Dict[Tuple[str, str, Optional[str]], Edge], Dict[str, Edge]]:
     lookup: Dict[Tuple[str, str, Optional[str]], Edge] = {}
+    id_lookup: Dict[str, Edge] = {}
     for edge in edges:
         key = (edge.src, edge.dst, edge.label or None)
         lookup[key] = edge
         # Fallback to match edges without label even if one exists
         lookup.setdefault((edge.src, edge.dst, None), edge)
-    return lookup
+        if edge.id:
+            id_lookup[edge.id] = edge
+    return lookup, id_lookup
 
 
 def export_html(
@@ -186,7 +192,7 @@ def export_html(
 
     nodes = graph.nodes if graph else {}
     edges = graph.edges if graph else []
-    edge_lookup = _edge_lookup(edges)
+    edge_lookup, edge_id_lookup = _edge_lookup(edges)
 
     def format_text(text: str) -> str:
         return _safe(text).replace("\n", "<br>")
@@ -205,6 +211,19 @@ def export_html(
 
     def resolve_edge(edge_id: str) -> str:
         if "->" not in edge_id:
+            edge = edge_id_lookup.get(edge_id)
+            if edge:
+                src_label = (
+                    nodes.get(edge.src).label if nodes.get(edge.src) else edge.src
+                )
+                dst_label = (
+                    nodes.get(edge.dst).label if nodes.get(edge.dst) else edge.dst
+                )
+                label_suffix = f" : {edge.label}" if edge.label else ""
+                protocol = f" ({edge.protocol})" if edge.protocol else ""
+                return _safe(
+                    f"{src_label} [{edge.src}] -> {dst_label} [{edge.dst}]{label_suffix}{protocol}"
+                )
             return _safe(edge_id)
         src_part, rest = edge_id.split("->", 1)
         if ":" in rest:
@@ -231,6 +250,10 @@ def export_html(
     edge_threats: Dict[Tuple[str, str, Optional[str]], List[str]] = {
         k: [] for k in edge_lookup
     }
+    # include id-based entries so evidence by id can still be mapped
+    for edge in edges:
+        key = (edge.src, edge.dst, edge.label or None)
+        edge_threats.setdefault(key, [])
     for t in threats:
         for nid in t.evidence_nodes:
             if nid in node_threats:
@@ -244,9 +267,12 @@ def export_html(
                 else:
                     key = (src_part.strip(), rest.strip(), None)
                 edge = edge_lookup.get(key) or edge_lookup.get((key[0], key[1], None))
-                if edge:
-                    canonical_key = (edge.src, edge.dst, edge.label or key[2])
-                    edge_threats.setdefault(canonical_key, []).append(t.id)
+            else:
+                edge = edge_id_lookup.get(e_ref)
+
+            if edge:
+                canonical_key = (edge.src, edge.dst, edge.label)
+                edge_threats.setdefault(canonical_key, []).append(t.id)
 
     html_parts: List[str] = []
     html_parts.append("<!DOCTYPE html>")
@@ -445,6 +471,7 @@ def export_html(
             ],
             "edges": [
                 {
+                    "id": e.id or f"{e.src}->{e.dst}",
                     "src": e.src,
                     "dst": e.dst,
                     "label": e.label,
@@ -500,6 +527,13 @@ def export_html(
         "      if (!container) return;\n"
         "      let initialZoom = 1;\n"
         "      const cssEscape = (value) => (window.CSS && CSS.escape ? CSS.escape(value) : value);\n"
+        "      const edgeIdMap = new Map();\n"
+        "      edges.forEach((e) => {\n"
+        "        const primary = e.id || `${e.src}->${e.dst}`;\n"
+        "        const aliases = new Set([primary, `${e.src}->${e.dst}`]);\n"
+        "        if (e.label) aliases.add(`${e.src}->${e.dst}:${e.label}`);\n"
+        "        aliases.forEach((alias) => edgeIdMap.set(alias, primary));\n"
+        "      });\n"
         "\n"
         "      function clearCyHighlight(cy) {\n"
         "        cy.elements().removeClass('cy-highlight cy-dim');\n"
@@ -511,7 +545,7 @@ def export_html(
         "        clearCyHighlight(cy);\n"
         "        if (!threat) return;\n"
         "        const nodeIds = (threat.evidence && threat.evidence.nodes) || [];\n"
-        "        const edgeIds = (threat.evidence && threat.evidence.edges) || [];\n"
+        "        const edgeIds = ((threat.evidence && threat.evidence.edges) || []).map((id) => edgeIdMap.get(id) || id);\n"
         "        const threatNodes = cy.nodes().filter((n) => nodeIds.includes(n.id()));\n"
         "        const threatEdges = cy.edges().filter((e) => edgeIds.includes(e.id()));\n"
         "        const targets = threatNodes.union(threatEdges);\n"
@@ -608,7 +642,10 @@ def export_html(
         "              return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };\n"
         "            })\n"
         "          ],\n"
-        "          edges: edges.map((e) => ({ data: { id: `${e.src}->${e.dst}`, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } }))\n"
+        "          edges: edges.map((e) => {\n"
+        "            const edgeId = e.id || `${e.src}->${e.dst}`;\n"
+        "            return { data: { id: edgeId, source: e.src, target: e.dst, label: e.label || '', protocol: e.protocol || '' } };\n"
+        "          })\n"
         "        };\n"
         "        const cy = cytoscape({\n"
         "          container,\n"
@@ -646,6 +683,180 @@ def export_html(
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(content)
     return content
+
+
+def _resolve_node_id(ref: str, graph: Graph) -> Optional[str]:
+    """Resolve a node reference to a graph node ID, matching by ID first then label."""
+    if not ref:
+        return None
+    candidate = ref.strip()
+    if candidate in graph.nodes:
+        return candidate
+    for nid, node in graph.nodes.items():
+        if node.label == candidate:
+            return nid
+    return None
+
+
+def _parse_edge_reference(
+    ref: str, graph: Graph
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Parse an evidence edge reference like 'A->B:label' or an edge id into node IDs and optional label."""
+    if "->" not in ref:
+        for edge in graph.edges:
+            if edge.id == ref:
+                return edge.src, edge.dst, edge.label
+        return None, None, None
+    src_part, rest = ref.split("->", 1)
+    label_part = None
+    if ":" in rest:
+        dst_part, label_part = rest.split(":", 1)
+    else:
+        dst_part = rest
+    src_id = _resolve_node_id(src_part, graph)
+    dst_id = _resolve_node_id(dst_part, graph)
+    label = label_part.strip() if label_part and label_part.strip() else None
+    return src_id, dst_id, label
+
+
+def _extract_td_flow_label_for_export(cell: Dict[str, Any]) -> Optional[str]:
+    """Extract a flow label using the same precedence as the Threat Dragon parser."""
+    data_block: Dict[str, Any] = cell.get("data") or {}
+    if data_block.get("name"):
+        return str(data_block["name"]).strip() or None
+
+    labels = cell.get("labels") or []
+    if labels:
+        first = labels[0]
+        if isinstance(first, str):
+            text = first
+        elif isinstance(first, dict):
+            text = first.get("text", "")
+        else:
+            text = ""
+        if text and str(text).strip():
+            return str(text).strip()
+    return None
+
+
+def _build_flow_lookup_for_export(
+    cells: List[Dict[str, Any]],
+) -> Dict[Tuple[str, str, Optional[str]], List[Dict[str, Any]]]:
+    """Create a lookup map for flow cells keyed by (src, dst, label)."""
+    lookup: Dict[Tuple[str, str, Optional[str]], List[Dict[str, Any]]] = {}
+    for cell in cells:
+        data_block: Dict[str, Any] = cell.get("data") or {}
+        if data_block.get("type") != "tm.Flow" or cell.get("shape") != "flow":
+            continue
+        src = (cell.get("source") or {}).get("cell")
+        dst = (cell.get("target") or {}).get("cell")
+        if not src or not dst:
+            continue
+        label = _extract_td_flow_label_for_export(cell)
+        key = (src, dst, label)
+        lookup.setdefault(key, []).append(cell)
+        # Allow matching flows that omit labels in evidence
+        lookup.setdefault((src, dst, None), []).append(cell)
+    return lookup
+
+
+def _threat_to_threat_dragon(threat: Threat) -> Dict[str, Any]:
+    """Map internal Threat to a Threat Dragon-friendly threat block."""
+    stride_type = threat.stride[0] if threat.stride else ""
+    return {
+        "id": threat.id,
+        "title": threat.title,
+        "type": stride_type,
+        "status": "Open",
+        "severity": threat.severity,
+        "description": threat.why,
+        "mitigation": threat.recommended_action,
+        "references": threat.references,
+        "score": threat.score,
+        "affected": threat.affected,
+        "confidence": threat.confidence,
+    }
+
+
+def export_threat_dragon(
+    threats: List[Threat], graph: Graph, output_file: Optional[str] = None
+) -> str:
+    """
+    Export threats into a Threat Dragon-compatible JSON using preserved layout.
+
+    This requires a graph that originated from a Threat Dragon import so the
+    original model (including cells/positions) can be reused without regenerating
+    layout data.
+    """
+    if not graph or not graph.threat_dragon or not graph.threat_dragon.original_model:
+        raise ValueError(
+            "Threat Dragon metadata is missing; cannot export Threat Dragon JSON."
+        )
+
+    model = copy.deepcopy(graph.threat_dragon.original_model)
+    detail = model.get("detail") or {}
+    diagrams = detail.get("diagrams") or []
+    if not diagrams:
+        raise ValueError("Threat Dragon model is missing diagrams; cannot export.")
+
+    diagram = diagrams[0] or {}
+    cells = diagram.get("cells") or []
+    cell_lookup = {
+        cell.get("id"): cell
+        for cell in cells
+        if isinstance(cell, dict) and cell.get("id")
+    }
+    flow_lookup = _build_flow_lookup_for_export(cells)
+
+    cell_threats: Dict[str, List[Dict[str, Any]]] = {}
+    diagram_level_threats: List[Dict[str, Any]] = []
+
+    for threat in threats:
+        td_block = _threat_to_threat_dragon(threat)
+        assigned = False
+
+        for node_ref in threat.evidence_nodes:
+            node_id = _resolve_node_id(node_ref, graph)
+            if node_id and node_id in cell_lookup:
+                cell_threats.setdefault(node_id, []).append(td_block)
+                assigned = True
+
+        for edge_ref in threat.evidence_edges:
+            src_id, dst_id, label = _parse_edge_reference(edge_ref, graph)
+            if not src_id or not dst_id:
+                continue
+            flow_cells = flow_lookup.get((src_id, dst_id, label)) or flow_lookup.get(
+                (src_id, dst_id, None)
+            )
+            if not flow_cells:
+                continue
+            cell_id = flow_cells[0].get("id")
+            if cell_id:
+                cell_threats.setdefault(cell_id, []).append(td_block)
+                assigned = True
+
+        if not assigned:
+            diagram_level_threats.append(td_block)
+
+    for cell_id, cell in cell_lookup.items():
+        data_block = cell.get("data")
+        if not isinstance(data_block, dict):
+            continue
+        threats_for_cell = cell_threats.get(cell_id) or []
+        data_block["threats"] = threats_for_cell
+        if threats_for_cell:
+            data_block["hasOpenThreats"] = True
+        elif "hasOpenThreats" in data_block:
+            data_block["hasOpenThreats"] = False
+
+    if diagram_level_threats:
+        diagram["threats"] = diagram_level_threats
+
+    output = json.dumps(model, ensure_ascii=False, indent=2)
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(output)
+    return output
 
 
 def diff_reports(
