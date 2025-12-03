@@ -47,15 +47,30 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
 
         # Get all mxCell elements
         cells = graph_model.findall(".//mxCell")
+        cells_by_id: Dict[str, ET.Element] = {
+            cell.get("id"): cell for cell in cells if cell.get("id")
+        }
 
         # First pass: collect all nodes (non-edge cells) and zone candidates
         cell_id_map: Dict[str, str] = {}  # maps cell id -> node id for our graph
         node_geometry: Dict[str, Tuple[float, float, float, float]] = {}
         zone_rects: List[Dict[str, float]] = []
+        edge_labels: Dict[str, str] = {}
 
         for cell in cells:
             cell_id = cell.get("id")
             if not cell_id:
+                continue
+
+            style = (cell.get("style") or "").lower()
+
+            # edgeLabel cells attach labels to edges; do not treat as nodes
+            if "edgelabel" in style:
+                parent_edge_id = cell.get("parent")
+                if parent_edge_id:
+                    label_value = _decode_and_clean(cell.get("value", ""))
+                    if label_value:
+                        edge_labels[parent_edge_id] = label_value
                 continue
 
             # Skip if this is an edge
@@ -67,19 +82,10 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
             if cell_id in ["0", "1"]:
                 continue
 
-            geometry = _extract_geometry(cell)
+            geometry = _extract_absolute_geometry(cell, cells_by_id)
 
             # Extract node information
-            value = cell.get("value", "")
-            if value:
-                # URL decode the value in case it's encoded
-                try:
-                    value = urllib.parse.unquote(value)
-                except Exception:
-                    pass
-
-                # Remove HTML tags if present
-                value = _clean_html_tags(value)
+            value = _decode_and_clean(cell.get("value", ""))
 
             # Identify trust boundary/zone cells
             if _is_zone_cell(cell, value, geometry):
@@ -126,16 +132,9 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
                 continue
 
             # Extract edge label
-            label = cell.get("value", "")
-            if label:
-                try:
-                    label = urllib.parse.unquote(label)
-                except Exception:
-                    pass
-                label = _clean_html_tags(label)
-                label = label.strip() if label.strip() else None
-            else:
-                label = None
+            label = _decode_and_clean(cell.get("value", ""))
+            if not label:
+                label = edge_labels.get(cell.get("id") or "") or None
 
             # Create edge
             edge = Edge(src=src_node_id, dst=dst_node_id, label=label)
@@ -165,7 +164,20 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
     return g, metrics
 
 
-def _clean_html_tags(text: str) -> str:
+def _decode_and_clean(value: Optional[str]) -> str:
+    """URL-decode a value and strip simple HTML markup."""
+    if value is None:
+        return ""
+    text = value
+    try:
+        text = urllib.parse.unquote(text)
+    except Exception:
+        pass
+    cleaned = _clean_html_tags(text)
+    return cleaned if cleaned is not None else ""
+
+
+def _clean_html_tags(text: str) -> Optional[str]:
     """
     Remove HTML tags from text content.
     Draw.io often stores text with HTML formatting.
@@ -176,6 +188,8 @@ def _clean_html_tags(text: str) -> str:
     Returns:
         Cleaned text without HTML tags
     """
+    if text is None:
+        return None
     if not text:
         return text
 
@@ -196,8 +210,12 @@ def _clean_html_tags(text: str) -> str:
     return text.strip()
 
 
-def _extract_geometry(cell: ET.Element) -> Optional[Tuple[float, float, float, float]]:
-    """Extract geometry tuple (x, y, width, height) from an mxCell."""
+def _extract_absolute_geometry(
+    cell: ET.Element, cells_by_id: Dict[str, ET.Element]
+) -> Optional[Tuple[float, float, float, float]]:
+    """
+    Extract absolute geometry (x, y, width, height) from an mxCell by summing parent offsets.
+    """
     geom = cell.find("mxGeometry")
     if geom is None:
         return None
@@ -206,6 +224,18 @@ def _extract_geometry(cell: ET.Element) -> Optional[Tuple[float, float, float, f
         y = float(geom.get("y") or 0)
         width = float(geom.get("width") or 0)
         height = float(geom.get("height") or 0)
+
+        parent_id = cell.get("parent")
+        while parent_id:
+            parent_cell = cells_by_id.get(parent_id)
+            if parent_cell is None:
+                break
+            parent_geom = parent_cell.find("mxGeometry")
+            if parent_geom is not None:
+                x += float(parent_geom.get("x") or 0)
+                y += float(parent_geom.get("y") or 0)
+            parent_id = parent_cell.get("parent")
+
         return x, y, width, height
     except Exception:
         return None

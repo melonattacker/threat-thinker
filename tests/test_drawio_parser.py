@@ -238,6 +238,76 @@ class TestParseDrawio:
         finally:
             os.unlink(temp_path)
 
+    def test_parse_drawio_nested_relative_coordinates(self):
+        """Nodes and zones should resolve parent-relative geometry into absolute coordinates."""
+        xml_content = """
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="outer" value="Outer" style="shape=rectangle;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="10" y="10" width="200" height="200" as="geometry"/>
+    </mxCell>
+    <mxCell id="inner" value="Inner" style="shape=rectangle;dashed=1;" vertex="1" parent="outer">
+      <mxGeometry x="20" y="30" width="80" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="svc" value="Service" vertex="1" parent="inner">
+      <mxGeometry x="5" y="5" width="10" height="10" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
+""".strip()
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".drawio", delete=False) as f:
+            f.write(xml_content)
+            temp_path = f.name
+
+        try:
+            graph, _ = parse_drawio(temp_path)
+            assert "svc" in graph.nodes
+            assert graph.nodes["svc"].zone == "Inner"
+            assert graph.nodes["svc"].zones == ["outer", "inner"]
+            assert graph.zones["inner"].parent_id == "outer"
+        finally:
+            os.unlink(temp_path)
+
+    def test_parse_drawio_edge_labels(self):
+        """edgeLabel cells should not create nodes and should populate edge labels."""
+        xml_content = """
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="a" value="Client" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="80" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="b" value="Server" vertex="1" parent="1">
+      <mxGeometry x="200" y="0" width="80" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="e1" edge="1" source="a" target="b" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="label1" value="Send HTTP Request" style="edgeLabel;html=1;" vertex="1" connectable="0" parent="e1">
+      <mxGeometry x="0" y="0" width="0" height="0" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
+""".strip()
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".drawio", delete=False) as f:
+            f.write(xml_content)
+            temp_path = f.name
+
+        try:
+            graph, _ = parse_drawio(temp_path)
+            assert set(graph.nodes.keys()) == {"a", "b"}
+            assert len(graph.edges) == 1
+            assert graph.edges[0].src == "a"
+            assert graph.edges[0].dst == "b"
+            assert graph.edges[0].label == "Send HTTP Request"
+        finally:
+            os.unlink(temp_path)
+
 
 class TestCleanHtmlTags:
     """Test cases for _clean_html_tags function"""
