@@ -2,7 +2,7 @@
 Utilities for working with zones and nested trust boundaries.
 """
 
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence
 
 from models import Zone
 

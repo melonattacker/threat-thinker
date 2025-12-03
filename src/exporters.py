@@ -8,7 +8,7 @@ from html import escape
 from typing import Any, Dict, List, Optional, Tuple
 
 from models import Edge, Graph, ImportMetrics, Node, Threat
-from zone_utils import representative_zone_name, zone_path_names
+from zone_utils import zone_path_names
 
 # Token budget sized for multi-section narrative diff explanations.
 DIFF_EXPLANATION_MAX_TOKENS = 1800

@@ -4,7 +4,7 @@ Threat Dragon v2 JSON parser.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata, Zone
 from zone_utils import (
