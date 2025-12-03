@@ -40,7 +40,7 @@ Key Features:
 </p>
 
 ### Threat Dragon round-trip
-- Import Threat Dragon v2 JSON with `--threat-dragon`, preserving layout and cell metadata.
+- Import [Threat Dragon](https://owasp.org/www-project-threat-dragon/) v2 JSON with `--threat-dragon`, preserving layout and cell metadata.
 - Export a Threat Dragon-compatible JSON that embeds detected threats without regenerating positions.
 - Re-open the exported JSON in Threat Dragon to review or adjust cells with the added findings.
 - Markdown/JSON/HTML reports stay available alongside Threat Dragon output for broader sharing.
