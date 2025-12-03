@@ -1,0 +1,17 @@
+%% Nested VPC / Private Subnet
+graph LR
+  %% Zones / Trust Boundaries
+  subgraph Internet
+    user[User]
+  end
+
+  subgraph VPC
+    subgraph Private Subnet
+      api[API]
+    end
+    db[(User DB)]
+  end
+
+  %% Flows
+  user -- "Send HTTP Request" --> api
+  api  -- "Store User Data"   --> db

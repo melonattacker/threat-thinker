@@ -7,7 +7,8 @@ import json
 from html import escape
 from typing import Any, Dict, List, Optional, Tuple
 
-from models import Threat, ImportMetrics, Graph, Node, Edge
+from models import Edge, Graph, ImportMetrics, Node, Threat
+from zone_utils import zone_path_names
 
 # Token budget sized for multi-section narrative diff explanations.
 DIFF_EXPLANATION_MAX_TOKENS = 1800
@@ -66,12 +67,18 @@ def export_json(
             "import_success_rate": metrics.import_success_rate,
         }
     if graph:
+        zones_payload = [
+            {"id": z.id, "name": z.name, "parent_id": z.parent_id}
+            for z in graph.zones.values()
+        ]
         obj["graph"] = {
             "nodes": [
                 {
                     "id": node.id,
                     "label": node.label,
                     "zone": node.zone,
+                    "zones": node.zones,
+                    "zone_path": zone_path_names(node.zones, graph.zones),
                     "type": node.type,
                     "data": node.data,
                     "auth": node.auth,
@@ -89,6 +96,7 @@ def export_json(
                 }
                 for edge in graph.edges
             ],
+            "zones": zones_payload,
         }
     s = json.dumps(obj, ensure_ascii=False, indent=2)
     if out_path:
@@ -159,6 +167,15 @@ def _edge_lookup(
     return lookup, id_lookup
 
 
+def _node_zone_path(node: Node, graph: Optional[Graph]) -> List[str]:
+    """Return zone path names for display (outer->inner)."""
+    if graph and graph.zones:
+        return zone_path_names(node.zones, graph.zones)
+    if node.zones:
+        return list(node.zones)
+    return [node.zone] if node.zone else []
+
+
 def export_html(
     threats: List[Threat],
     output_file: Optional[str] = None,
@@ -201,8 +218,9 @@ def export_html(
         node: Optional[Node] = nodes.get(node_id)
         if node:
             extra = []
-            if node.zone:
-                extra.append(f"zone={_safe(node.zone)}")
+            zone_path = _node_zone_path(node, graph)
+            if zone_path:
+                extra.append(f"zone={_safe(' > '.join(zone_path))}")
             if node.type:
                 extra.append(f"type={_safe(node.type)}")
             suffix = f" ({', '.join(extra)})" if extra else ""
@@ -365,10 +383,12 @@ def export_html(
                 )
                 or "&mdash;"
             )
+            zone_path = _node_zone_path(node, graph)
+            zone_display = " > ".join(zone_path) if zone_path else ""
             html_parts.append(
                 "    <tr>"
                 f"<td>{_safe(node.label)} [{_safe(node.id)}]</td>"
-                f"<td>{_safe(node.zone)}</td>"
+                f"<td>{_safe(zone_display)}</td>"
                 f"<td>{_safe(node.type)}</td>"
                 f"<td>{threat_badges}</td>"
                 "</tr>"
@@ -462,6 +482,8 @@ def export_html(
                     "id": n.id,
                     "label": n.label,
                     "zone": n.zone,
+                    "zones": n.zones,
+                    "zone_path": _node_zone_path(n, graph),
                     "type": n.type,
                     "data": n.data,
                     "auth": n.auth,
@@ -479,6 +501,10 @@ def export_html(
                     "data": e.data,
                 }
                 for e in edges
+            ],
+            "zones": [
+                {"id": z.id, "name": z.name, "parent_id": z.parent_id}
+                for z in (graph.zones.values() if graph else [])
             ],
         },
         "threats": [
@@ -621,25 +647,36 @@ def export_html(
         "      function createCy() {\n"
         "        const palette = ['#0ea5e9','#22c55e','#f97316','#a78bfa','#f43f5e','#14b8a6','#eab308','#3b82f6'];\n"
         "        const zoneColor = {};\n"
-        "        const zones = Array.from(new Set(nodes.map((n) => n.zone).filter(Boolean)));\n"
-        "        const zoneElements = zones.map((z) => {\n"
-        "          if (!zoneColor[z]) {\n"
-        "            zoneColor[z] = palette[Object.keys(zoneColor).length % palette.length];\n"
-        "          }\n"
-        "          const zoneId = `zone::${String(z).replace(/\\s+/g, '_')}`;\n"
-        "          return { data: { id: zoneId, label: z, type: 'zone' } };\n"
-        "        });\n"
+        "        const graphZones = (report.graph && report.graph.zones) || [];\n"
+        "        const zoneElements = graphZones.length\n"
+        "          ? graphZones.map((z) => {\n"
+        "              const label = z.name || z.id;\n"
+        "              if (label && !zoneColor[label]) {\n"
+        "                zoneColor[label] = palette[Object.keys(zoneColor).length % palette.length];\n"
+        "              }\n"
+        "              const zoneId = `zone::${String(z.id).replace(/\\s+/g, '_')}`;\n"
+        "              const parent = z.parent_id ? `zone::${String(z.parent_id).replace(/\\s+/g, '_')}` : undefined;\n"
+        "              return { data: { id: zoneId, label: label, type: 'zone', parent } };\n"
+        "            })\n"
+        "          : Array.from(new Set(nodes.map((n) => (n.zone_path && n.zone_path.length ? n.zone_path[n.zone_path.length - 1] : n.zone)).filter(Boolean))).map((label) => {\n"
+        "              if (!zoneColor[label]) {\n"
+        "                zoneColor[label] = palette[Object.keys(zoneColor).length % palette.length];\n"
+        "              }\n"
+        "              const zoneId = `zone::${String(label).replace(/\\s+/g, '_')}`;\n"
+        "              return { data: { id: zoneId, label, type: 'zone' } };\n"
+        "            });\n"
         "        const elements = {\n"
         "          nodes: [\n"
         "            ...zoneElements,\n"
         "            ...nodes.map((n) => {\n"
-        "              const zone = n.zone || 'default';\n"
-        "              if (zone && !zoneColor[zone]) {\n"
-        "                zoneColor[zone] = palette[Object.keys(zoneColor).length % palette.length];\n"
+        "              const zoneId = (n.zones && n.zones.length) ? n.zones[n.zones.length - 1] : null;\n"
+        "              const zoneLabel = (n.zone_path && n.zone_path.length) ? n.zone_path[n.zone_path.length - 1] : (n.zone || zoneId || 'default');\n"
+        "              if (zoneLabel && !zoneColor[zoneLabel]) {\n"
+        "                zoneColor[zoneLabel] = palette[Object.keys(zoneColor).length % palette.length];\n"
         "              }\n"
-        "              const color = zoneColor[zone] || '#0ea5e9';\n"
-        "              const parent = n.zone ? `zone::${String(n.zone).replace(/\\s+/g, '_')}` : undefined;\n"
-        "              return { data: { id: n.id, label: n.label, zone: n.zone, type: n.type, color, parent } };\n"
+        "              const color = zoneColor[zoneLabel] || '#0ea5e9';\n"
+        "              const parent = zoneId ? `zone::${String(zoneId).replace(/\\s+/g, '_')}` : undefined;\n"
+        "              return { data: { id: n.id, label: n.label, zone: zoneLabel, type: n.type, color, parent } };\n"
         "            })\n"
         "          ],\n"
         "          edges: edges.map((e) => {\n"

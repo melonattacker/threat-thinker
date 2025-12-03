@@ -11,6 +11,7 @@ class Node:
     id: str
     label: str
     zone: Optional[str] = None
+    zones: List[str] = field(default_factory=list)  # ordered: outer -> inner
     type: Optional[str] = None  # actor/service/database/queue/etc.
     data: List[str] = field(default_factory=list)  # PII/Secrets/etc.
     auth: Optional[bool] = None
@@ -42,9 +43,17 @@ class ThreatDragonMetadata:
 
 
 @dataclass
+class Zone:
+    id: str
+    name: str
+    parent_id: Optional[str] = None
+
+
+@dataclass
 class Graph:
     nodes: Dict[str, Node] = field(default_factory=dict)
     edges: List[Edge] = field(default_factory=list)
+    zones: Dict[str, Zone] = field(default_factory=dict)
     source_format: Optional[str] = None
     threat_dragon: Optional[ThreatDragonMetadata] = None
 

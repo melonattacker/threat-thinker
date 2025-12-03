@@ -16,6 +16,7 @@ HINT_INSTRUCTIONS = (
     '      "label": "string",\n'
     '      "type": "actor|service|pod|database|s3|elb|ingress|queue|cache|lambda|unknown",\n'
     '      "zone": "Internet|DMZ|Private|K8s-Namespace|VPC-Public|VPC-Private|AWS-Managed|unknown",\n'
+    '      "zones": ["outer_zone","inner_zone"],\n'
     '      "data": ["PII","Credentials","Internal","Secrets"],\n'
     '      "auth": true|false|null,\n'
     '      "notes": "string optional"\n'
@@ -28,6 +29,7 @@ HINT_INSTRUCTIONS = (
     "}\n"
     "Rules:\n"
     "- Use null/unknown if unsure. Do not add or remove graph elements.\n"
+    "- If multiple trust boundaries apply, set the ordered outer->inner list in 'zones' (keep 'zone' as the innermost representative).\n"
     "- Keep arrays short and high-signal.\n"
     "- Return ONLY the JSON object, no other text or formatting.\n"
 )

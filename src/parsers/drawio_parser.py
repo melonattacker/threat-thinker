@@ -2,11 +2,16 @@
 Draw.io diagram parser
 """
 
-import xml.etree.ElementTree as ET
 import urllib.parse
-from typing import Tuple, Dict
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Optional, Tuple
 
-from models import Graph, Node, Edge, ImportMetrics
+from models import Edge, Graph, ImportMetrics, Node
+from zone_utils import (
+    compute_zone_tree_from_rectangles,
+    containing_zone_ids_for_point,
+    representative_zone_name,
+)
 
 
 def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
@@ -42,13 +47,30 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
 
         # Get all mxCell elements
         cells = graph_model.findall(".//mxCell")
+        cells_by_id: Dict[str, ET.Element] = {
+            cell.get("id"): cell for cell in cells if cell.get("id")
+        }
 
-        # First pass: collect all nodes (non-edge cells)
+        # First pass: collect all nodes (non-edge cells) and zone candidates
         cell_id_map: Dict[str, str] = {}  # maps cell id -> node id for our graph
+        node_geometry: Dict[str, Tuple[float, float, float, float]] = {}
+        zone_rects: List[Dict[str, float]] = []
+        edge_labels: Dict[str, str] = {}
 
         for cell in cells:
             cell_id = cell.get("id")
             if not cell_id:
+                continue
+
+            style = (cell.get("style") or "").lower()
+
+            # edgeLabel cells attach labels to edges; do not treat as nodes
+            if "edgelabel" in style:
+                parent_edge_id = cell.get("parent")
+                if parent_edge_id:
+                    label_value = _decode_and_clean(cell.get("value", ""))
+                    if label_value:
+                        edge_labels[parent_edge_id] = label_value
                 continue
 
             # Skip if this is an edge
@@ -60,17 +82,24 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
             if cell_id in ["0", "1"]:
                 continue
 
-            # Extract node information
-            value = cell.get("value", "")
-            if value:
-                # URL decode the value in case it's encoded
-                try:
-                    value = urllib.parse.unquote(value)
-                except Exception:
-                    pass
+            geometry = _extract_absolute_geometry(cell, cells_by_id)
 
-                # Remove HTML tags if present
-                value = _clean_html_tags(value)
+            # Extract node information
+            value = _decode_and_clean(cell.get("value", ""))
+
+            # Identify trust boundary/zone cells
+            if _is_zone_cell(cell, value, geometry):
+                zone_rects.append(
+                    {
+                        "id": cell_id,
+                        "name": value or cell_id,
+                        "x": geometry[0] if geometry else 0.0,
+                        "y": geometry[1] if geometry else 0.0,
+                        "width": geometry[2] if geometry else 0.0,
+                        "height": geometry[3] if geometry else 0.0,
+                    }
+                )
+                continue
 
             # Use cell ID as node ID, or value if no meaningful ID
             node_id = cell_id
@@ -81,6 +110,8 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
             node = Node(id=node_id, label=value.strip())
             g.nodes[node_id] = node
             cell_id_map[cell_id] = node_id
+            if geometry:
+                node_geometry[node_id] = geometry
 
         # Second pass: collect edges
         for cell in cells:
@@ -101,16 +132,9 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
                 continue
 
             # Extract edge label
-            label = cell.get("value", "")
-            if label:
-                try:
-                    label = urllib.parse.unquote(label)
-                except Exception:
-                    pass
-                label = _clean_html_tags(label)
-                label = label.strip() if label.strip() else None
-            else:
-                label = None
+            label = _decode_and_clean(cell.get("value", ""))
+            if not label:
+                label = edge_labels.get(cell.get("id") or "") or None
 
             # Create edge
             edge = Edge(src=src_node_id, dst=dst_node_id, label=label)
@@ -120,6 +144,15 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
         # Update metrics
         metrics.node_label_candidates = len(g.nodes)
         metrics.node_labels_parsed = len(g.nodes)
+
+        if zone_rects:
+            g.zones = compute_zone_tree_from_rectangles(zone_rects)
+            for node_id, geom in node_geometry.items():
+                cx = geom[0] + geom[2] / 2
+                cy = geom[1] + geom[3] / 2
+                zone_ids = containing_zone_ids_for_point(cx, cy, zone_rects, g.zones)
+                g.nodes[node_id].zones = zone_ids
+                g.nodes[node_id].zone = representative_zone_name(zone_ids, g.zones)
 
     except ET.ParseError as e:
         # Handle XML parsing errors
@@ -131,7 +164,20 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
     return g, metrics
 
 
-def _clean_html_tags(text: str) -> str:
+def _decode_and_clean(value: Optional[str]) -> str:
+    """URL-decode a value and strip simple HTML markup."""
+    if value is None:
+        return ""
+    text = value
+    try:
+        text = urllib.parse.unquote(text)
+    except Exception:
+        pass
+    cleaned = _clean_html_tags(text)
+    return cleaned if cleaned is not None else ""
+
+
+def _clean_html_tags(text: str) -> Optional[str]:
     """
     Remove HTML tags from text content.
     Draw.io often stores text with HTML formatting.
@@ -142,6 +188,8 @@ def _clean_html_tags(text: str) -> str:
     Returns:
         Cleaned text without HTML tags
     """
+    if text is None:
+        return None
     if not text:
         return text
 
@@ -160,3 +208,58 @@ def _clean_html_tags(text: str) -> str:
     text = text.replace("&nbsp;", " ")
 
     return text.strip()
+
+
+def _extract_absolute_geometry(
+    cell: ET.Element, cells_by_id: Dict[str, ET.Element]
+) -> Optional[Tuple[float, float, float, float]]:
+    """
+    Extract absolute geometry (x, y, width, height) from an mxCell by summing parent offsets.
+    """
+    geom = cell.find("mxGeometry")
+    if geom is None:
+        return None
+    try:
+        x = float(geom.get("x") or 0)
+        y = float(geom.get("y") or 0)
+        width = float(geom.get("width") or 0)
+        height = float(geom.get("height") or 0)
+
+        parent_id = cell.get("parent")
+        while parent_id:
+            parent_cell = cells_by_id.get(parent_id)
+            if parent_cell is None:
+                break
+            parent_geom = parent_cell.find("mxGeometry")
+            if parent_geom is not None:
+                x += float(parent_geom.get("x") or 0)
+                y += float(parent_geom.get("y") or 0)
+            parent_id = parent_cell.get("parent")
+
+        return x, y, width, height
+    except Exception:
+        return None
+
+
+def _is_zone_cell(
+    cell: ET.Element, label: str, geometry: Optional[Tuple[float, float, float, float]]
+) -> bool:
+    """
+    Heuristic to detect trust boundaries in draw.io: dashed/dotted rectangles with a label.
+    """
+    if geometry is None:
+        return False
+    style = (cell.get("style") or "").lower()
+    if not label:
+        return False
+    is_rectangle_like = (
+        "rectangle" in style or "shape=rect" in style or "rounded=1" in style
+    )
+    has_boundary_hint = (
+        "dashed=1" in style
+        or "dashpattern" in style
+        or "boundary" in style
+        or "zone" in style
+        or "trust" in style
+    )
+    return is_rectangle_like and has_boundary_hint

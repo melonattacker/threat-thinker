@@ -78,19 +78,42 @@ class TestImageParser(unittest.TestCase):
         metrics = ImportMetrics()
 
         llm_data = {
+            "zones": [
+                {
+                    "id": "internet",
+                    "name": "Internet",
+                    "bounds": {"x": 0, "y": 0, "width": 400, "height": 400},
+                },
+                {
+                    "id": "dmz",
+                    "name": "DMZ",
+                    "bounds": {"x": 40, "y": 40, "width": 200, "height": 200},
+                },
+                {
+                    "id": "private",
+                    "name": "Private",
+                    "bounds": {"x": 80, "y": 80, "width": 120, "height": 120},
+                },
+            ],
             "nodes": [
-                {"id": "user", "label": "User", "type": "user", "zone": "external"},
+                {
+                    "id": "user",
+                    "label": "User",
+                    "type": "user",
+                    "bounds": {"x": 10, "y": 10, "width": 10, "height": 10},
+                },
                 {
                     "id": "web_server",
                     "label": "Web Server",
                     "type": "service",
-                    "zone": "dmz",
+                    "bounds": {"x": 90, "y": 90, "width": 20, "height": 20},
                 },
                 {
                     "id": "database",
                     "label": "Database",
                     "type": "database",
-                    "zone": "internal",
+                    "bounds": {"x": 120, "y": 120, "width": 20, "height": 20},
+                    "zones": ["dmz", "private"],
                 },
             ],
             "edges": [
@@ -120,7 +143,9 @@ class TestImageParser(unittest.TestCase):
         user_node = graph.nodes["user"]
         self.assertEqual(user_node.label, "User")
         self.assertEqual(user_node.type, "user")
-        self.assertEqual(user_node.zone, "external")
+        self.assertEqual(user_node.zone, "Internet")
+        self.assertEqual(user_node.zones, ["internet"])
+        self.assertEqual(graph.nodes["database"].zones, ["internet", "dmz", "private"])
 
         # Check edges
         self.assertEqual(len(graph.edges), 2)

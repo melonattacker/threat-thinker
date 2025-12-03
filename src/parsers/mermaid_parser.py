@@ -3,9 +3,10 @@ Mermaid diagram parser
 """
 
 import re
-from typing import Tuple
+from typing import Dict, List, Tuple
 
-from models import Graph, Node, Edge, ImportMetrics
+from models import Edge, Graph, ImportMetrics, Node, Zone
+from zone_utils import representative_zone_name, sort_zone_ids_by_hierarchy
 
 
 # tolerate variations:
@@ -29,6 +30,8 @@ MERMAID_EDGE_PLAIN_RE = re.compile(
 NODE_LABEL_RE = re.compile(
     r"^\s*([A-Za-z0-9_.-]+)\s*[\[\(\{]{1,2}\s*([^]\)\}]+?)\s*[\]\)\}]{1,2}"
 )
+SUBGRAPH_START_RE = re.compile(r"^\s*subgraph\s+(.+)", re.IGNORECASE)
+SUBGRAPH_END_RE = re.compile(r"^\s*end\s*$", re.IGNORECASE)
 
 
 def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
@@ -43,13 +46,39 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
     """
     g = Graph(source_format="mermaid")
     metrics = ImportMetrics()
+    zone_stack: List[str] = []
+    zone_defs: Dict[str, Zone] = {}
+    node_zone_membership: Dict[str, List[str]] = {}
 
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
     metrics.total_lines = len(lines)
 
-    # edges + create nodes
+    def _ensure_node(node_id: str) -> Node:
+        if node_id not in g.nodes:
+            g.nodes[node_id] = Node(id=node_id, label=node_id)
+        return g.nodes[node_id]
+
     for line in lines:
+        # manage subgraph nesting first
+        start = SUBGRAPH_START_RE.match(line)
+        if start:
+            raw_label = start.group(1).strip()
+            label = raw_label
+            if "[" in raw_label and raw_label.endswith("]"):
+                label = raw_label.split("[", 1)[1].rstrip("]")
+            zone_id = f"zone_{len(zone_defs)}"
+            parent_id = zone_stack[-1] if zone_stack else None
+            zone_defs[zone_id] = Zone(
+                id=zone_id, name=label.strip(), parent_id=parent_id
+            )
+            zone_stack.append(zone_id)
+            continue
+        if SUBGRAPH_END_RE.match(line):
+            if zone_stack:
+                zone_stack.pop()
+            continue
+
         # normalize common arrow typos
         norm = line.replace("—", "-").replace("→", ">")  # emdash/arrow variants
         match = None
@@ -74,22 +103,30 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
                 Edge(src=src, dst=dst, label=label.strip() if label else None)
             )
             metrics.edges_parsed += 1
-            if src not in g.nodes:
-                g.nodes[src] = Node(id=src, label=src)
-            if dst not in g.nodes:
-                g.nodes[dst] = Node(id=dst, label=dst)
+            for nid in (src, dst):
+                _ensure_node(nid)
+                if zone_stack:
+                    node_zone_membership.setdefault(nid, []).extend(zone_stack)
 
-    # node labels like A[User], B((API))
-    for line in lines:
+        # node labels like A[User], B((API))
         m = NODE_LABEL_RE.search(line)
         if m:
             metrics.node_label_candidates += 1
             nid, nlabel = m.group(1), m.group(2)
-            n = g.nodes.get(nid)
-            if n:
-                n.label = nlabel.strip()
-            else:
-                g.nodes[nid] = Node(id=nid, label=nlabel.strip())
+            n = _ensure_node(nid)
+            n.label = nlabel.strip()
+            if zone_stack:
+                node_zone_membership.setdefault(nid, []).extend(zone_stack)
             metrics.node_labels_parsed += 1
+
+    # finalize zone membership/order
+    g.zones = zone_defs
+    for nid, node in g.nodes.items():
+        zone_ids = sort_zone_ids_by_hierarchy(
+            node_zone_membership.get(nid, []), g.zones
+        )
+        node.zones = zone_ids
+        if not node.zone:
+            node.zone = representative_zone_name(zone_ids, g.zones)
 
     return g, metrics

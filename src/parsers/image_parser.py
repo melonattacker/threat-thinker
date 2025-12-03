@@ -4,12 +4,18 @@ Image diagram parser for system architecture diagrams
 
 import base64
 import os
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 from pathlib import Path
 
-from models import Graph, Node, Edge, ImportMetrics
+from models import Edge, Graph, ImportMetrics, Node
 from llm.client import LLMClient
 from llm.response_utils import safe_json_loads
+from zone_utils import (
+    compute_zone_tree_from_rectangles,
+    containing_zone_ids_for_point,
+    representative_zone_name,
+    sort_zone_ids_by_hierarchy,
+)
 
 # Headroom for dense diagrams so we can return many nodes/edges with metadata.
 IMAGE_GRAPH_EXTRACTION_MAX_TOKENS = 2800
@@ -135,12 +141,21 @@ Your task is to identify:
 1. All system components (services, databases, users, external systems, etc.)
 2. All connections/relationships between components
 3. Any labels or descriptions on the connections
-4. Security boundaries or zones if visible
+4. Security boundaries or zones if visible (including nested trust boundaries)
 
 Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers) with this exact structure:
 {
+  "zones": [
+    {"id": "zone_id", "name": "Zone Name", "bounds": {"x": 0, "y": 0, "width": 100, "height": 80}}
+  ],
   "nodes": [
-    {"id": "unique_id", "label": "Component Name", "type": "service|database|user|external|queue|cache|storage", "zone": "zone_name_if_applicable"}
+    {
+      "id": "unique_id",
+      "label": "Component Name",
+      "type": "service|database|user|external|queue|cache|storage",
+      "zones": ["outer_zone_id", "inner_zone_id"],
+      "bounds": {"x": 10, "y": 12, "width": 32, "height": 20}
+    }
   ],
   "edges": [
     {"src": "source_node_id", "dst": "destination_node_id", "label": "connection_description", "protocol": "HTTP|HTTPS|TCP|gRPC|etc"}
@@ -154,9 +169,10 @@ Guidelines:
 - Include protocol information if visible in the diagram
 - If arrows show direction, respect that in src/dst
 - If no clear direction, order alphabetically by component name
+- If zones are present, include nested rectangles with bounds; when unsure about bounds, still provide the best-effort placement.
 - Return ONLY the JSON object, no other text or formatting"""
 
-    user_prompt = """Please analyze this system architecture diagram and extract all components and their relationships. Return ONLY a valid JSON object with the specified format, no markdown code blocks or extra formatting."""
+    user_prompt = """Please analyze this system architecture diagram and extract all components, zones (trust boundaries), and their relationships. Return ONLY a valid JSON object with the specified format, no markdown code blocks or extra formatting."""
 
     try:
         # Get LLM client and analyze the image
@@ -193,6 +209,23 @@ def _parse_llm_response_to_graph(
         graph: Graph object to populate
         metrics: ImportMetrics object to update
     """
+    # Zones (trust boundaries)
+    rect_zones = []
+    for zone in graph_data.get("zones", []) or []:
+        bounds = zone.get("bounds") or {}
+        rect_zones.append(
+            {
+                "id": str(zone.get("id") or zone.get("name")),
+                "name": zone.get("name") or zone.get("id") or "",
+                "x": float(bounds.get("x") or 0),
+                "y": float(bounds.get("y") or 0),
+                "width": float(bounds.get("width") or 0),
+                "height": float(bounds.get("height") or 0),
+            }
+        )
+    if rect_zones:
+        graph.zones = compute_zone_tree_from_rectangles(rect_zones)
+
     # Process nodes
     nodes_data = graph_data.get("nodes", [])
     metrics.node_label_candidates = len(nodes_data)
@@ -202,10 +235,39 @@ def _parse_llm_response_to_graph(
             node_id = node_data.get("id", "")
             label = node_data.get("label", node_id)
             node_type = node_data.get("type")
-            zone = node_data.get("zone")
+            zones_hint = node_data.get("zones") or []
+            zone_name = node_data.get("zone")
+            bounds = node_data.get("bounds") or {}
+
+            zone_ids = [str(z) for z in zones_hint if z]
+            if bounds and graph.zones:
+                cx = float(bounds.get("x") or 0) + float(bounds.get("width") or 0) / 2
+                cy = float(bounds.get("y") or 0) + float(bounds.get("height") or 0) / 2
+                inferred = containing_zone_ids_for_point(
+                    cx, cy, rect_zones, graph.zones
+                )
+                zone_ids.extend(inferred)
+            if zone_name and zone_name not in zone_ids:
+                zone_ids.append(str(zone_name))
+            if graph.zones:
+                zone_ids = sort_zone_ids_by_hierarchy(zone_ids, graph.zones)
+            else:
+                deduped = []
+                seen = set()
+                for zid in zone_ids:
+                    if zid in seen:
+                        continue
+                    seen.add(zid)
+                    deduped.append(zid)
+                zone_ids = deduped
 
             if node_id:
-                node = Node(id=node_id, label=label, type=node_type, zone=zone)
+                node = Node(id=node_id, label=label, type=node_type)
+                node.zones = zone_ids
+                if graph.zones:
+                    node.zone = representative_zone_name(zone_ids, graph.zones)
+                else:
+                    node.zone = zone_ids[-1] if zone_ids else zone_name
                 graph.nodes[node_id] = node
                 metrics.node_labels_parsed += 1
         except Exception as e:
