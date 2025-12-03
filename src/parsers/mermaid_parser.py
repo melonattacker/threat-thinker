@@ -69,7 +69,9 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
                 label = raw_label.split("[", 1)[1].rstrip("]")
             zone_id = f"zone_{len(zone_defs)}"
             parent_id = zone_stack[-1] if zone_stack else None
-            zone_defs[zone_id] = Zone(id=zone_id, name=label.strip(), parent_id=parent_id)
+            zone_defs[zone_id] = Zone(
+                id=zone_id, name=label.strip(), parent_id=parent_id
+            )
             zone_stack.append(zone_id)
             continue
         if SUBGRAPH_END_RE.match(line):

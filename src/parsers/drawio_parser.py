@@ -252,7 +252,9 @@ def _is_zone_cell(
     style = (cell.get("style") or "").lower()
     if not label:
         return False
-    is_rectangle_like = "rectangle" in style or "shape=rect" in style or "rounded=1" in style
+    is_rectangle_like = (
+        "rectangle" in style or "shape=rect" in style or "rounded=1" in style
+    )
     has_boundary_hint = (
         "dashed=1" in style
         or "dashpattern" in style

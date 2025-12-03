@@ -30,7 +30,7 @@ def _area(rect: Dict[str, float]) -> float:
 
 
 def compute_zone_tree_from_rectangles(
-    rects: Sequence[Dict[str, float]]
+    rects: Sequence[Dict[str, float]],
 ) -> Dict[str, Zone]:
     """
     Build Zone objects from rectangles by inferring parent-child relationships.
@@ -52,12 +52,16 @@ def compute_zone_tree_from_rectangles(
                 parent_id = candidate["id"]
                 parent_area = cand_area
         zones[rect["id"]] = Zone(
-            id=str(rect["id"]), name=str(rect.get("name") or rect["id"]), parent_id=parent_id
+            id=str(rect["id"]),
+            name=str(rect.get("name") or rect["id"]),
+            parent_id=parent_id,
         )
     return zones
 
 
-def zone_depth(zone_id: str, zones: Dict[str, Zone], cache: Optional[Dict[str, int]] = None) -> int:
+def zone_depth(
+    zone_id: str, zones: Dict[str, Zone], cache: Optional[Dict[str, int]] = None
+) -> int:
     """Compute depth of a zone within a zone forest (root depth = 0)."""
     cache = cache or {}
     if zone_id in cache:
@@ -71,7 +75,9 @@ def zone_depth(zone_id: str, zones: Dict[str, Zone], cache: Optional[Dict[str, i
     return depth
 
 
-def sort_zone_ids_by_hierarchy(zone_ids: Iterable[str], zones: Dict[str, Zone]) -> List[str]:
+def sort_zone_ids_by_hierarchy(
+    zone_ids: Iterable[str], zones: Dict[str, Zone]
+) -> List[str]:
     """Return unique zone ids sorted outer -> inner using the zone tree."""
     seen = set()
     cache: Dict[str, int] = {}
@@ -95,7 +101,9 @@ def zone_path_names(zone_ids: Iterable[str], zones: Dict[str, Zone]) -> List[str
     return names
 
 
-def representative_zone_name(zone_ids: Iterable[str], zones: Dict[str, Zone]) -> Optional[str]:
+def representative_zone_name(
+    zone_ids: Iterable[str], zones: Dict[str, Zone]
+) -> Optional[str]:
     """
     Return the deepest (most inner) zone name for compatibility with legacy single-zone fields.
     """

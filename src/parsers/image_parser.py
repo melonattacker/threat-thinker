@@ -243,7 +243,9 @@ def _parse_llm_response_to_graph(
             if bounds and graph.zones:
                 cx = float(bounds.get("x") or 0) + float(bounds.get("width") or 0) / 2
                 cy = float(bounds.get("y") or 0) + float(bounds.get("height") or 0) / 2
-                inferred = containing_zone_ids_for_point(cx, cy, rect_zones, graph.zones)
+                inferred = containing_zone_ids_for_point(
+                    cx, cy, rect_zones, graph.zones
+                )
                 zone_ids.extend(inferred)
             if zone_name and zone_name not in zone_ids:
                 zone_ids.append(str(zone_name))

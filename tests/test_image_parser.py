@@ -79,12 +79,29 @@ class TestImageParser(unittest.TestCase):
 
         llm_data = {
             "zones": [
-                {"id": "internet", "name": "Internet", "bounds": {"x": 0, "y": 0, "width": 400, "height": 400}},
-                {"id": "dmz", "name": "DMZ", "bounds": {"x": 40, "y": 40, "width": 200, "height": 200}},
-                {"id": "private", "name": "Private", "bounds": {"x": 80, "y": 80, "width": 120, "height": 120}},
+                {
+                    "id": "internet",
+                    "name": "Internet",
+                    "bounds": {"x": 0, "y": 0, "width": 400, "height": 400},
+                },
+                {
+                    "id": "dmz",
+                    "name": "DMZ",
+                    "bounds": {"x": 40, "y": 40, "width": 200, "height": 200},
+                },
+                {
+                    "id": "private",
+                    "name": "Private",
+                    "bounds": {"x": 80, "y": 80, "width": 120, "height": 120},
+                },
             ],
             "nodes": [
-                {"id": "user", "label": "User", "type": "user", "bounds": {"x": 10, "y": 10, "width": 10, "height": 10}},
+                {
+                    "id": "user",
+                    "label": "User",
+                    "type": "user",
+                    "bounds": {"x": 10, "y": 10, "width": 10, "height": 10},
+                },
                 {
                     "id": "web_server",
                     "label": "Web Server",
@@ -128,9 +145,7 @@ class TestImageParser(unittest.TestCase):
         self.assertEqual(user_node.type, "user")
         self.assertEqual(user_node.zone, "Internet")
         self.assertEqual(user_node.zones, ["internet"])
-        self.assertEqual(
-            graph.nodes["database"].zones, ["internet", "dmz", "private"]
-        )
+        self.assertEqual(graph.nodes["database"].zones, ["internet", "dmz", "private"])
 
         # Check edges
         self.assertEqual(len(graph.edges), 2)

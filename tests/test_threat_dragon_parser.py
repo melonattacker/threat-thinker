@@ -85,14 +85,13 @@ def test_parse_threat_dragon_basic_graph():
     assert graph.nodes["d1566b36-6b0a-41c7-b9e0-95fb5a94fdce"].zone == "Internal"
     assert graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zone == "Internal"
     # Zone paths should be ordered outer->inner when applicable
-    internal_zone_ids = {
-        zid
-        for zid, z in graph.zones.items()
-        if z.name == "Internal"
-    }
+    internal_zone_ids = {zid for zid, z in graph.zones.items() if z.name == "Internal"}
     assert graph.nodes["d1566b36-6b0a-41c7-b9e0-95fb5a94fdce"].zones
     assert graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zones
-    assert set(graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zones) & internal_zone_ids
+    assert (
+        set(graph.nodes["e009a87e-6da5-489b-a0f5-a48ecf8a6465"].zones)
+        & internal_zone_ids
+    )
 
     assert graph.source_format == "threat-dragon"
     assert graph.threat_dragon is not None
