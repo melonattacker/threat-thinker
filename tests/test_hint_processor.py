@@ -73,6 +73,7 @@ class TestApplyHints:
             # Test existing node update
             assert result.nodes["A"].label == "User Interface"
             assert result.nodes["A"].zone == "DMZ"
+            assert result.nodes["A"].zones == ["DMZ"]
             assert result.nodes["A"].type == "frontend"
             assert result.nodes["A"].auth
             assert result.nodes["A"].notes == "Web frontend"
@@ -190,6 +191,23 @@ class TestApplyHints:
         finally:
             os.unlink(temp_path)
 
+    def test_apply_hints_with_zones_list(self):
+        """Zones list should populate ordered zones."""
+        graph = Graph()
+        graph.nodes["A"] = Node(id="A", label="A")
+        hints_data = {"nodes": {"A": {"zones": ["outer", "inner"]}}}
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(hints_data, f)
+            temp_path = f.name
+
+        try:
+            result = apply_hints(graph, temp_path)
+            assert result.nodes["A"].zones == ["outer", "inner"]
+            assert result.nodes["A"].zone == "inner"
+        finally:
+            os.unlink(temp_path)
+
 
 class TestMergeLlmHints:
     """Test cases for merge_llm_hints function"""
@@ -228,6 +246,7 @@ class TestMergeLlmHints:
         assert node.label == "Updated Label"
         assert node.type == "service"
         assert node.zone == "internal"
+        assert node.zones == ["internal"]
         assert node.auth
         assert node.notes == "Updated notes"
         assert "existing" in node.data

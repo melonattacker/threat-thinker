@@ -2,11 +2,16 @@
 Draw.io diagram parser
 """
 
-import xml.etree.ElementTree as ET
 import urllib.parse
-from typing import Tuple, Dict
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Optional, Tuple
 
-from models import Graph, Node, Edge, ImportMetrics
+from models import Edge, Graph, ImportMetrics, Node
+from zone_utils import (
+    compute_zone_tree_from_rectangles,
+    containing_zone_ids_for_point,
+    representative_zone_name,
+)
 
 
 def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
@@ -43,8 +48,10 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
         # Get all mxCell elements
         cells = graph_model.findall(".//mxCell")
 
-        # First pass: collect all nodes (non-edge cells)
+        # First pass: collect all nodes (non-edge cells) and zone candidates
         cell_id_map: Dict[str, str] = {}  # maps cell id -> node id for our graph
+        node_geometry: Dict[str, Tuple[float, float, float, float]] = {}
+        zone_rects: List[Dict[str, float]] = []
 
         for cell in cells:
             cell_id = cell.get("id")
@@ -60,6 +67,8 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
             if cell_id in ["0", "1"]:
                 continue
 
+            geometry = _extract_geometry(cell)
+
             # Extract node information
             value = cell.get("value", "")
             if value:
@@ -72,6 +81,20 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
                 # Remove HTML tags if present
                 value = _clean_html_tags(value)
 
+            # Identify trust boundary/zone cells
+            if _is_zone_cell(cell, value, geometry):
+                zone_rects.append(
+                    {
+                        "id": cell_id,
+                        "name": value or cell_id,
+                        "x": geometry[0] if geometry else 0.0,
+                        "y": geometry[1] if geometry else 0.0,
+                        "width": geometry[2] if geometry else 0.0,
+                        "height": geometry[3] if geometry else 0.0,
+                    }
+                )
+                continue
+
             # Use cell ID as node ID, or value if no meaningful ID
             node_id = cell_id
             if not value:
@@ -81,6 +104,8 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
             node = Node(id=node_id, label=value.strip())
             g.nodes[node_id] = node
             cell_id_map[cell_id] = node_id
+            if geometry:
+                node_geometry[node_id] = geometry
 
         # Second pass: collect edges
         for cell in cells:
@@ -121,6 +146,15 @@ def parse_drawio(path: str) -> Tuple[Graph, ImportMetrics]:
         metrics.node_label_candidates = len(g.nodes)
         metrics.node_labels_parsed = len(g.nodes)
 
+        if zone_rects:
+            g.zones = compute_zone_tree_from_rectangles(zone_rects)
+            for node_id, geom in node_geometry.items():
+                cx = geom[0] + geom[2] / 2
+                cy = geom[1] + geom[3] / 2
+                zone_ids = containing_zone_ids_for_point(cx, cy, zone_rects, g.zones)
+                g.nodes[node_id].zones = zone_ids
+                g.nodes[node_id].zone = representative_zone_name(zone_ids, g.zones)
+
     except ET.ParseError as e:
         # Handle XML parsing errors
         print(f"Warning: Failed to parse XML file {path}: {e}")
@@ -160,3 +194,40 @@ def _clean_html_tags(text: str) -> str:
     text = text.replace("&nbsp;", " ")
 
     return text.strip()
+
+
+def _extract_geometry(cell: ET.Element) -> Optional[Tuple[float, float, float, float]]:
+    """Extract geometry tuple (x, y, width, height) from an mxCell."""
+    geom = cell.find("mxGeometry")
+    if geom is None:
+        return None
+    try:
+        x = float(geom.get("x") or 0)
+        y = float(geom.get("y") or 0)
+        width = float(geom.get("width") or 0)
+        height = float(geom.get("height") or 0)
+        return x, y, width, height
+    except Exception:
+        return None
+
+
+def _is_zone_cell(
+    cell: ET.Element, label: str, geometry: Optional[Tuple[float, float, float, float]]
+) -> bool:
+    """
+    Heuristic to detect trust boundaries in draw.io: dashed/dotted rectangles with a label.
+    """
+    if geometry is None:
+        return False
+    style = (cell.get("style") or "").lower()
+    if not label:
+        return False
+    is_rectangle_like = "rectangle" in style or "shape=rect" in style or "rounded=1" in style
+    has_boundary_hint = (
+        "dashed=1" in style
+        or "dashpattern" in style
+        or "boundary" in style
+        or "zone" in style
+        or "trust" in style
+    )
+    return is_rectangle_like and has_boundary_hint

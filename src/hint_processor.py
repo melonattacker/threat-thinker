@@ -6,6 +6,7 @@ import yaml
 from typing import Optional
 
 from models import Graph, Node, Edge
+from zone_utils import representative_zone_name
 
 
 def apply_hints(g: Graph, hints_path: Optional[str]) -> Graph:
@@ -30,7 +31,7 @@ def apply_hints(g: Graph, hints_path: Optional[str]) -> Graph:
         if nid not in g.nodes:
             g.nodes[nid] = Node(id=nid, label=attrs.get("label", nid))
         node = g.nodes[nid]
-        node.zone = attrs.get("zone", node.zone)
+        _apply_zone_attrs(node, attrs, g)
         node.type = attrs.get("type", node.type)
         node.auth = attrs.get("auth", node.auth)
         node.notes = attrs.get("notes", node.notes)
@@ -85,7 +86,7 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
         n = g.nodes[nid]
         n.label = attrs.get("label", n.label)
         n.type = attrs.get("type", n.type)
-        n.zone = attrs.get("zone", n.zone)
+        _apply_zone_attrs(n, attrs, g)
         if isinstance(attrs.get("data"), list):
             n.data = list({*n.data, *[str(x) for x in attrs["data"]]})
         if "auth" in attrs:
@@ -115,3 +116,20 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
             g.edges.append(ne)
 
     return g
+
+
+def _apply_zone_attrs(node: Node, attrs: dict, graph: Graph) -> None:
+    """
+    Apply zone/zones hints to a node, keeping legacy zone in sync with the innermost zone name.
+    """
+    zones_hint = attrs.get("zones")
+    zone_hint = attrs.get("zone")
+
+    if isinstance(zones_hint, list):
+        node.zones = [str(z) for z in zones_hint if z]
+    if zone_hint is not None:
+        node.zone = zone_hint
+        if not node.zones and zone_hint:
+            node.zones = [str(zone_hint)]
+    if node.zones and not node.zone:
+        node.zone = representative_zone_name(node.zones, graph.zones or {})

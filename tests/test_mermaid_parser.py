@@ -186,3 +186,31 @@ D --> E |label|"""
             assert metrics.import_success_rate > 0
         finally:
             os.unlink(temp_path)
+
+    def test_subgraph_nested_zones(self):
+        """Test nested subgraphs populate zones"""
+        content = """graph TD
+subgraph Internet
+  ext[User]
+  subgraph VPC
+    api(API)
+  end
+end
+ext --> api"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            graph, _ = parse_mermaid(temp_path)
+            zones_by_name = {z.name: zid for zid, z in graph.zones.items()}
+            assert "Internet" in zones_by_name
+            assert "VPC" in zones_by_name
+            assert graph.nodes["api"].zone == "VPC"
+            assert graph.nodes["api"].zones == [
+                zones_by_name["Internet"],
+                zones_by_name["VPC"],
+            ]
+            assert graph.nodes["ext"].zones == [zones_by_name["Internet"]]
+        finally:
+            os.unlink(temp_path)

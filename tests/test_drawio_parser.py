@@ -205,6 +205,39 @@ class TestParseDrawio:
         finally:
             os.unlink(temp_path)
 
+    def test_parse_drawio_nested_zones(self):
+        """Trust boundaries should infer nested zones from rectangles."""
+        xml_content = """
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="outer" value="Outer" style="shape=rectangle;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="200" height="200" as="geometry"/>
+    </mxCell>
+    <mxCell id="inner" value="Inner" style="shape=rectangle;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="50" y="50" width="80" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="svc" value="Service" vertex="1" parent="1">
+      <mxGeometry x="60" y="60" width="20" height="20" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
+""".strip()
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".drawio", delete=False) as f:
+            f.write(xml_content)
+            temp_path = f.name
+
+        try:
+            graph, _ = parse_drawio(temp_path)
+            assert "svc" in graph.nodes
+            assert graph.nodes["svc"].zone == "Inner"
+            assert graph.nodes["svc"].zones == ["outer", "inner"]
+            assert graph.zones["inner"].parent_id == "outer"
+        finally:
+            os.unlink(temp_path)
+
 
 class TestCleanHtmlTags:
     """Test cases for _clean_html_tags function"""

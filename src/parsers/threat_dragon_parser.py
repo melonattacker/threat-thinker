@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata
+from models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata, Zone
+from zone_utils import (
+    compute_zone_tree_from_rectangles,
+    containing_zone_ids_for_point,
+    representative_zone_name,
+)
 
 # Mapping from Threat Dragon data.type to internal node.type values
 NODE_TYPE_MAP = {
@@ -89,6 +94,8 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
     meta.flow_cells_by_key = {}
     node_ids = set()
     boundaries = _collect_boundaries(cells)
+    zones = compute_zone_tree_from_rectangles(boundaries)
+    g.zones = zones
 
     # First pass: collect nodes
     for cell in cells:
@@ -100,8 +107,14 @@ def parse_threat_dragon(path: str) -> Tuple[Graph, ImportMetrics]:
             continue
 
         label = _extract_label(cell, data_block)
-        zone = _match_boundary(cell, boundaries)
-        node = Node(id=cell_id, label=label, type=NODE_TYPE_MAP[cell_type], zone=zone)
+        zone_ids = _match_boundaries(cell, boundaries, zones)
+        node = Node(
+            id=cell_id,
+            label=label,
+            type=NODE_TYPE_MAP[cell_type],
+            zones=zone_ids,
+            zone=representative_zone_name(zone_ids, zones),
+        )
         g.nodes[cell_id] = node
         node_ids.add(cell_id)
 
@@ -190,14 +203,18 @@ def _collect_boundaries(cells: List[Dict[str, Any]]) -> List[Dict[str, float]]:
     """Extract trust boundary rectangles from Threat Dragon cells."""
     boundaries: List[Dict[str, float]] = []
     for cell in cells:
-        if cell.get("shape") != "trust-boundary-box":
-            continue
         data_block: Dict[str, Any] = cell.get("data") or {}
+        if cell.get("shape") != "trust-boundary-box" and data_block.get("type") not in {
+            "tm.BoundaryBox",
+            "tm.boundary",
+        }:
+            continue
         label = _extract_label(cell, data_block)
         position = cell.get("position") or {}
         size = cell.get("size") or {}
         boundaries.append(
             {
+                "id": str(cell.get("id") or label),
                 "name": label,
                 "x": float(position.get("x") or 0),
                 "y": float(position.get("y") or 0),
@@ -208,27 +225,14 @@ def _collect_boundaries(cells: List[Dict[str, Any]]) -> List[Dict[str, float]]:
     return boundaries
 
 
-def _match_boundary(
-    node_cell: Dict[str, Any], boundaries: List[Dict[str, float]]
-) -> Optional[str]:
-    """Return the containing boundary name for the node center, preferring the smallest area."""
+def _match_boundaries(
+    node_cell: Dict[str, Any],
+    boundaries: List[Dict[str, float]],
+    zones: Dict[str, Zone],
+) -> List[str]:
+    """Return ordered containing boundary ids for the node center."""
     position = node_cell.get("position") or {}
     size = node_cell.get("size") or {}
     center_x = float(position.get("x") or 0) + float(size.get("width") or 0) / 2
     center_y = float(position.get("y") or 0) + float(size.get("height") or 0) / 2
-    candidates: List[Tuple[float, str]] = []
-
-    for boundary in boundaries:
-        bx, by = boundary["x"], boundary["y"]
-        bw, bh = boundary["width"], boundary["height"]
-        if bw <= 0 or bh <= 0:
-            continue
-        if bx <= center_x <= bx + bw and by <= center_y <= by + bh:
-            area = bw * bh
-            candidates.append((area, str(boundary["name"])))
-
-    if not candidates:
-        return None
-    # Prefer the smallest area (most specific) boundary. If areas tie, preserve existing order.
-    candidates.sort(key=lambda x: x[0])
-    return candidates[0][1]
+    return containing_zone_ids_for_point(center_x, center_y, boundaries, zones)

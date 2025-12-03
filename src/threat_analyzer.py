@@ -7,6 +7,7 @@ from dataclasses import asdict
 from typing import List, Optional
 
 from models import Graph, Threat
+from zone_utils import representative_zone_name, zone_path_names
 
 
 def graph_to_prompt(g: Graph) -> str:
@@ -19,7 +20,15 @@ def graph_to_prompt(g: Graph) -> str:
     Returns:
         JSON string representation of the graph
     """
-    nodes = [asdict(n) for n in g.nodes.values()]
+    nodes = []
+    for n in g.nodes.values():
+        node_dict = asdict(n)
+        if g.zones:
+            node_dict["zone_path"] = zone_path_names(n.zones, g.zones)
+            node_dict["zone"] = node_dict.get("zone") or representative_zone_name(
+                n.zones, g.zones
+            )
+        nodes.append(node_dict)
     edges = [asdict(e) for e in g.edges]
     # help LLM with available IDs for evidence
     return json.dumps({"nodes": nodes, "edges": edges}, ensure_ascii=False, indent=2)
