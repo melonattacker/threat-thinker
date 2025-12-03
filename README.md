@@ -1,7 +1,7 @@
 # Threat Thinker
 AI-powered threat modeling that turns architecture diagrams into actionable risks.
 
-<img width="360" height="150" alt="threat-thinker-logo" src="https://github.com/user-attachments/assets/78524431-4d48-4fb7-b69d-4b83856b620d" />
+<img width="360" alt="threat-thinker-logo" src="./docs/images/threat-thinker-logo.png" />
 
 
 ## What is Threat Thinker?
@@ -22,17 +22,35 @@ Key Features:
 - Deterministic parsing plus LLM reasoning fills missing labels, trust boundaries, and protocols.
 - Outputs prioritized threats with short rationales and OWASP ASVS/CWE references for quick review.
 
+<p align="center">
+    <img width="500" alt="diagram-to-threats" src="./docs/images/diagram-to-threats.png" /> 
+    <br>
+    <em>Input diagram and get prioritized threats automatically</em>
+</p>
+
 ### Local RAG to boost accuracy
 - Build on-disk knowledge bases from PDFs/Markdown/HTML with `threat-thinker kb build` under `~/.threat-thinker/kb/<name>`.
-- Enable `--rag` in CLI or the “Use Knowledge Base” toggle in Web UI to ground LLM answers in your org’s guidance.
+- Enable `--rag` in CLI or the “Use Knowledge Base” toggle in Web UI to ground LLM answers in security guidelines and your org's guidance.
 - Retrieval stays local; only the final prompts go to your chosen LLM provider.
 - Tune top-k per run and swap KBs per project to balance depth, speed, and relevance.
+
+<p align="center">
+    <img width="500" alt="knowledge-base" src="./docs/images/knowledge-base.png" /> 
+    <br>
+    <em>Build local knowledge bases and use them to strengthen threat reasoning</em>
+</p>
 
 ### Threat Dragon round-trip
 - Import Threat Dragon v2 JSON with `--threat-dragon`, preserving layout and cell metadata.
 - Export a Threat Dragon-compatible JSON that embeds detected threats without regenerating positions.
 - Re-open the exported JSON in Threat Dragon to review or adjust cells with the added findings.
 - Markdown/JSON/HTML reports stay available alongside Threat Dragon output for broader sharing.
+
+<p align="center">
+    <img width="500" alt="threat-dragon-output" src="./docs/images/threat-dragon.png" /> 
+    <br>
+    <em>Import and export Threat Dragon diagrams with embedded threat findings</em>
+</p>
 
 ## Getting Started
 ### Set Up API Keys
