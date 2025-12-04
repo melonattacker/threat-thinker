@@ -18,9 +18,7 @@ def _zone_name_lookup(graph: Graph) -> dict:
     return lookup
 
 
-def _normalize_zone_ids(
-    zones_hint: List[str], node: Node, graph: Graph
-) -> List[str]:
+def _normalize_zone_ids(zones_hint: List[str], node: Node, graph: Graph) -> List[str]:
     """
     Map hinted zone values to known zone ids when possible and preserve existing ids when hints don't match.
     """
@@ -59,7 +57,9 @@ def _normalize_zone_ids(
     if mapped and existing_ids and zones_map:
         compatible = []
         for zid in mapped:
-            if any(_is_ancestor(zid, ex) or _is_ancestor(ex, zid) for ex in existing_ids):
+            if any(
+                _is_ancestor(zid, ex) or _is_ancestor(ex, zid) for ex in existing_ids
+            ):
                 compatible.append(zid)
         if compatible:
             return sort_zone_ids_by_hierarchy(existing_ids + compatible, zones_map)
