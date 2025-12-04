@@ -43,11 +43,27 @@ def _normalize_zone_ids(
             seen.add(candidate)
             mapped.append(candidate)
 
+    def _is_ancestor(anc_id: str, desc_id: str) -> bool:
+        if anc_id == desc_id:
+            return True
+        current = zones_map.get(desc_id)
+        visited = set()
+        while current and current.parent_id and current.parent_id not in visited:
+            if current.parent_id == anc_id:
+                return True
+            visited.add(current.parent_id)
+            current = zones_map.get(current.parent_id)
+        return False
+
     existing_ids = list(node.zones) if node.zones else []
-    if mapped and existing_ids and zones_map and any(
-        z.parent_id for z in zones_map.values()
-    ):
-        return sort_zone_ids_by_hierarchy(existing_ids + mapped, zones_map)
+    if mapped and existing_ids and zones_map:
+        compatible = []
+        for zid in mapped:
+            if any(_is_ancestor(zid, ex) or _is_ancestor(ex, zid) for ex in existing_ids):
+                compatible.append(zid)
+        if compatible:
+            return sort_zone_ids_by_hierarchy(existing_ids + compatible, zones_map)
+        return existing_ids
     if mapped:
         combined: List[str] = []
         for zid in mapped + existing_ids:

@@ -353,9 +353,30 @@ class TestMergeLlmHints:
         result = merge_llm_hints(graph, hints)
 
         node = result.nodes["A"]
-        # Should keep the inner zone and include the mapped outer.
-        assert node.zones == ["boundary-internet", "boundary-edge"]
+        # Since the hint targets a different root and there is no hierarchy, keep the existing inner zone only.
+        assert node.zones == ["boundary-edge"]
         assert node.zone == "Edge / DMZ"
+
+    def test_merge_hints_conflicting_root_zone_is_ignored(self):
+        """Hints that map to a different root should not overwrite existing path."""
+        graph = Graph()
+        graph.zones = {
+            "root-a": Zone(id="root-a", name="RootA"),
+            "root-b": Zone(id="root-b", name="RootB"),
+        }
+        graph.nodes["X"] = Node(
+            id="X",
+            label="Node X",
+            zones=["root-a"],
+            zone="RootA",
+        )
+
+        hints = {"nodes": {"X": {"zones": ["RootB"]}}}
+
+        result = merge_llm_hints(graph, hints)
+        node = result.nodes["X"]
+        assert node.zones == ["root-a"]
+        assert node.zone == "RootA"
 
     def test_merge_hints_invalid_edge_data(self):
         """Test merging hints with invalid edge data"""
