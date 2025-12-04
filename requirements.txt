@@ -1,4 +1,4 @@
-anthropic==0.72.0
+anthropic==0.75.0
 beautifulsoup4==4.14.2
 boto3==1.40.61
 gradio==5.49.1
