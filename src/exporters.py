@@ -798,11 +798,14 @@ def _build_flow_lookup_for_export(
 
 
 def _threat_to_threat_dragon(threat: Threat) -> Dict[str, Any]:
-    """Map internal Threat to a Threat Dragon-friendly threat block."""
+    """Map internal Threat to a Threat Dragon-friendly threat block with marker."""
+    title = threat.title or ""
+    if not title.startswith("[Threat Thinker]"):
+        title = f"[Threat Thinker] {title}"
     stride_type = threat.stride[0] if threat.stride else ""
     return {
         "id": threat.id,
-        "title": threat.title,
+        "title": title,
         "type": stride_type,
         "status": "Open",
         "severity": threat.severity,
@@ -813,6 +816,31 @@ def _threat_to_threat_dragon(threat: Threat) -> Dict[str, Any]:
         "affected": threat.affected,
         "confidence": threat.confidence,
     }
+
+
+def _dedupe_threat_id(candidate_id: Optional[str], used_ids: set[str]) -> str:
+    """
+    Ensure threat IDs are unique when merging with existing Threat Dragon threats.
+
+    Appends a '-tt' suffix (and counter if needed) to avoid collisions.
+    """
+    base = candidate_id or "TT-threat"
+    if base not in used_ids:
+        used_ids.add(base)
+        return base
+
+    suffix_base = f"{base}-tt"
+    if suffix_base not in used_ids:
+        used_ids.add(suffix_base)
+        return suffix_base
+
+    for counter in range(1, 1001):
+        new_id = f"{suffix_base}-{counter}"
+        if new_id not in used_ids:
+            used_ids.add(new_id)
+            return new_id
+
+    raise RuntimeError("Unable to generate unique Threat Dragon threat ID after 1000 attempts")
 
 
 def export_threat_dragon(
@@ -845,11 +873,28 @@ def export_threat_dragon(
     }
     flow_lookup = _build_flow_lookup_for_export(cells)
 
+    # Collect existing threat IDs to avoid collisions when adding new ones
+    existing_ids: set[str] = set()
+    for cell in cells:
+        data_block = cell.get("data") or {}
+        threats_list = data_block.get("threats")
+        if isinstance(threats_list, list):
+            for t in threats_list:
+                if isinstance(t, dict) and t.get("id"):
+                    existing_ids.add(str(t["id"]))
+    existing_diagram_threats = (
+        list(diagram.get("threats")) if isinstance(diagram.get("threats"), list) else []
+    )
+    for t in existing_diagram_threats:
+        if isinstance(t, dict) and t.get("id"):
+            existing_ids.add(str(t["id"]))
+
     cell_threats: Dict[str, List[Dict[str, Any]]] = {}
     diagram_level_threats: List[Dict[str, Any]] = []
 
     for threat in threats:
         td_block = _threat_to_threat_dragon(threat)
+        td_block["id"] = _dedupe_threat_id(td_block.get("id"), existing_ids)
         assigned = False
 
         for node_ref in threat.evidence_nodes:
@@ -879,15 +924,32 @@ def export_threat_dragon(
         data_block = cell.get("data")
         if not isinstance(data_block, dict):
             continue
+        existing_threats = (
+            list(data_block.get("threats"))
+            if isinstance(data_block.get("threats"), list)
+            else []
+        )
         threats_for_cell = cell_threats.get(cell_id) or []
-        data_block["threats"] = threats_for_cell
-        if threats_for_cell:
-            data_block["hasOpenThreats"] = True
+        combined_threats = existing_threats + threats_for_cell
+
+        if combined_threats or "threats" in data_block:
+            data_block["threats"] = combined_threats
+
+        if combined_threats:
+            data_block["hasOpenThreats"] = any(
+                str(t.get("status") or "Open").lower() != "closed"
+                for t in combined_threats
+            )
         elif "hasOpenThreats" in data_block:
             data_block["hasOpenThreats"] = False
 
-    if diagram_level_threats:
-        diagram["threats"] = diagram_level_threats
+    existing_diagram_threats = (
+        list(diagram.get("threats")) if isinstance(diagram.get("threats"), list) else []
+    )
+    combined_diagram_threats = existing_diagram_threats + diagram_level_threats
+
+    if combined_diagram_threats or "threats" in diagram:
+        diagram["threats"] = combined_diagram_threats
 
     output = json.dumps(model, ensure_ascii=False, indent=2)
     if output_file:
