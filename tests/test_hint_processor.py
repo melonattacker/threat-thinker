@@ -11,7 +11,7 @@ import yaml
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from hint_processor import apply_hints, merge_llm_hints
-from models import Graph, Node, Edge
+from models import Edge, Graph, Node, Zone
 
 
 class TestApplyHints:
@@ -310,6 +310,73 @@ class TestMergeLlmHints:
         assert new_edge.dst == "D"
         assert new_edge.protocol == "gRPC"
         assert "protobuf" in new_edge.data
+
+    def test_merge_hints_preserves_zone_ids_with_existing_map(self):
+        """Zone names from hints should map to existing zone ids instead of clobbering them."""
+        graph = Graph()
+        graph.zones = {
+            "boundary-edge": Zone(id="boundary-edge", name="Edge / DMZ"),
+            "boundary-internet": Zone(id="boundary-internet", name="Internet"),
+        }
+        graph.nodes["A"] = Node(
+            id="A",
+            label="API",
+            zones=["boundary-edge"],
+            zone="Edge / DMZ",
+        )
+
+        hints = {"nodes": {"A": {"zones": ["DMZ", "Edge / DMZ"]}}}
+
+        result = merge_llm_hints(graph, hints)
+
+        node = result.nodes["A"]
+        assert node.zones == ["boundary-edge"]
+        assert node.zone == "Edge / DMZ"
+
+    def test_merge_hints_partial_mapping_keeps_existing_inner_zone(self):
+        """When hints only partially map, retain existing zones and merge mapped ones."""
+        graph = Graph()
+        graph.zones = {
+            "boundary-internet": Zone(id="boundary-internet", name="Internet"),
+            "boundary-edge": Zone(id="boundary-edge", name="Edge / DMZ"),
+        }
+        graph.nodes["A"] = Node(
+            id="A",
+            label="API",
+            zones=["boundary-edge"],
+            zone="Edge / DMZ",
+        )
+
+        # Hint only knows about the outer zone name.
+        hints = {"nodes": {"A": {"zones": ["Internet"]}}}
+
+        result = merge_llm_hints(graph, hints)
+
+        node = result.nodes["A"]
+        # Since the hint targets a different root and there is no hierarchy, keep the existing inner zone only.
+        assert node.zones == ["boundary-edge"]
+        assert node.zone == "Edge / DMZ"
+
+    def test_merge_hints_conflicting_root_zone_is_ignored(self):
+        """Hints that map to a different root should not overwrite existing path."""
+        graph = Graph()
+        graph.zones = {
+            "root-a": Zone(id="root-a", name="RootA"),
+            "root-b": Zone(id="root-b", name="RootB"),
+        }
+        graph.nodes["X"] = Node(
+            id="X",
+            label="Node X",
+            zones=["root-a"],
+            zone="RootA",
+        )
+
+        hints = {"nodes": {"X": {"zones": ["RootB"]}}}
+
+        result = merge_llm_hints(graph, hints)
+        node = result.nodes["X"]
+        assert node.zones == ["root-a"]
+        assert node.zone == "RootA"
 
     def test_merge_hints_invalid_edge_data(self):
         """Test merging hints with invalid edge data"""
