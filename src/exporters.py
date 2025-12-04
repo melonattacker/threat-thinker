@@ -840,7 +840,9 @@ def _dedupe_threat_id(candidate_id: Optional[str], used_ids: set[str]) -> str:
             used_ids.add(new_id)
             return new_id
 
-    raise RuntimeError("Unable to generate unique Threat Dragon threat ID after 1000 attempts")
+    raise RuntimeError(
+        "Unable to generate unique Threat Dragon threat ID after 1000 attempts"
+    )
 
 
 def export_threat_dragon(

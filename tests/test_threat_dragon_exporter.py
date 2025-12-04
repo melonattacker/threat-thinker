@@ -97,9 +97,7 @@ def test_export_threat_dragon_maps_threats_and_preserves_layout():
     ]
     assert flow_cells
     assert flow_cells[0]["data"]["threats"][0]["id"] == "T002"
-    assert flow_cells[0]["data"]["threats"][0]["title"].startswith(
-        "[Threat Thinker] "
-    )
+    assert flow_cells[0]["data"]["threats"][0]["title"].startswith("[Threat Thinker] ")
     assert flow_cells[0]["data"]["hasOpenThreats"] is True
 
     diagram_threats = diagram.get("threats") or []
