@@ -114,7 +114,6 @@ def test_export_threat_dragon_merges_existing_threats(tmp_path):
     fixture_data = json.loads(FIXTURE_PATH.read_text())
     diagram = fixture_data["detail"]["diagrams"][0]
 
-    user_id = "9e76689c-634c-4824-9081-322a67f286d3"
     web_id = "36d4beb4-5c74-47ab-943e-4d0920e7be74"
 
     existing_cell_threat = {
