@@ -1,6 +1,6 @@
 anthropic==0.72.0
 beautifulsoup4==4.14.2
-boto3==1.40.61
+boto3==1.41.5
 gradio==5.49.1
 numpy==2.3.4
 openai==1.109.1
