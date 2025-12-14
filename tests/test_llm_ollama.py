@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+import json
 
 import pytest
 
@@ -11,7 +12,7 @@ from llm.providers.ollama import OllamaProvider
 def test_ollama_provider_uses_schema_and_host():
     provider = OllamaProvider(host="http://ollama:11434")
     fake_response = MagicMock()
-    fake_response.json.return_value = {"message": {"content": '{"ok": true}'}}
+    fake_response.iter_lines.return_value = [json.dumps({"message": {"content": '{"ok": true}'}}).encode()]
     fake_response.raise_for_status.return_value = None
     with patch("llm.providers.ollama.requests.post", return_value=fake_response) as mock_post:
         content = provider.call_api(
@@ -28,9 +29,10 @@ def test_ollama_provider_uses_schema_and_host():
     payload = mock_post.call_args[1]["json"]
     assert payload["model"] == "my-model"
     assert payload["format"] == {"type": "object"}
-    assert payload["stream"] is False
+    assert payload["stream"] is True
     assert payload["options"]["num_predict"] == 10
     assert payload["messages"][0]["role"] == "system"
+    assert mock_post.call_args[1]["stream"] is True
 
 
 def test_call_llm_json_with_retry_fails_after_invalid_json():

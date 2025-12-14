@@ -17,7 +17,7 @@ class OllamaProvider(LLMProvider):
     Uses the /api/chat endpoint with optional JSON schema enforcement.
     """
 
-    def __init__(self, host: Optional[str] = None, timeout: float = 900.0):
+    def __init__(self, host: Optional[str] = None, timeout: float = 120.0):
         """
         Initialize Ollama provider.
 
@@ -54,7 +54,7 @@ class OllamaProvider(LLMProvider):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "stream": False,
+            "stream": True,
             "options": {
                 "temperature": temperature,
                 "top_p": 0.9,
@@ -71,19 +71,30 @@ class OllamaProvider(LLMProvider):
                 json=chat_payload,
                 timeout=self.timeout,
                 headers={"Content-Type": "application/json"},
+                stream=True,
             )
             resp.raise_for_status()
-            data = resp.json()
+            chunks: list[str] = []
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    # Skip non-JSON lines but keep streaming
+                    continue
+                message = data.get("message") or {}
+                content_part = message.get("content") or data.get("response") or ""
+                if content_part:
+                    chunks.append(content_part)
+                if data.get("error"):
+                    raise RuntimeError(f"Ollama API error: {data['error']}")
+            content = "".join(chunks).strip()
+            if not content:
+                raise RuntimeError("Ollama returned empty content")
+            return content
         except requests.RequestException as exc:
             raise RuntimeError(
                 f"Ollama API request failed ({getattr(exc.response, 'status_code', 'unknown')}): "
                 f"{getattr(exc.response, 'text', '') or exc}"
             ) from exc
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(f"Ollama API returned non-JSON response: {exc}") from exc
-
-        message = data.get("message") or {}
-        content = message.get("content") or data.get("response")
-        if not content:
-            raise RuntimeError("Ollama returned empty content")
-        return content
