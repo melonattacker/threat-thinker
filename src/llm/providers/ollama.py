@@ -25,9 +25,9 @@ class OllamaProvider(LLMProvider):
             host: Ollama host URL (defaults to env OLLAMA_HOST or http://localhost:11434)
             timeout: Request timeout in seconds
         """
-        self.host = (host or os.getenv("OLLAMA_HOST") or "http://localhost:11434").rstrip(
-            "/"
-        )
+        self.host = (
+            host or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
+        ).rstrip("/")
         self.timeout = timeout
 
     def call_api(

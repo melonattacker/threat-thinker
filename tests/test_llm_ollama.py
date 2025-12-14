@@ -3,8 +3,6 @@ import json
 
 import pytest
 
-import requests
-
 from llm.inference import _call_llm_json_with_retry
 from llm.providers.ollama import OllamaProvider
 
@@ -12,9 +10,13 @@ from llm.providers.ollama import OllamaProvider
 def test_ollama_provider_uses_schema_and_host():
     provider = OllamaProvider(host="http://ollama:11434")
     fake_response = MagicMock()
-    fake_response.iter_lines.return_value = [json.dumps({"message": {"content": '{"ok": true}'}}).encode()]
+    fake_response.iter_lines.return_value = [
+        json.dumps({"message": {"content": '{"ok": true}'}}).encode()
+    ]
     fake_response.raise_for_status.return_value = None
-    with patch("llm.providers.ollama.requests.post", return_value=fake_response) as mock_post:
+    with patch(
+        "llm.providers.ollama.requests.post", return_value=fake_response
+    ) as mock_post:
         content = provider.call_api(
             model="my-model",
             system_prompt="sys",
