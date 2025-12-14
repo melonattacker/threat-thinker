@@ -168,6 +168,11 @@ def main():
         type=str,
         help="AWS region (for bedrock provider only, defaults to us-east-1)",
     )
+    p_think.add_argument(
+        "--ollama-host",
+        type=str,
+        help="Ollama host URL (default: http://localhost:11434 or env OLLAMA_HOST)",
+    )
 
     p_think.add_argument(
         "--topn", type=int, default=10, help="Keep top-N threats after de-noise"
@@ -298,6 +303,11 @@ def main():
         help="AWS region (for bedrock provider only, defaults to us-east-1)",
     )
     p_diff.add_argument(
+        "--ollama-host",
+        type=str,
+        help="Ollama host URL (default: http://localhost:11434 or env OLLAMA_HOST)",
+    )
+    p_diff.add_argument(
         "--lang",
         type=str,
         default="en",
@@ -381,7 +391,14 @@ def main():
             )
             sys.exit(2)
 
-        supported_apis = ["openai", "anthropic", "bedrock"]
+        supported_apis = ["openai", "anthropic", "bedrock", "ollama"]
+        if args.llm_api.lower() not in supported_apis:
+            ui.error(
+                f"Invalid LLM API: {args.llm_api}", f"Must be one of {supported_apis}"
+            )
+            sys.exit(2)
+
+        supported_apis = ["openai", "anthropic", "bedrock", "ollama"]
         if args.llm_api.lower() not in supported_apis:
             ui.error(
                 f"Invalid LLM API: {args.llm_api}", f"Must be one of {supported_apis}"
@@ -411,6 +428,21 @@ def main():
                     "AWS credentials not fully configured",
                     "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
                 )
+        elif args.llm_api.lower() == "ollama":
+            if args.image:
+                ui.error(
+                    "Image diagrams are not supported with the Ollama backend.",
+                    "Use OpenAI/Anthropic/Bedrock for image extraction or provide a Mermaid/Draw.io/Threat Dragon file.",
+                )
+                sys.exit(2)
+
+        ollama_host = (
+            args.ollama_host or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
+        )
+        if args.llm_api.lower() == "ollama":
+            normalized_model = (args.llm_model or "").strip().lower()
+            if not normalized_model or normalized_model.startswith("gpt-4"):
+                args.llm_model = "llama3.1"
 
         rag_kbs: list[str] = []
         if args.rag:
@@ -449,12 +481,19 @@ def main():
             elif diagram_format == "threat-dragon":
                 g, metrics = parse_threat_dragon(diagram_file)
             elif diagram_format == "image":
+                if args.llm_api.lower() == "ollama":
+                    ui.error(
+                        "Image diagrams are not supported with the Ollama backend.",
+                        "Use OpenAI/Anthropic/Bedrock for image extraction or provide a Mermaid/Draw.io/Threat Dragon file.",
+                    )
+                    sys.exit(2)
                 g, metrics = parse_image(
                     diagram_file,
                     api=args.llm_api,
                     model=args.llm_model,
                     aws_profile=args.aws_profile,
                     aws_region=args.aws_region,
+                    ollama_host=ollama_host,
                 )
             else:
                 ui.error(f"Unsupported diagram format: {diagram_format}")
@@ -500,6 +539,7 @@ def main():
                     args.llm_model,
                     args.aws_profile,
                     args.aws_region,
+                    ollama_host,
                     args.lang,
                 )
                 g = merge_llm_hints(g, inferred)
@@ -568,6 +608,7 @@ def main():
                 args.llm_model,
                 args.aws_profile,
                 args.aws_region,
+                ollama_host,
                 args.lang,
                 rag_context=rag_context_text,
             )
@@ -778,6 +819,14 @@ def main():
                     "For bedrock API, either set --aws-profile or AWS environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
                 )
 
+        ollama_host = (
+            args.ollama_host or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
+        )
+        if args.llm_api.lower() == "ollama":
+            normalized_model = (args.llm_model or "").strip().lower()
+            if not normalized_model or normalized_model.startswith("gpt-4"):
+                args.llm_model = "llama3.1"
+
         ui.info(f"Comparing reports: {args.before} → {args.after}")
         out_dir, diff_json_path, diff_md_path = _prepare_diff_output_paths(
             args.after, args.out_dir
@@ -794,6 +843,7 @@ def main():
                 args.llm_model,
                 args.aws_profile,
                 args.aws_region,
+                ollama_host,
                 args.lang,
             )
             thinking.stop()

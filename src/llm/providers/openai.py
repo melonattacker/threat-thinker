@@ -27,6 +27,7 @@ class OpenAIProvider(LLMProvider):
         user_prompt: str,
         *,
         response_format: Optional[Dict[str, str]] = None,
+        json_schema: Optional[Dict] = None,
         temperature: float = 0.2,
         max_tokens: int = 10000,
     ) -> str:
@@ -68,6 +69,9 @@ class OpenAIProvider(LLMProvider):
             }
         if response_format is not None:
             kwargs["response_format"] = response_format
+        if json_schema and response_format is None:
+            # Future-proof: allow json_schema passthrough if response_format not set
+            kwargs["response_format"] = {"type": "json_object"}
 
         resp = self.client.chat.completions.create(**kwargs)
         content = resp.choices[0].message.content

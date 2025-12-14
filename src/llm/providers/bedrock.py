@@ -55,6 +55,7 @@ class BedrockProvider(LLMProvider):
         user_prompt: str,
         *,
         response_format: Optional[Dict[str, str]] = None,
+        json_schema: Optional[Dict] = None,
         temperature: float = 0.2,
         max_tokens: int = 10000,
     ) -> str:

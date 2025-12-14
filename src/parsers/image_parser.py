@@ -27,6 +27,7 @@ def parse_image(
     model: str = None,
     aws_profile: str = None,
     aws_region: str = None,
+    ollama_host: str = None,
 ) -> Tuple[Graph, ImportMetrics]:
     """
     Parse an image file containing a system architecture diagram and return a Graph object and import metrics.
@@ -45,6 +46,10 @@ def parse_image(
     metrics = ImportMetrics()
 
     try:
+        if api and api.lower() == "ollama":
+            raise NotImplementedError(
+                "Image parsing is not supported with the Ollama backend."
+            )
         # Check if file exists and is an image
         if not os.path.exists(path):
             raise FileNotFoundError(f"Image file not found: {path}")
@@ -74,6 +79,7 @@ def parse_image(
             model=model,
             aws_profile=aws_profile,
             aws_region=aws_region,
+            ollama_host=ollama_host,
         )
 
         # Parse LLM response into Graph structure
@@ -107,6 +113,7 @@ def _analyze_image_with_llm(
     model: str = None,
     aws_profile: str = None,
     aws_region: str = None,
+    ollama_host: str = None,
 ) -> Dict:
     """
     Analyze image using LLM to extract system architecture information.
@@ -177,7 +184,11 @@ Guidelines:
     try:
         # Get LLM client and analyze the image
         llm_client = LLMClient(
-            api=api, model=model, aws_profile=aws_profile, aws_region=aws_region
+            api=api,
+            model=model,
+            aws_profile=aws_profile,
+            aws_region=aws_region,
+            ollama_host=ollama_host,
         )
 
         # Call LLM with image analysis

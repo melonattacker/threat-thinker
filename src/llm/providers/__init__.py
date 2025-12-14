@@ -19,6 +19,7 @@ class LLMProvider(ABC):
         user_prompt: str,
         *,
         response_format: Optional[Dict[str, str]] = None,
+        json_schema: Optional[Dict] = None,
         temperature: float = 0.2,
         max_tokens: int = 1600,
     ) -> str:
@@ -74,7 +75,10 @@ class LLMProvider(ABC):
 
 
 def get_provider(
-    api: str, aws_profile: Optional[str] = None, aws_region: Optional[str] = None
+    api: str,
+    aws_profile: Optional[str] = None,
+    aws_region: Optional[str] = None,
+    ollama_host: Optional[str] = None,
 ) -> LLMProvider:
     """
     Get the appropriate LLM provider instance.
@@ -104,5 +108,9 @@ def get_provider(
         from .bedrock import BedrockProvider
 
         return BedrockProvider(aws_profile=aws_profile, aws_region=aws_region)
+    elif api_normalized == "ollama":
+        from .ollama import OllamaProvider
+
+        return OllamaProvider(host=ollama_host)
     else:
         raise NotImplementedError(f"LLM api '{api}' is not supported yet.")

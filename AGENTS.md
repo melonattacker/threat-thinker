@@ -5,6 +5,7 @@ This document describes how human contributors and AI assistants should operate 
 ## 1. Mission & Scope
 - Automate threat modeling from system diagrams (Mermaid, draw.io, raster images) and produce concise reports referencing OWASP ASVS/CWE items.
 - Provide both CLI and Web UI entry points plus a local RAG layer for augmenting LLM reasoning with curated documents.
+- Support Threat Dragon JSON round-trips and HTML/Markdown/JSON report surfaces for reviewers and automation.
 - Favor small, reviewable pull requests that include documentation and automated tests relevant to the change.
 
 ## 2. Architecture & File Layout
@@ -12,11 +13,11 @@ This document describes how human contributors and AI assistants should operate 
   - `main.py`: CLI parser/subcommands (`think`, `diff`, `kb`), orchestrates parsers → hint processors → LLM adapters → analyzers → exporters.
   - `cliui.py`: lightweight UI helpers and verbose logging toggles used by CLI and tests.
   - `webui.py`: Gradio-based UI wiring.
-  - `parsers/`: diagram ingestion (`mermaid_parser.py`, `drawio_parser.py`, `image_parser.py`) plus helpers (e.g., OCR/extraction) — keep deterministic and side-effect free.
+  - `parsers/`: diagram ingestion (`mermaid_parser.py`, `drawio_parser.py`, `threat_dragon_parser.py`, `image_parser.py`) plus helpers (e.g., OCR/extraction) — keep deterministic and side-effect free.
   - `hint_processor.py`: merges user hints with LLM-generated attributes.
   - `llm/`: provider-specific adapters, prompt builders, throttling/retry logic.
   - `threat_analyzer.py`: deduplicates/denoises threats, filters via thresholds, ensures ASVS references as requested.
-  - `exporters.py`: Markdown/JSON exporters and diff helpers (`diff_reports`, `export_diff_md`).
+  - `exporters.py`: Markdown/JSON/HTML exporters and diff helpers (`diff_reports`, `export_diff_md`), including Threat Dragon JSON round-trip support.
   - `rag/`: local KB management (chunking, embedding, semantic retrieval).
   - `models.py`, `constants.py`: shared dataclasses and enums (always update type hints when data contracts change).
 - `tests/`: mirrors `src/` package structure with pytest suites, fixtures, and golden files.
@@ -80,6 +81,7 @@ This document describes how human contributors and AI assistants should operate 
 - Imports are auto-sorted by Ruff. Avoid wildcard imports.
 - When adding new CLI options, update both `main.py` and README/tutorials for discoverability.
 - Keep threat ranking logic deterministic: use sorted operations and explicit random seeds if randomness is unavoidable.
+- Sanitize logs and outputs: never echo secrets, diagram contents, or user data unnecessarily; redact when in doubt.
 
 ## 5. Testing Expectations
 - Align new tests under `tests/<package>/test_<module>.py`. Mirror class/function names to ease tracing.
@@ -87,6 +89,7 @@ This document describes how human contributors and AI assistants should operate 
 - Mock network/LLM calls; integration tests should rely on recorded outputs instead of live providers.
 - When modifying exporters/analyzers, verify Markdown/JSON snapshots (e.g., load fixture report and assert on sections/keys rather than entire files).
 - Always run `pytest` before opening a PR; document any intentionally skipped tests with reasons.
+- If changing HTML or Threat Dragon outputs, add/update representative fixtures and assert on key sections/fields rather than entire documents.
 
 ## 6. Agent Behavior Guidelines
 - **Understand before editing**: inspect relevant modules/tests prior to modification; summarize findings in PRs or assistant messages before proposing code.
@@ -95,11 +98,14 @@ This document describes how human contributors and AI assistants should operate 
 - **Explain reasoning**: when proposing non-trivial code, provide rationale, risk assessment, and verification steps.
 - **Validation first**: run local lint/tests whenever feasible; describe any gaps (e.g., network limits) so reviewers know what remains unverified.
 - **Security & privacy**: never log or commit API keys, secrets, or sensitive diagram content. Generated threat reports belong in `reports/`, not `docs/`, unless sanitized for sharing.
+- **CLI/Web parity**: when adding behavior to CLI flows, note whether Web UI requires matching controls and update `webui.py` if needed.
+- **Snapshot sensitivity**: avoid making needless formatting/output changes that churn golden files unless they deliver clear value.
 
 ## 7. Tooling & Integrations
-- **LLM Providers**: support `openai`, `anthropic`, and `bedrock`. Ensure CLI defaults to `gpt-4o-mini` unless the user specifies `--llm-model`. When adding providers/models, document credential requirements and update inference adapters.
+- **LLM Providers**: support `openai`, `anthropic`, `bedrock`, and local `ollama` (text-only). Ensure CLI defaults are sensible per provider (`llama3.1` for Ollama) unless the user specifies `--llm-model`. When adding providers/models, document credential requirements and update inference adapters; Ollama host defaults to `http://localhost:11434` (env `OLLAMA_HOST`).
 - **Knowledge Base (RAG)**: data lives under `~/.threat-thinker/kb/<name>/{raw,chunks,index}` (see `rag/`). Guard against corrupt KBs by raising `KnowledgeBaseError`.
-- **Export Surfaces**: Markdown output is consumed by reviewers, JSON output feeds automation. Maintain schema stability: version keys in JSON and reflect changes in tests.
+- **Export Surfaces**: Markdown/HTML outputs are reviewer-friendly; JSON feeds automation and diffing. Maintain schema stability: version keys in JSON and reflect changes in tests.
+- **Threat Dragon**: import v2 JSON with `--threat-dragon` and export updated Threat Dragon JSON; keep layout metadata intact.
 - **CLI/Web UI**: keep parameter naming consistent between CLI flags and Web UI components. Whenever CLI adds a flag, determine whether Web UI needs parity.
 - **Benchmarks**: store notebooks/scripts in `benchmarking/` and keep dependencies optional; document reproduction steps if numbers appear in README/docs.
 
@@ -115,6 +121,11 @@ This document describes how human contributors and AI assistants should operate 
   2. Run `threat-thinker kb build <kb_name> --embedder openai:text-embedding-3-small`.
   3. Validate with `threat-thinker kb search`.
   4. Reference it via `--rag --kb <kb_name> --rag-topk <n>` in CLI commands.
+- **Threat Dragon round-trip**
+  1. Import a Threat Dragon v2 JSON diagram with `--threat-dragon` or via Web UI upload.
+  2. Run `think` with desired flags to enrich threats.
+  3. Export Threat Dragon JSON alongside Markdown/JSON/HTML; verify positions/metadata remain unchanged.
+  4. Re-open the exported JSON in Threat Dragon to validate rendered cells and embedded threats.
 - **Compare two threat runs**
   1. Collect JSON outputs for both versions.
   2. Run `threat-thinker diff --after ... --before ... --out-md ... --out-json ...`.
