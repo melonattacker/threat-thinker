@@ -247,6 +247,7 @@ def _generate_diff_report(
     llm_model: str,
     aws_profile: str,
     aws_region: str,
+    ollama_host: str,
     lang: str,
 ) -> Tuple[str, str, Optional[str], Optional[str]]:
     """Generate diff report between two JSON files."""
@@ -265,6 +266,15 @@ def _generate_diff_report(
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
     lang = (lang or "en").strip()
+    ollama_host = (
+        (ollama_host or "").strip()
+        or os.getenv("OLLAMA_HOST")
+        or "http://localhost:11434"
+    )
+    if llm_api == "ollama":
+        normalized_model = llm_model.lower()
+        if not normalized_model or normalized_model.startswith("gpt-4"):
+            llm_model = "llama3.1"
 
     try:
         # Generate diff analysis
@@ -275,6 +285,7 @@ def _generate_diff_report(
             llm_model,
             aws_profile,
             aws_region,
+            ollama_host,
             lang,
         )
 
@@ -317,6 +328,7 @@ def _generate_report(
     llm_model: str,
     aws_profile: str,
     aws_region: str,
+    ollama_host: str,
     topn: int,
     min_confidence: float,
     require_asvs: bool,
@@ -353,6 +365,20 @@ def _generate_report(
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
     rag_topk_val = int(rag_topk or DEFAULT_TOPK)
+    ollama_host = (
+        (ollama_host or "").strip()
+        or os.getenv("OLLAMA_HOST")
+        or "http://localhost:11434"
+    )
+    if llm_api == "ollama":
+        if input_method == "Image":
+            raise gr.Error(
+                "Image diagrams are not supported with the Ollama backend. "
+                "Use OpenAI/Anthropic/Bedrock for image extraction or provide Mermaid/Draw.io/Threat Dragon input."
+            )
+        normalized_model = llm_model.lower()
+        if not normalized_model or normalized_model.startswith("gpt-4"):
+            llm_model = "llama3.1"
 
     kb_list: list[str] = []
     if use_rag:
@@ -421,6 +447,7 @@ def _generate_report(
                 model=llm_model,
                 aws_profile=aws_profile,
                 aws_region=aws_region,
+                ollama_host=ollama_host,
             )
             status_lines.append(
                 f"Parsed image diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
@@ -448,7 +475,13 @@ def _generate_report(
                 indent=2,
             )
             inferred = cli.llm_infer_hints(
-                skeleton, llm_api, llm_model, aws_profile, aws_region, lang
+                skeleton,
+                llm_api,
+                llm_model,
+                aws_profile,
+                aws_region,
+                ollama_host,
+                lang,
             )
             graph = cli.merge_llm_hints(graph, inferred)
             status_lines.append("Applied LLM-inferred hints.")
@@ -483,6 +516,7 @@ def _generate_report(
             llm_model,
             aws_profile,
             aws_region,
+            ollama_host,
             lang,
             rag_context=rag_context_text,
         )
@@ -616,7 +650,7 @@ def launch_webui(
                 with gr.Row():
                     llm_api_input = gr.Dropdown(
                         label="LLM API",
-                        choices=["openai", "anthropic", "bedrock"],
+                        choices=["openai", "anthropic", "bedrock", "ollama"],
                         value="openai",
                         interactive=True,
                     )
@@ -634,6 +668,11 @@ def launch_webui(
                         label="AWS Region (for Bedrock only)",
                         value="",
                         placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
+                    )
+                    ollama_host_input = gr.Textbox(
+                        label="Ollama Host",
+                        value=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                        placeholder="http://localhost:11434",
                     )
 
                 with gr.Row():
@@ -732,6 +771,7 @@ def launch_webui(
                         llm_model_input,
                         aws_profile_input,
                         aws_region_input,
+                        ollama_host_input,
                         topn_input,
                         min_confidence_input,
                         require_asvs_input,
@@ -865,7 +905,7 @@ def launch_webui(
                 with gr.Row():
                     diff_llm_api_input = gr.Dropdown(
                         label="LLM API",
-                        choices=["openai", "anthropic", "bedrock"],
+                        choices=["openai", "anthropic", "bedrock", "ollama"],
                         value="openai",
                         interactive=True,
                     )
@@ -883,6 +923,11 @@ def launch_webui(
                         label="AWS Region (for Bedrock only)",
                         value="",
                         placeholder="e.g., us-east-1 (optional, defaults to us-east-1)",
+                    )
+                    diff_ollama_host_input = gr.Textbox(
+                        label="Ollama Host",
+                        value=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                        placeholder="http://localhost:11434",
                     )
 
                 diff_lang_input = gr.Textbox(
@@ -926,6 +971,7 @@ def launch_webui(
                         diff_llm_model_input,
                         diff_aws_profile_input,
                         diff_aws_region_input,
+                        diff_ollama_host_input,
                         diff_lang_input,
                     ],
                     outputs=[

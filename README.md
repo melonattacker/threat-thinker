@@ -53,7 +53,7 @@ Key Features:
 
 ## Getting Started
 ### Set Up API Keys
-Threat Thinker uses LLM for extracting diagrams from images, extracting components, data flows, and trust boundaries from architecture diagrams, and for inferring threats. Threat Thinker supports OpenAI, Anthropic Claude and AWS Bedrock(only claude v3 or newer model) APIs.
+Threat Thinker uses LLM for extracting diagrams from images, extracting components, data flows, and trust boundaries from architecture diagrams, and for inferring threats. Threat Thinker supports OpenAI, Anthropic Claude, AWS Bedrock (Claude v3+ models), and local Ollama APIs (for text-only flows).
 
 You must set at least one of the following environment variables before use:
 
@@ -74,6 +74,11 @@ export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
 export AWS_SESSION_TOKEN=...
 ```
+
+### Local Ollama (no API key)
+- Start Ollama locally (default host `http://localhost:11434`) and pull a model (e.g., `ollama pull llama3.1`).
+- Run Threat Thinker with `--llm-api ollama --llm-model <model> [--ollama-host http://localhost:11434]` for Mermaid/Draw.io/Threat Dragon inputs.
+- Image extraction is not supported with the Ollama backend; use text-based diagram inputs instead.
 
 ### Installation
 
@@ -110,6 +115,14 @@ threat-thinker diff \
     --llm-model gpt-4.1 \
     --out-dir reports/ \
     --lang en
+
+# Run threat analysis with local Ollama (text-only diagrams)
+threat-thinker think \
+    --mermaid examples/web/system.mmd \
+    --llm-api ollama \
+    --llm-model llama3.1 \
+    --ollama-host http://localhost:11434 \
+    --out-dir reports/
 ```
 
 ### Web UI

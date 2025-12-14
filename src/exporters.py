@@ -967,6 +967,7 @@ def diff_reports(
     model: str = "gpt-4o-mini",
     aws_profile: str = None,
     aws_region: str = None,
+    ollama_host: str = None,
     lang: str = "en",
 ) -> Dict:
     """
@@ -979,6 +980,7 @@ def diff_reports(
         model: Model name
         aws_profile: AWS profile name (for bedrock provider only)
         aws_region: AWS region (for bedrock provider only)
+        ollama_host: Ollama host URL when api=ollama
         lang: Language code for output
 
     Returns:
@@ -1101,7 +1103,11 @@ Format your response as a clear, professional analysis. Focus on the security im
 
     try:
         llm_client = LLMClient(
-            api=api, model=model, aws_profile=aws_profile, aws_region=aws_region
+            api=api,
+            model=model,
+            aws_profile=aws_profile,
+            aws_region=aws_region,
+            ollama_host=ollama_host,
         )
         explanation = llm_client.call_llm(
             system_prompt=system_prompt,

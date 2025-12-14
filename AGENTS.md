@@ -102,7 +102,7 @@ This document describes how human contributors and AI assistants should operate 
 - **Snapshot sensitivity**: avoid making needless formatting/output changes that churn golden files unless they deliver clear value.
 
 ## 7. Tooling & Integrations
-- **LLM Providers**: support `openai`, `anthropic`, and `bedrock`. Ensure CLI defaults to `gpt-4o-mini` unless the user specifies `--llm-model`. When adding providers/models, document credential requirements and update inference adapters.
+- **LLM Providers**: support `openai`, `anthropic`, `bedrock`, and local `ollama` (text-only). Ensure CLI defaults are sensible per provider (`llama3.1` for Ollama) unless the user specifies `--llm-model`. When adding providers/models, document credential requirements and update inference adapters; Ollama host defaults to `http://localhost:11434` (env `OLLAMA_HOST`).
 - **Knowledge Base (RAG)**: data lives under `~/.threat-thinker/kb/<name>/{raw,chunks,index}` (see `rag/`). Guard against corrupt KBs by raising `KnowledgeBaseError`.
 - **Export Surfaces**: Markdown/HTML outputs are reviewer-friendly; JSON feeds automation and diffing. Maintain schema stability: version keys in JSON and reflect changes in tests.
 - **Threat Dragon**: import v2 JSON with `--threat-dragon` and export updated Threat Dragon JSON; keep layout metadata intact.

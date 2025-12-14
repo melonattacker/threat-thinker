@@ -19,6 +19,7 @@ class LLMClient:
         model: Optional[str] = None,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
+        ollama_host: Optional[str] = None,
     ):
         """
         Initialize LLM client with provider settings.
@@ -31,6 +32,7 @@ class LLMClient:
         """
         self.aws_profile = aws_profile
         self.aws_region = aws_region
+        self.ollama_host = ollama_host or os.getenv("OLLAMA_HOST")
 
         # Auto-detect API if not specified
         if not api:
@@ -57,12 +59,17 @@ class LLMClient:
                 model = "claude-3-5-sonnet-20241022"  # Claude 3.5 Sonnet latest
             elif api == "bedrock":
                 model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+            elif api == "ollama":
+                model = "llama3.1"
 
         self.model = model
 
         # Initialize provider once during client creation
         self.provider = get_provider(
-            self.api, aws_profile=self.aws_profile, aws_region=self.aws_region
+            self.api,
+            aws_profile=self.aws_profile,
+            aws_region=self.aws_region,
+            ollama_host=self.ollama_host,
         )
 
     def call_llm(
@@ -71,6 +78,7 @@ class LLMClient:
         user_prompt: str,
         *,
         response_format: Optional[Dict[str, str]] = None,
+        json_schema: Optional[Dict] = None,
         temperature: float = 0.2,
         max_tokens: int = 1600,
     ) -> str:
@@ -127,6 +135,7 @@ The overall security risk level appears consistent between the two analyses. The
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             response_format=response_format,
+            json_schema=json_schema,
             temperature=temperature,
             max_tokens=max_tokens,
         )
