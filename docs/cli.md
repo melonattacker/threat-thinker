@@ -12,9 +12,14 @@ Common flags used in `threat-thinker` commands.
 | `--require-asvs` | Ensure each threat has ASVS references | Helpful for compliance-driven runs. |
 | `--lang <code>` | Set output language | ISO language code (e.g., `en`, `ja`). |
 | `--topn <n>` | Limit number of threats | Default top critical findings; keep ≤12 for clarity. |
-| `--llm-api / --llm-model` | Pick provider/model | E.g., `openai gpt-4.1` or Anthropic/Bedrock variants. |
+| `--llm-api / --llm-model` | Pick provider/model | `openai`, `anthropic`, `bedrock`, or `ollama` (text-only). Example: `--llm-api ollama --llm-model llama3.1`. |
+| `--ollama-host <url>` | Set Ollama host | Defaults to `http://localhost:11434` or env `OLLAMA_HOST`; ignored for other providers. |
 | `--out-dir <path>` | Where to write reports | Defaults to current directory. |
 | `--out-name <basename>` | Override base filename | Affects `*_report.{json,md,html}` and diff outputs. |
+
+Notes:
+- Ollama backend does not support image inputs; use Mermaid/Draw.io/Threat Dragon files with `--llm-api ollama`.
+- RAG requires OpenAI embeddings; set `OPENAI_API_KEY` when using `--rag`.
 
 Diff command specifics:
 - `--before <report.json>` and `--after <report.json>` are required.
