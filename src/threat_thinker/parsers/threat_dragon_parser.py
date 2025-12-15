@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata, Zone
-from zone_utils import (
+from threat_thinker.models import Edge, Graph, ImportMetrics, Node, ThreatDragonMetadata, Zone
+from threat_thinker.zone_utils import (
     compute_zone_tree_from_rectangles,
     containing_zone_ids_for_point,
     representative_zone_name,

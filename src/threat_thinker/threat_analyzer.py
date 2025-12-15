@@ -6,8 +6,8 @@ import json
 from dataclasses import asdict
 from typing import List, Optional
 
-from models import Graph, Threat
-from zone_utils import representative_zone_name, zone_path_names
+from threat_thinker.models import Graph, Threat
+from threat_thinker.zone_utils import representative_zone_name, zone_path_names
 
 
 def graph_to_prompt(g: Graph) -> str:

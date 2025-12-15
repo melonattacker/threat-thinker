@@ -4,7 +4,7 @@ Utilities for working with zones and nested trust boundaries.
 
 from typing import Dict, Iterable, List, Optional, Sequence
 
-from models import Zone
+from threat_thinker.models import Zone
 
 
 def _rect_contains(a: Dict[str, float], b: Dict[str, float]) -> bool:

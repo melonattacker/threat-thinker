@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from llm.inference import _call_llm_json_with_retry
-from llm.providers.ollama import OllamaProvider
+from threat_thinker.llm.inference import _call_llm_json_with_retry
+from threat_thinker.llm.providers.ollama import OllamaProvider
 
 
 def test_ollama_provider_uses_schema_and_host():
@@ -15,7 +15,7 @@ def test_ollama_provider_uses_schema_and_host():
     ]
     fake_response.raise_for_status.return_value = None
     with patch(
-        "llm.providers.ollama.requests.post", return_value=fake_response
+        "threat_thinker.llm.providers.ollama.requests.post", return_value=fake_response
     ) as mock_post:
         content = provider.call_api(
             model="my-model",

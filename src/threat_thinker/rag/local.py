@@ -354,7 +354,7 @@ def remove_kb(kb_name: str):
 
 
 def generate_graph_query(graph) -> str:
-    from models import Graph as ThreatGraph
+    from threat_thinker.models import Graph as ThreatGraph
 
     if isinstance(graph, ThreatGraph):
         nodes = [

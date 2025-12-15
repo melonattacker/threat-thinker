@@ -6,8 +6,8 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Tuple
 
-from models import Edge, Graph, ImportMetrics, Node
-from zone_utils import (
+from threat_thinker.models import Edge, Graph, ImportMetrics, Node
+from threat_thinker.zone_utils import (
     compute_zone_tree_from_rectangles,
     containing_zone_ids_for_point,
     representative_zone_name,

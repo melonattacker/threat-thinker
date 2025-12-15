@@ -7,7 +7,7 @@ from pathlib import Path
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from parsers.threat_dragon_parser import (
+from threat_thinker.parsers.threat_dragon_parser import (
     is_threat_dragon_json,
     parse_threat_dragon,
 )

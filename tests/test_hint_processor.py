@@ -10,8 +10,8 @@ import yaml
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from hint_processor import apply_hints, merge_llm_hints
-from models import Edge, Graph, Node, Zone
+from threat_thinker.hint_processor import apply_hints, merge_llm_hints
+from threat_thinker.models import Edge, Graph, Node, Zone
 
 
 class TestApplyHints:

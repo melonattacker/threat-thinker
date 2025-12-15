@@ -5,8 +5,8 @@ Hint processing functionality
 import yaml
 from typing import List, Optional
 
-from models import Graph, Node, Edge
-from zone_utils import representative_zone_name, sort_zone_ids_by_hierarchy
+from threat_thinker.models import Graph, Node, Edge
+from threat_thinker.zone_utils import representative_zone_name, sort_zone_ids_by_hierarchy
 
 
 def _zone_name_lookup(graph: Graph) -> dict:

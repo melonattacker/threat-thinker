@@ -9,8 +9,8 @@ import tempfile
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from parsers.drawio_parser import parse_drawio, _clean_html_tags
-from models import Graph, ImportMetrics
+from threat_thinker.parsers.drawio_parser import parse_drawio, _clean_html_tags
+from threat_thinker.models import Graph, ImportMetrics
 
 
 class TestParseDrawio:

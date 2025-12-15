@@ -9,8 +9,8 @@ import json
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from threat_analyzer import graph_to_prompt, denoise_threats
-from models import Graph, Node, Edge, Threat
+from threat_thinker.threat_analyzer import graph_to_prompt, denoise_threats
+from threat_thinker.models import Graph, Node, Edge, Threat
 
 
 class TestGraphToPrompt:

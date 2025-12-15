@@ -8,9 +8,9 @@ import pytest
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from exporters import export_threat_dragon
-from models import Graph, Threat
-from parsers.threat_dragon_parser import parse_threat_dragon
+from threat_thinker.exporters import export_threat_dragon
+from threat_thinker.models import Graph, Threat
+from threat_thinker.parsers.threat_dragon_parser import parse_threat_dragon
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "threat_dragon_simple.json"
