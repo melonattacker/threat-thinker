@@ -6,7 +6,10 @@ import re
 from typing import Dict, List, Tuple
 
 from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Zone
-from threat_thinker.zone_utils import representative_zone_name, sort_zone_ids_by_hierarchy
+from threat_thinker.zone_utils import (
+    representative_zone_name,
+    sort_zone_ids_by_hierarchy,
+)
 
 
 # tolerate variations:

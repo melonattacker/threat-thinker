@@ -6,7 +6,12 @@ import json
 from typing import Callable, Dict, List, Optional
 
 from threat_thinker.models import Graph, Threat
-from threat_thinker.constants import HINT_SYSTEM, HINT_INSTRUCTIONS, LLM_SYSTEM, LLM_INSTRUCTIONS
+from threat_thinker.constants import (
+    HINT_SYSTEM,
+    HINT_INSTRUCTIONS,
+    LLM_SYSTEM,
+    LLM_INSTRUCTIONS,
+)
 from .client import LLMClient
 from .response_utils import safe_json_loads
 
