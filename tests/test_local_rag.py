@@ -1,13 +1,13 @@
 import numpy as np
 
-from models import Graph, Node, Edge
-from rag import (
+from threat_thinker.models import Graph, Node, Edge
+from threat_thinker.rag import (
     build_kb,
     search_kb,
     retrieve_context_for_graph,
     generate_graph_query,
 )
-import rag.local as rag_local
+import threat_thinker.rag.local as rag_local
 
 
 def _fake_embed(texts, model):

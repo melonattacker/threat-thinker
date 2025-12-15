@@ -93,7 +93,7 @@ cd threat-thinker
 
 uv venv
 source .venv/bin/activate
-uv pip install -e . -r requirements.txt
+uv pip install -e .
 ```
 
 ### CLI Usage

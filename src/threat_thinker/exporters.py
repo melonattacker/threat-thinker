@@ -7,8 +7,8 @@ import json
 from html import escape
 from typing import Any, Dict, List, Optional, Tuple
 
-from models import Edge, Graph, ImportMetrics, Node, Threat
-from zone_utils import zone_path_names
+from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Threat
+from threat_thinker.zone_utils import zone_path_names
 
 # Token budget sized for multi-section narrative diff explanations.
 DIFF_EXPLANATION_MAX_TOKENS = 1800
@@ -1036,8 +1036,8 @@ def diff_reports(
     ]
 
     # Generate LLM explanation
-    from llm.inference import _get_language_name
-    from llm.client import LLMClient
+    from threat_thinker.llm.inference import _get_language_name
+    from threat_thinker.llm.client import LLMClient
 
     # Create summary for LLM
     diff_summary = {

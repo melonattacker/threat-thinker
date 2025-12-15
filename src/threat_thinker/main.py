@@ -47,17 +47,17 @@ import sys
 import time
 from pathlib import Path
 
-from parsers.mermaid_parser import parse_mermaid
-from parsers.drawio_parser import parse_drawio
-from parsers.image_parser import parse_image
-from parsers.threat_dragon_parser import (
+from threat_thinker.parsers.mermaid_parser import parse_mermaid
+from threat_thinker.parsers.drawio_parser import parse_drawio
+from threat_thinker.parsers.image_parser import parse_image
+from threat_thinker.parsers.threat_dragon_parser import (
     is_threat_dragon_json,
     parse_threat_dragon,
 )
-from hint_processor import apply_hints, merge_llm_hints
-from llm.inference import llm_infer_hints, llm_infer_threats
-from threat_analyzer import denoise_threats
-from exporters import (
+from threat_thinker.hint_processor import apply_hints, merge_llm_hints
+from threat_thinker.llm.inference import llm_infer_hints, llm_infer_threats
+from threat_thinker.threat_analyzer import denoise_threats
+from threat_thinker.exporters import (
     export_json,
     export_md,
     diff_reports,
@@ -65,8 +65,8 @@ from exporters import (
     export_html,
     export_threat_dragon,
 )
-from cliui import ui, set_verbose
-from rag import (
+from threat_thinker.cliui import ui, set_verbose
+from threat_thinker.rag import (
     KnowledgeBaseError,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_TOKENS,
@@ -79,6 +79,7 @@ from rag import (
     retrieve_context_for_graph,
     get_kb_root,
 )
+import threat_thinker.webui as webui
 
 
 def _normalize_embed_model(embed_arg: str) -> str:
@@ -889,7 +890,6 @@ def main():
         ui.info(f"Diff completed in {processing_time:.1f}s")
     elif args.cmd == "webui":
         ui.info("Starting Threat Thinker Web UI")
-        import webui
 
         webui.launch_webui(
             server_name=args.host,

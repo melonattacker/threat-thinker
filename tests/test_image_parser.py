@@ -9,14 +9,14 @@ import json
 import base64
 from unittest.mock import patch, MagicMock
 
-from src.parsers.image_parser import (
+from threat_thinker.parsers.image_parser import (
     parse_image,
     _encode_image_to_base64,
     _analyze_image_with_llm,
     _parse_llm_response_to_graph,
 )
-from src.models import Graph, ImportMetrics
-from src.llm.response_utils import clean_json_response, safe_json_loads
+from threat_thinker.models import Graph, ImportMetrics
+from threat_thinker.llm.response_utils import clean_json_response, safe_json_loads
 
 
 class TestImageParser(unittest.TestCase):
@@ -201,7 +201,7 @@ class TestImageParser(unittest.TestCase):
         self.assertEqual(edge.dst, "valid_node")
         self.assertEqual(edge.label, "Self loop")
 
-    @patch("src.parsers.image_parser.LLMClient")
+    @patch("threat_thinker.parsers.image_parser.LLMClient")
     def test_analyze_image_with_llm_success(self, mock_llm_client_class):
         """Test successful image analysis with mocked LLM."""
         # Mock LLM client
@@ -235,7 +235,7 @@ class TestImageParser(unittest.TestCase):
         self.assertEqual(call_args[1]["base64_image"], "fake_base64_data")
         self.assertEqual(call_args[1]["media_type"], "image/png")
 
-    @patch("src.parsers.image_parser.LLMClient")
+    @patch("threat_thinker.parsers.image_parser.LLMClient")
     def test_analyze_image_with_llm_failure(self, mock_llm_client_class):
         """Test image analysis with LLM failure."""
         # Mock LLM client that raises exception
@@ -249,7 +249,7 @@ class TestImageParser(unittest.TestCase):
         # Should return empty dict on failure
         self.assertEqual(result, {})
 
-    @patch("src.parsers.image_parser._analyze_image_with_llm")
+    @patch("threat_thinker.parsers.image_parser._analyze_image_with_llm")
     def test_parse_image_integration(self, mock_analyze):
         """Test full parse_image function integration."""
         # Mock LLM analysis

@@ -9,8 +9,8 @@ import tempfile
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from parsers.mermaid_parser import parse_mermaid
-from models import Graph, ImportMetrics
+from threat_thinker.parsers.mermaid_parser import parse_mermaid
+from threat_thinker.models import Graph, ImportMetrics
 
 
 class TestParseMermaid:

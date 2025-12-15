@@ -1,7 +1,7 @@
 import gradio as gr
 import pytest
 
-import webui
+import threat_thinker.webui as webui
 
 
 def test_normalize_embed_model():

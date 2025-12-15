@@ -14,10 +14,10 @@ import html
 
 import gradio as gr
 
-import main as cli
-from parsers.image_parser import parse_image
-from exporters import diff_reports, export_diff_md
-from rag import (
+import threat_thinker.main as cli
+from threat_thinker.parsers.image_parser import parse_image
+from threat_thinker.exporters import diff_reports, export_diff_md
+from threat_thinker.rag import (
     KnowledgeBaseError,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_TOKENS,
@@ -29,7 +29,7 @@ from rag import (
     remove_kb,
     retrieve_context_for_graph,
 )
-from rag.local import SUPPORTED_EXTENSIONS
+from threat_thinker.rag.local import SUPPORTED_EXTENSIONS
 
 
 _DOWNLOAD_PATHS: set[str] = set()

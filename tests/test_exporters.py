@@ -10,8 +10,8 @@ import json
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from exporters import export_json, export_md, diff_reports, export_html
-from models import Threat, ImportMetrics, Graph, Node, Edge
+from threat_thinker.exporters import export_json, export_md, diff_reports, export_html
+from threat_thinker.models import Threat, ImportMetrics, Graph, Node, Edge
 
 
 class TestExportJson:

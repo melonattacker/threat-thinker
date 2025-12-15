@@ -5,7 +5,7 @@ from pathlib import Path
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from main import _prepare_diff_output_paths, _prepare_output_paths
+from threat_thinker.main import _prepare_diff_output_paths, _prepare_output_paths
 
 
 def test_prepare_output_paths_uses_diagram_stem(tmp_path: Path):

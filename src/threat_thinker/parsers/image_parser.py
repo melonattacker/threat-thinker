@@ -7,10 +7,10 @@ import os
 from typing import Dict, Tuple
 from pathlib import Path
 
-from models import Edge, Graph, ImportMetrics, Node
-from llm.client import LLMClient
-from llm.response_utils import safe_json_loads
-from zone_utils import (
+from threat_thinker.models import Edge, Graph, ImportMetrics, Node
+from threat_thinker.llm.client import LLMClient
+from threat_thinker.llm.response_utils import safe_json_loads
+from threat_thinker.zone_utils import (
     compute_zone_tree_from_rectangles,
     containing_zone_ids_for_point,
     representative_zone_name,
