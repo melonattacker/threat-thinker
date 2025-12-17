@@ -1,0 +1,48 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["threat-thinker", "serve", "--config", "/config/serve.yaml"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SERVE_API_KEYS=${SERVE_API_KEYS:-tt-demo-key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - ../configs/serve.example.yaml:/config/serve.yaml:ro
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["threat-thinker", "worker", "--config", "/config/serve.yaml"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SERVE_API_KEYS=${SERVE_API_KEYS:-tt-demo-key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - ../configs/serve.example.yaml:/config/serve.yaml:ro
+    depends_on:
+      - redis
+    restart: unless-stopped

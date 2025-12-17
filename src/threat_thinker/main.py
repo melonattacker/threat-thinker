@@ -42,6 +42,7 @@ Examples:
 
 import argparse
 import json
+import logging
 import os
 import sys
 import time
@@ -79,7 +80,11 @@ from threat_thinker.rag import (
     retrieve_context_for_graph,
     get_kb_root,
 )
+from threat_thinker.serve.api import create_app
+from threat_thinker.serve.config import load_config
+from threat_thinker.worker.main import run_worker
 import threat_thinker.webui as webui
+import uvicorn
 
 
 def _normalize_embed_model(embed_arg: str) -> str:
@@ -328,6 +333,16 @@ def main():
         help="Interface to bind (default: 127.0.0.1)",
     )
     p_webui.add_argument("--port", type=int, help="Port to bind")
+
+    p_serve = sub.add_parser("serve", help="Run the FastAPI serve endpoint")
+    p_serve.add_argument(
+        "--config", type=str, required=True, help="Path to serve YAML configuration"
+    )
+
+    p_worker = sub.add_parser("worker", help="Run the background analysis worker")
+    p_worker.add_argument(
+        "--config", type=str, required=True, help="Path to serve YAML configuration"
+    )
 
     args = p.parse_args()
 
@@ -888,6 +903,20 @@ def main():
         end_time = time.time()
         processing_time = end_time - start_time
         ui.info(f"Diff completed in {processing_time:.1f}s")
+    elif args.cmd == "serve":
+        cfg = load_config(args.config)
+        logging.basicConfig(level=cfg.observability.log_level.upper())
+        app = create_app(cfg)
+        uvicorn.run(
+            app,
+            host=cfg.server.bind,
+            port=cfg.server.port,
+            log_level=cfg.observability.log_level.lower(),
+        )
+    elif args.cmd == "worker":
+        cfg = load_config(args.config)
+        logging.basicConfig(level=cfg.observability.log_level.upper())
+        run_worker(cfg)
     elif args.cmd == "webui":
         ui.info("Starting Threat Thinker Web UI")
 
