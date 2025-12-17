@@ -17,6 +17,7 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from redis.asyncio import from_url as redis_from_url
 
 from threat_thinker.serve.auth import APIKeyAuthenticator
@@ -42,6 +43,42 @@ from threat_thinker.serve.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _apply_security_schemes(app: FastAPI, config: ServeConfig) -> None:
+    """Inject security schemes so Swagger UI exposes the Authorize button."""
+    auth = config.security.auth
+    scheme_name = "ApiKeyAuth"
+
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        components = openapi_schema.setdefault("components", {})
+        security_schemes = components.setdefault("securitySchemes", {})
+        if auth.scheme == "bearer":
+            security_schemes[scheme_name] = {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        else:
+            security_schemes[scheme_name] = {
+                "type": "apiKey",
+                "in": "header",
+                "name": auth.header_name or "Authorization",
+            }
+        openapi_schema["security"] = [{scheme_name: []}]
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    if config.server.openapi.enabled:
+        app.openapi = custom_openapi  # type: ignore[assignment]
 
 
 def _detect_input_type(filename: Optional[str]) -> Optional[str]:
@@ -114,6 +151,7 @@ def create_app(config: ServeConfig) -> FastAPI:
     redis = redis_from_url(config.queue.redis_url, decode_responses=True)
     job_store = AsyncJobStore(redis, config.queue)
     rate_limiter = RateLimiter(redis, config.security.rate_limit)
+    _apply_security_schemes(app, config)
 
     async def auth_dep(request: Request) -> Optional[str]:
         return authenticator.authenticate(request)

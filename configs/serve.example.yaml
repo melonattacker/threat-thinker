@@ -14,7 +14,7 @@ security:
     mode: "api_key"
     scheme: "bearer"
     header_name: "Authorization"
-    api_keys: "{$SERVE_API_KEYS}"
+    api_keys: "$SERVE_API_KEYS"
   rate_limit:
     enabled: true
     scope: "ip"
@@ -35,7 +35,7 @@ security:
 
 queue:
   backend: "redis"
-  redis_url: "redis://redis:6379/0"
+  redis_url: "$REDIS_URL"
   queue_key: "tt:queue"
   job_key_prefix: "tt:job"
   job_ttl_seconds: 900
