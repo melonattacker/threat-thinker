@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-DEFAULT_ALLOWED_INPUTS = ["mermaid", "drawio", "threat_dragon", "image"]
+DEFAULT_ALLOWED_INPUTS = ["mermaid", "drawio", "threat-dragon", "image"]
 DEFAULT_ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"]
 
 

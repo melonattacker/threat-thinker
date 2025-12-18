@@ -44,7 +44,7 @@ engine:
   allowed_inputs:
     - "mermaid"
     - "drawio"
-    - "threat_dragon"
+    - "threat-dragon"
     - "image"
   autodetect: true
   report:

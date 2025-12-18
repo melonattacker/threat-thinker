@@ -49,7 +49,12 @@ logger = logging.getLogger(__name__)
 
 
 def _extension_for_format(fmt: str) -> str:
-    return {"markdown": ".md", "html": ".html", "json": ".json"}.get(fmt, ".txt")
+    return {
+        "markdown": ".md",
+        "html": ".html",
+        "json": ".json",
+        "threat-dragon": ".threat-dragon.json",
+    }.get(fmt, ".txt")
 
 
 def _build_zip_bytes(job_id: str, reports: list[ReportContent]) -> bytes:
@@ -108,7 +113,7 @@ def _detect_input_type(filename: Optional[str]) -> Optional[str]:
     if name.endswith((".drawio", ".xml")):
         return "drawio"
     if name.endswith(".json"):
-        return "threat_dragon"
+        return "threat-dragon"
     if name.endswith((".png", ".jpg", ".jpeg", ".webp")):
         return "image"
     return None
@@ -129,7 +134,7 @@ def _validate_body_size(request: Request, limit: int) -> None:
 
 
 def _normalize_options(opts: AnalyzeOptions, config: ServeConfig) -> AnalyzeOptions:
-    allowed: set[ReportFormat] = {"markdown", "html", "json"}
+    allowed: set[ReportFormat] = {"markdown", "html", "json", "threat-dragon"}
     formats = [fmt for fmt in opts.report_formats if fmt in allowed]
     if opts.report_format and opts.report_format in allowed:
         # keep deprecated field as a single-item list if no other formats supplied

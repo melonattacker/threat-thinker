@@ -8,7 +8,7 @@ JobStatus = Literal["queued", "running", "succeeded", "failed", "expired"]
 
 
 class InputPayload(BaseModel):
-    type: Literal["mermaid", "drawio", "threat_dragon", "image"]
+    type: Literal["mermaid", "drawio", "threat-dragon", "image"]
     content: Optional[str] = None
     filename: Optional[str] = None
     content_type: Optional[str] = None
@@ -17,7 +17,7 @@ class InputPayload(BaseModel):
     )
 
 
-ReportFormat = Literal["markdown", "html", "json"]
+ReportFormat = Literal["markdown", "html", "json", "threat-dragon"]
 
 
 class AnalyzeOptions(BaseModel):

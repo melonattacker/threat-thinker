@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from threat_thinker.exporters import export_html, export_json, export_md
+from threat_thinker.exporters import export_html, export_json, export_md, export_threat_dragon
 from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.llm.inference import (
     llm_infer_hints,
@@ -75,7 +75,7 @@ def _suffix_for_input(job_input: InputPayload) -> str:
         return ".mmd"
     if job_input.type == "drawio":
         return ".xml"
-    if job_input.type == "threat_dragon":
+    if job_input.type == "threat-dragon":
         return ".json"
     if job_input.type == "image":
         return ".png"
@@ -143,7 +143,7 @@ def analyze_job(
             graph, metrics = parse_mermaid(diagram_path)
         elif job_input.type == "drawio":
             graph, metrics = parse_drawio(diagram_path)
-        elif job_input.type == "threat_dragon":
+        elif job_input.type == "threat-dragon":
             graph, metrics = parse_threat_dragon(diagram_path)
         elif job_input.type == "image":
             graph, metrics = parse_image(
@@ -209,12 +209,16 @@ def analyze_job(
         formats = opts.report_formats or [engine.report.default_format]
         reports: list[ReportEntry] = []
         for fmt in formats:
+            if fmt == "threat-dragon" and job_input.type != "threat-dragon":
+                raise AnalysisError("Threat Dragon report is only available for Threat Dragon inputs.")
             if fmt == "markdown":
                 content = export_md(threats)
             elif fmt == "html":
                 content = export_html(threats, graph=graph)
             elif fmt == "json":
                 content = export_json(threats, out_path=None, metrics=metrics, graph=graph)
+            elif fmt == "threat-dragon":
+                content = export_threat_dragon(threats, graph, None)
             else:
                 raise AnalysisError(f"Unsupported report format: {fmt}")
             reports.append(ReportEntry(report_format=fmt, content=content))
