@@ -39,6 +39,9 @@ def test_generic_env_expansion(tmp_path: Path, monkeypatch):
     config_path = tmp_path / "serve.yaml"
     config_path.write_text(
         """
+security:
+  auth:
+    api_keys: "${SERVE_API_KEYS}"
 queue:
   redis_url: "${CUSTOM_REDIS_URL:-redis://fallback:6379/0}"
 engine:
@@ -47,6 +50,7 @@ engine:
 """,
         encoding="utf-8",
     )
+    monkeypatch.setenv("SERVE_API_KEYS", "keyA,keyB")
     monkeypatch.setenv("CUSTOM_REDIS_URL", "redis://custom:6380/2")
     monkeypatch.setenv("MODEL_NAME", "custom-model")
 

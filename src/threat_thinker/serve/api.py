@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import logging
+import zipfile
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +14,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Response,
     Request,
     UploadFile,
     status,
@@ -43,6 +46,21 @@ from threat_thinker.serve.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _extension_for_format(fmt: str) -> str:
+    return {"markdown": ".md", "html": ".html", "json": ".json"}.get(fmt, ".txt")
+
+
+def _build_zip_bytes(job_id: str, reports: list[ReportContent]) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for entry in reports:
+            suffix = _extension_for_format(entry.report_format)
+            filename = f"threat-thinker-{job_id}{suffix}"
+            zf.writestr(filename, entry.content or "")
+    buffer.seek(0)
+    return buffer.read()
 
 
 def _apply_security_schemes(app: FastAPI, config: ServeConfig) -> None:
@@ -331,5 +349,31 @@ def create_app(config: ServeConfig) -> FastAPI:
             duration_ms=int(result["duration_ms"]) if result.get("duration_ms") else None,
             model=result.get("model"),
         )
+
+    @app.get("/v1/jobs/{job_id}/result.zip")
+    async def download_result(job_id: str, _api_key: Optional[str] = Depends(auth_dep)):
+        result = await job_store.get_result(job_id)
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Result not available.",
+            )
+        reports = result.get("reports") or []
+        parsed_reports = [
+            ReportContent(report_format=entry.get("report_format"), content=entry.get("content", ""))
+            for entry in reports
+            if entry.get("report_format")
+        ]
+        if not parsed_reports:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No report content found for this job.",
+            )
+        zip_bytes = _build_zip_bytes(job_id, parsed_reports)
+        headers = {
+            "Content-Type": "application/zip",
+            "Content-Disposition": f'attachment; filename="threat-thinker-{job_id}.zip"',
+        }
+        return Response(content=zip_bytes, media_type="application/zip", headers=headers)
 
     return app
