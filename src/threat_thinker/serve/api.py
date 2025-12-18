@@ -300,14 +300,14 @@ def create_app(config: ServeConfig) -> FastAPI:
         return JobResponse(job_id=job_id, status=STATUS_QUEUED)
 
     @app.get("/v1/jobs/{job_id}", response_model=JobStatusResponse)
-    async def get_job(job_id: str, _api_key: Optional[str] = Depends(rate_dep)):
+    async def get_job(job_id: str, _api_key: Optional[str] = Depends(auth_dep)):
         status_payload = await job_store.get_status(job_id)
         if status_payload["status"] == STATUS_EXPIRED:
             return JobStatusResponse(job_id=job_id, status=STATUS_EXPIRED)
         return JobStatusResponse(**status_payload)
 
     @app.get("/v1/jobs/{job_id}/result", response_model=JobResultResponse)
-    async def get_result(job_id: str, _api_key: Optional[str] = Depends(rate_dep)):
+    async def get_result(job_id: str, _api_key: Optional[str] = Depends(auth_dep)):
         result = await job_store.get_result(job_id)
         if not result:
             raise HTTPException(
