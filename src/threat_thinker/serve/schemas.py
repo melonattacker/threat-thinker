@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -7,8 +8,15 @@ from pydantic import BaseModel, Field
 JobStatus = Literal["queued", "running", "succeeded", "failed", "expired"]
 
 
+class InputType(str, Enum):
+    MERMAID = "mermaid"
+    DRAWIO = "drawio"
+    THREAT_DRAGON = "threat-dragon"
+    IMAGE = "image"
+
+
 class InputPayload(BaseModel):
-    type: Literal["mermaid", "drawio", "threat-dragon", "image"]
+    type: InputType
     content: Optional[str] = None
     filename: Optional[str] = None
     content_type: Optional[str] = None
@@ -17,13 +25,15 @@ class InputPayload(BaseModel):
     )
 
 
-ReportFormat = Literal["markdown", "html", "json", "threat-dragon"]
+class ReportFormat(str, Enum):
+    MARKDOWN = "markdown"
+    HTML = "html"
+    JSON = "json"
+    THREAT_DRAGON = "threat-dragon"
 
 
-class AnalyzeOptions(BaseModel):
-    report_format: Optional[ReportFormat] = Field(
-        default=None, description="Deprecated: use report_formats for multiple outputs."
-    )
+class AnalyzeRequest(BaseModel):
+    input: InputPayload
     report_formats: List[ReportFormat] = Field(
         default_factory=list, description="List of report formats to produce."
     )
@@ -33,11 +43,6 @@ class AnalyzeOptions(BaseModel):
     min_confidence: float = 0.5
     topn: Optional[int] = 10
     autodetect: bool = True
-
-
-class AnalyzeRequest(BaseModel):
-    input: InputPayload
-    options: AnalyzeOptions = Field(default_factory=AnalyzeOptions)
 
 
 class JobResponse(BaseModel):

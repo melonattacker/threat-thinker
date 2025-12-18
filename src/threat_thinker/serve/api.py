@@ -35,9 +35,9 @@ from threat_thinker.serve.jobstore import (
 )
 from threat_thinker.serve.ratelimit import RateLimiter
 from threat_thinker.serve.schemas import (
-    AnalyzeOptions,
     AnalyzeRequest,
     InputPayload,
+    InputType,
     JobResponse,
     JobResultResponse,
     JobStatusResponse,
@@ -104,18 +104,18 @@ def _apply_security_schemes(app: FastAPI, config: ServeConfig) -> None:
         app.openapi = custom_openapi  # type: ignore[assignment]
 
 
-def _detect_input_type(filename: Optional[str]) -> Optional[str]:
+def _detect_input_type(filename: Optional[str]) -> Optional[InputType]:
     if not filename:
         return None
     name = filename.lower()
     if name.endswith((".mmd", ".mermaid")):
-        return "mermaid"
+        return InputType.MERMAID
     if name.endswith((".drawio", ".xml")):
-        return "drawio"
+        return InputType.DRAWIO
     if name.endswith(".json"):
-        return "threat-dragon"
+        return InputType.THREAT_DRAGON
     if name.endswith((".png", ".jpg", ".jpeg", ".webp")):
-        return "image"
+        return InputType.IMAGE
     return None
 
 
@@ -133,19 +133,15 @@ def _validate_body_size(request: Request, limit: int) -> None:
         return
 
 
-def _normalize_options(opts: AnalyzeOptions, config: ServeConfig) -> AnalyzeOptions:
-    allowed: set[ReportFormat] = {"markdown", "html", "json", "threat-dragon"}
-    formats = [fmt for fmt in opts.report_formats if fmt in allowed]
-    if opts.report_format and opts.report_format in allowed:
-        # keep deprecated field as a single-item list if no other formats supplied
-        formats = formats or [opts.report_format]
+def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeRequest:
+    allowed: set[str] = {"markdown", "html", "json", "threat-dragon"}
+    formats = [str(fmt) for fmt in req.report_formats if str(fmt) in allowed]
     if not formats:
-        formats = [config.engine.report.default_format]  # type: ignore[list-item]
-    opts.report_formats = formats
-    opts.report_format = None
-    if not opts.language:
-        opts.language = config.engine.report.default_language
-    return opts
+        formats = [config.engine.report.default_format]
+    req.report_formats = [ReportFormat(fmt) for fmt in formats]
+    if not req.language:
+        req.language = config.engine.report.default_language
+    return req
 
 
 def create_app(config: ServeConfig) -> FastAPI:
@@ -202,14 +198,20 @@ def create_app(config: ServeConfig) -> FastAPI:
         request: Request,
         _api_key: Optional[str] = Depends(rate_dep),
         file: UploadFile = File(None),
-        type: Optional[str] = Form(None),
-        options: Optional[str] = Form(None),
+        type: Optional[InputType] = Form(None),
+        report_formats: Optional[list[ReportFormat]] = Form(["markdown", "html"]),
+        language: Optional[str] = Form("en"),
+        infer_hints: Optional[bool] = Form(True),
+        require_asvs: Optional[bool] = Form(True),
+        min_confidence: Optional[float] = Form(0.5),
+        topn: Optional[int] = Form(5),
+        autodetect: Optional[bool] = Form(False),
     ):
         _validate_body_size(request, config.security.request_limits.max_body_bytes)
 
         if file is not None:
-            input_type = type or _detect_input_type(file.filename) or ""
-            if config.engine.autodetect is False and not type:
+            input_type = type or _detect_input_type(file.filename)
+            if config.engine.autodetect is False and not input_type:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Input type is required.",
@@ -219,13 +221,13 @@ def create_app(config: ServeConfig) -> FastAPI:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Unable to detect input type from filename.",
                 )
-            if input_type not in config.engine.allowed_inputs:
+            if str(input_type) not in config.engine.allowed_inputs:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Input type '{input_type}' is not allowed.",
                 )
             raw_bytes = await file.read()
-            if input_type == "image":
+            if input_type == InputType.IMAGE:
                 if file.content_type not in config.security.request_limits.allowed_image_types:
                     raise HTTPException(
                         status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -261,19 +263,19 @@ def create_app(config: ServeConfig) -> FastAPI:
                     content=decoded,
                     content_type=file.content_type,
                 )
-            try:
-                opts_payload = (
-                    AnalyzeOptions.model_validate_json(options)
-                    if options
-                    else AnalyzeOptions()
-                )
-            except Exception as exc:  # noqa: BLE001
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid options payload: {exc}",
-                ) from exc
-            opts_payload = _normalize_options(opts_payload, config)
-            job_payload = AnalyzeRequest(input=input_payload, options=opts_payload)
+
+            req = AnalyzeRequest(
+                input=input_payload,
+                report_formats=report_formats or [],
+                language=language,
+                infer_hints=infer_hints if infer_hints is not None else False,
+                require_asvs=require_asvs if require_asvs is not None else False,
+                min_confidence=min_confidence if min_confidence is not None else 0.5,
+                topn=topn,
+                autodetect=autodetect if autodetect is not None else True,
+            )
+            req = _normalize_request(req, config)
+            job_payload = req
         else:
             try:
                 body = await request.json()
@@ -290,7 +292,7 @@ def create_app(config: ServeConfig) -> FastAPI:
                     detail=f"Invalid analyze request: {exc}",
                 ) from exc
 
-            if job_payload.input.type not in config.engine.allowed_inputs:
+            if str(job_payload.input.type) not in config.engine.allowed_inputs:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Input type '{job_payload.input.type}' is not allowed.",
@@ -310,13 +312,9 @@ def create_app(config: ServeConfig) -> FastAPI:
                     status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                     detail="Diagram text exceeds configured limit.",
                 )
-            job_payload.options = _normalize_options(job_payload.options, config)
+            job_payload = _normalize_request(job_payload, config)
 
         payload_dict = job_payload.model_dump()
-        payload_dict["options"]["report_formats"] = job_payload.options.report_formats
-        payload_dict["options"]["language"] = (
-            job_payload.options.language or config.engine.report.default_language
-        )
 
         job_id = await job_store.enqueue(payload_dict)
         logger.info("Enqueued job %s", job_id)

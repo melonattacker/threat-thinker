@@ -22,7 +22,7 @@ from threat_thinker.parsers.mermaid_parser import parse_mermaid
 from threat_thinker.parsers.threat_dragon_parser import parse_threat_dragon
 from threat_thinker.threat_analyzer import denoise_threats
 from threat_thinker.serve.config import EngineConfig, TimeoutConfig
-from threat_thinker.serve.schemas import AnalyzeOptions, AnalyzeRequest, InputPayload
+from threat_thinker.serve.schemas import AnalyzeRequest, InputPayload
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,6 @@ def analyze_job(
 ) -> AnalysisResult:
     request = AnalyzeRequest.model_validate(payload)
     job_input = request.input
-    opts: AnalyzeOptions = request.options
 
     if job_input.type not in engine.allowed_inputs:
         raise AnalysisError(f"Input type '{job_input.type}' is not allowed.")
@@ -157,7 +156,7 @@ def analyze_job(
         else:
             raise AnalysisError(f"Unsupported input type: {job_input.type}")
 
-        if opts.infer_hints:
+        if request.infer_hints:
             skeleton = json.dumps(
                 {
                     "nodes": [
@@ -180,7 +179,7 @@ def analyze_job(
                     engine.model.aws_profile,
                     engine.model.aws_region,
                     ollama_host,
-                    opts.language or engine.report.default_language,
+                    request.language or engine.report.default_language,
                 )
                 graph = merge_llm_hints(graph, inferred)
             except Exception as exc:
@@ -194,19 +193,19 @@ def analyze_job(
                 engine.model.aws_profile,
                 engine.model.aws_region,
                 ollama_host,
-                opts.language or engine.report.default_language,
+                request.language or engine.report.default_language,
             )
         except Exception as exc:
             raise AnalysisError(f"Threat inference failed: {exc}") from exc
 
         threats = denoise_threats(
             threats,
-            require_asvs=opts.require_asvs,
-            min_confidence=opts.min_confidence,
-            topn=opts.topn,
+            require_asvs=request.require_asvs,
+            min_confidence=request.min_confidence,
+            topn=request.topn,
         )
 
-        formats = opts.report_formats or [engine.report.default_format]
+        formats = request.report_formats or [engine.report.default_format]
         reports: list[ReportEntry] = []
         for fmt in formats:
             if fmt == "threat-dragon" and job_input.type != "threat-dragon":
