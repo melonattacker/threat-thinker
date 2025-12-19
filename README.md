@@ -143,17 +143,6 @@ threat-thinker webui
 
 Then visit http://localhost:7860 to use Threat Thinker interactively.
 
-### Serve API + Docker Compose
-- The `serve` command starts a FastAPI server that exposes `/v1/analyze`, `/v1/jobs/{id}`, and `/v1/jobs/{id}/result` with API key auth.
-- The `worker` command pulls jobs from Redis, runs diagram parsing + threat analysis, and writes results back with TTL.
-- `POST /v1/analyze` supports `report_formats` (e.g., `["markdown","json"]`) to return multiple report formats in a single job.
-- Sample configuration: `configs/serve.example.yaml` (env overrides via `${ENV_NAME}` placeholders).
-- Local demo with Redis, server, and worker:
-
-```bash
-SERVE_API_KEYS=demo-key REDIS_URL=redis://redis:6379/0 docker compose -f docker/compose.yaml up --build
-```
-
 ## Documentation
 - [docs/tutorials.md](./docs/tutorials.md) — Guided runs for web, AWS, and diff scenarios.
 - [docs/cli.md](./docs/cli.md) — Flag reference and examples for think/diff/kb commands.
