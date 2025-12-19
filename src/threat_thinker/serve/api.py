@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import zipfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +20,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from redis.asyncio import from_url as redis_from_url
@@ -36,6 +38,7 @@ from threat_thinker.serve.jobstore import (
 from threat_thinker.serve.ratelimit import RateLimiter
 from threat_thinker.serve.schemas import (
     AnalyzeRequest,
+    AnalyzeOptions,
     InputPayload,
     InputType,
     JobResponse,
@@ -119,6 +122,12 @@ def _detect_input_type(filename: Optional[str]) -> Optional[InputType]:
     return None
 
 
+def _input_type_value(value: object) -> str:
+    if isinstance(value, InputType):
+        return value.value
+    return str(value)
+
+
 def _validate_body_size(request: Request, limit: int) -> None:
     if not limit:
         return
@@ -135,7 +144,12 @@ def _validate_body_size(request: Request, limit: int) -> None:
 
 def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeRequest:
     allowed: set[str] = {"markdown", "html", "json", "threat-dragon"}
-    formats = [str(fmt) for fmt in req.report_formats if str(fmt) in allowed]
+    def _format_value(fmt: object) -> str:
+        if isinstance(fmt, ReportFormat):
+            return fmt.value
+        return str(fmt)
+
+    formats = [_format_value(fmt) for fmt in req.report_formats if _format_value(fmt) in allowed]
     if not formats:
         formats = [config.engine.report.default_format]
     req.report_formats = [ReportFormat(fmt) for fmt in formats]
@@ -144,16 +158,57 @@ def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeReque
     return req
 
 
+def _options_from_request(req: AnalyzeRequest) -> AnalyzeOptions:
+    return AnalyzeOptions(
+        report_formats=req.report_formats,
+        language=req.language,
+        infer_hints=req.infer_hints,
+        require_asvs=req.require_asvs,
+        min_confidence=req.min_confidence,
+        topn=req.topn,
+        autodetect=req.autodetect,
+    )
+
+
+def _analyze_request_body_schema() -> dict:
+    json_schema = AnalyzeRequest.model_json_schema()
+    multipart_schema = {
+        "type": "object",
+        "properties": {
+            "file": {"type": "string", "format": "binary"},
+            "type": {"type": "string", "enum": [t.value for t in InputType]},
+            "options": {
+                "type": "string",
+                "description": "AnalyzeOptions JSON string.",
+            },
+        },
+        "required": ["file"],
+    }
+    return {
+        "required": True,
+        "content": {
+            "application/json": {"schema": json_schema},
+            "multipart/form-data": {"schema": multipart_schema},
+        },
+    }
+
+
 def create_app(config: ServeConfig) -> FastAPI:
     docs_url = "/docs" if config.server.openapi.docs_enabled else None
     redoc_url = "/redoc" if config.server.openapi.redoc_enabled else None
     openapi_url = "/openapi.json" if config.server.openapi.enabled else None
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        await redis.close()
 
     app = FastAPI(
         title="Threat Thinker Serve",
         docs_url=docs_url,
         redoc_url=redoc_url,
         openapi_url=openapi_url,
+        lifespan=lifespan,
         version="0.1.0",
     )
 
@@ -185,33 +240,61 @@ def create_app(config: ServeConfig) -> FastAPI:
             )
         return api_key
 
-    @app.on_event("shutdown")
-    async def _shutdown_event() -> None:
-        await redis.close()
-
     @app.get("/healthz")
     async def healthz():
         return {"status": "ok"}
 
-    @app.post("/v1/analyze", response_model=JobResponse, status_code=status.HTTP_202_ACCEPTED)
+    @app.post(
+        "/v1/analyze",
+        response_model=JobResponse,
+        status_code=status.HTTP_202_ACCEPTED,
+        openapi_extra={"requestBody": _analyze_request_body_schema()},
+    )
     async def analyze(
         request: Request,
         _api_key: Optional[str] = Depends(rate_dep),
-        file: UploadFile = File(None),
-        type: Optional[InputType] = Form(None),
-        report_formats: Optional[list[ReportFormat]] = Form(["markdown", "html"]),
-        language: Optional[str] = Form("en"),
-        infer_hints: Optional[bool] = Form(True),
-        require_asvs: Optional[bool] = Form(True),
-        min_confidence: Optional[float] = Form(0.5),
-        topn: Optional[int] = Form(5),
-        autodetect: Optional[bool] = Form(False),
     ):
         _validate_body_size(request, config.security.request_limits.max_body_bytes)
 
-        if file is not None:
-            input_type = type or _detect_input_type(file.filename)
-            if config.engine.autodetect is False and not input_type:
+        content_type = (request.headers.get("content-type") or "").lower()
+        if content_type.startswith("multipart/form-data"):
+            form = await request.form()
+            file = form.get("file")
+            if file is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="file is required for multipart/form-data requests.",
+                )
+            if not isinstance(file, (UploadFile, StarletteUploadFile)):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid file payload.",
+                )
+            raw_type = form.get("type")
+            input_type = None
+            if raw_type:
+                try:
+                    input_type = InputType(str(raw_type))
+                except ValueError as exc:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid input type: {raw_type}",
+                    ) from exc
+            options = form.get("options")
+            parsed_options = AnalyzeOptions()
+            if options is not None and str(options).strip():
+                try:
+                    parsed_options = AnalyzeOptions.model_validate_json(str(options))
+                except Exception as exc:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid options JSON: {exc}",
+                    ) from exc
+            effective_autodetect = config.engine.autodetect and parsed_options.autodetect
+            input_type = input_type or (
+                _detect_input_type(file.filename) if effective_autodetect else None
+            )
+            if not effective_autodetect and not input_type:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Input type is required.",
@@ -221,10 +304,11 @@ def create_app(config: ServeConfig) -> FastAPI:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Unable to detect input type from filename.",
                 )
-            if str(input_type) not in config.engine.allowed_inputs:
+            input_type_value = _input_type_value(input_type)
+            if input_type_value not in config.engine.allowed_inputs:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Input type '{input_type}' is not allowed.",
+                    detail=f"Input type '{input_type_value}' is not allowed.",
                 )
             raw_bytes = await file.read()
             if input_type == InputType.IMAGE:
@@ -266,13 +350,13 @@ def create_app(config: ServeConfig) -> FastAPI:
 
             req = AnalyzeRequest(
                 input=input_payload,
-                report_formats=report_formats or [],
-                language=language,
-                infer_hints=infer_hints if infer_hints is not None else False,
-                require_asvs=require_asvs if require_asvs is not None else False,
-                min_confidence=min_confidence if min_confidence is not None else 0.5,
-                topn=topn,
-                autodetect=autodetect if autodetect is not None else True,
+                report_formats=parsed_options.report_formats,
+                language=parsed_options.language,
+                infer_hints=parsed_options.infer_hints,
+                require_asvs=parsed_options.require_asvs,
+                min_confidence=parsed_options.min_confidence,
+                topn=parsed_options.topn,
+                autodetect=effective_autodetect,
             )
             req = _normalize_request(req, config)
             job_payload = req
@@ -291,11 +375,14 @@ def create_app(config: ServeConfig) -> FastAPI:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid analyze request: {exc}",
                 ) from exc
+            options = _options_from_request(job_payload)
+            job_payload.autodetect = config.engine.autodetect and options.autodetect
 
-            if str(job_payload.input.type) not in config.engine.allowed_inputs:
+            input_type_value = _input_type_value(job_payload.input.type)
+            if input_type_value not in config.engine.allowed_inputs:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Input type '{job_payload.input.type}' is not allowed.",
+                    detail=f"Input type '{input_type_value}' is not allowed.",
                 )
 
             if job_payload.input.type == "image":

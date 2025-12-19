@@ -32,12 +32,24 @@ class ReportFormat(str, Enum):
     THREAT_DRAGON = "threat-dragon"
 
 
+class AnalyzeOptions(BaseModel):
+    report_formats: List[ReportFormat] = Field(
+        default_factory=list, description="List of report formats to produce."
+    )
+    language: Optional[str] = None
+    infer_hints: bool = False
+    require_asvs: bool = False
+    min_confidence: float = 0.5
+    topn: Optional[int] = 10
+    autodetect: bool = True
+
+
 class AnalyzeRequest(BaseModel):
     input: InputPayload
     report_formats: List[ReportFormat] = Field(
         default_factory=list, description="List of report formats to produce."
     )
-    language: str = "en"
+    language: Optional[str] = None
     infer_hints: bool = False
     require_asvs: bool = False
     min_confidence: float = 0.5
