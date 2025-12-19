@@ -3,6 +3,33 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
 
+  proxy:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command:
+      [
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--app-dir",
+        "/app/examples/demo-app/proxy"
+      ]
+    environment:
+      - TT_BACKEND_URL=http://server:8000
+      - TT_BACKEND_API_KEY=${SERVE_API_KEYS:-tt-demo-key}
+      - DEMO_RATE_LIMIT_RPM=${DEMO_RATE_LIMIT_RPM:-20}
+    volumes:
+      - ./proxy:/app/examples/demo-app/proxy:ro
+    depends_on:
+      - server
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
   server:
     build:
       context: ../..
@@ -21,8 +48,6 @@ services:
       - ./serve.example.yaml:/config/serve.yaml:ro
     depends_on:
       - redis
-    ports:
-      - "8000:8000"
     restart: unless-stopped
 
   worker:

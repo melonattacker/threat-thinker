@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Threat Thinker Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f3ed;
+        --bg-alt: #efe8de;
+        --ink: #151515;
+        --muted: #5b5b5b;
+        --primary: #e15b3d;
+        --primary-dark: #c6472c;
+        --accent: #176b5f;
+        --card: #ffffff;
+        --border: #e4d7c6;
+        --shadow: 0 20px 50px rgba(21, 21, 21, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        background: radial-gradient(circle at top, #fff6e6 0%, var(--bg) 55%, #f0e4d2 100%);
+        color: var(--ink);
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 48px 20px 80px;
+      }
+
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: grid;
+        gap: 28px;
+      }
+
+      header {
+        display: grid;
+        gap: 12px;
+      }
+
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.32em;
+        font-size: 12px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1.1;
+      }
+
+      .subcopy {
+        margin: 0;
+        font-size: 16px;
+        color: var(--muted);
+        max-width: 720px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 22px;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted);
+      }
+
+      select,
+      textarea,
+      input[type="text"] {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        background: #fffdf9;
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 220px;
+        resize: vertical;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button.primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 30px rgba(225, 91, 61, 0.35);
+      }
+
+      button.primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 32px rgba(225, 91, 61, 0.45);
+      }
+
+      button.secondary {
+        background: #f6ede1;
+        color: var(--accent);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .status {
+        font-size: 13px;
+        color: var(--muted);
+        background: #f4ece1;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .status strong {
+        color: var(--ink);
+      }
+
+      .output {
+        display: grid;
+        gap: 12px;
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        border-radius: 16px;
+        background: #111111;
+        color: #f4f0e8;
+        max-height: 320px;
+        overflow: auto;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      .preview {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        background: #fffaf3;
+        min-height: 120px;
+      }
+
+      .toast {
+        display: none;
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        background: #111111;
+        color: #f4f0e8;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+      }
+
+      .toast.show {
+        display: block;
+      }
+
+      @media (max-width: 700px) {
+        .page {
+          padding: 32px 16px 64px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="shell">
+        <header>
+          <div class="eyebrow">Threat Thinker Demo</div>
+          <h1>Turn diagrams into security insights.</h1>
+          <p class="subcopy">
+            Paste Mermaid, draw.io XML, or Threat Dragon JSON. Get a detailed threat analysis report in Markdown and HTML.
+          </p>
+        </header>
+
+        <section class="grid">
+          <div class="card">
+            <h2>Diagram Input</h2>
+            <div class="controls">
+              <div class="row">
+                <div>
+                  <label for="diagramType">Diagram type</label>
+                  <select id="diagramType">
+                    <option value="mermaid">Mermaid</option>
+                    <option value="drawio">draw.io</option>
+                    <option value="threat_dragon">Threat Dragon</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="language">Report language</label>
+                  <select id="language">
+                    <option value="en">EN</option>
+                    <option value="ja">JP</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label for="diagramContent">Diagram content</label>
+                <textarea id="diagramContent" placeholder="Paste your diagram text here..."></textarea>
+              </div>
+              <button class="primary" id="runButton">Run analysis</button>
+              <div class="status">
+                <span>Status: <strong id="statusText">Idle</strong></span>
+                <span id="jobId"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card output">
+            <h2>Markdown Output</h2>
+            <pre id="markdownOutput">Run an analysis to see results.</pre>
+            <div class="row">
+              <button class="secondary" id="previewButton" disabled>Preview</button>
+              <button class="secondary" id="downloadButton" disabled>Download HTML</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>HTML Preview (sanitized)</h2>
+          <div id="preview" class="preview">Preview will appear here after you click Preview.</div>
+        </section>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script>
+      const runButton = document.getElementById("runButton");
+      const previewButton = document.getElementById("previewButton");
+      const downloadButton = document.getElementById("downloadButton");
+      const diagramType = document.getElementById("diagramType");
+      const language = document.getElementById("language");
+      const diagramContent = document.getElementById("diagramContent");
+      const statusText = document.getElementById("statusText");
+      const jobIdEl = document.getElementById("jobId");
+      const markdownOutput = document.getElementById("markdownOutput");
+      const preview = document.getElementById("preview");
+      const toast = document.getElementById("toast");
+
+      let lastResult = null;
+
+      function setStatus(text, jobId = "") {
+        statusText.textContent = text;
+        jobIdEl.textContent = jobId ? `Job: ${jobId}` : "";
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function pollStatus(jobId) {
+        while (true) {
+          const response = await fetch(`/api/jobs/${jobId}`);
+          if (!response.ok) {
+            throw new Error("Failed to fetch job status.");
+          }
+          const data = await response.json();
+          setStatus(data.status, jobId);
+          if (data.status === "succeeded") {
+            return;
+          }
+          if (data.status === "failed" || data.status === "expired") {
+            throw new Error(data.error || "Job failed.");
+          }
+          await sleep(1500);
+        }
+      }
+
+      async function fetchResult(jobId) {
+        const response = await fetch(`/api/jobs/${jobId}/result`);
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}));
+          throw new Error(detail.detail || "Failed to fetch result.");
+        }
+        return response.json();
+      }
+
+      runButton.addEventListener("click", async () => {
+        const content = diagramContent.value.trim();
+        if (!content) {
+          showToast("Please paste diagram content first.");
+          return;
+        }
+
+        runButton.disabled = true;
+        previewButton.disabled = true;
+        downloadButton.disabled = true;
+        markdownOutput.textContent = "Running analysis...";
+        preview.textContent = "Preview will appear here after you click Preview.";
+        setStatus("Submitting...");
+
+        try {
+          const analyzeResponse = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              input: { type: diagramType.value, content },
+              options: { language: language.value },
+            }),
+          });
+
+          if (!analyzeResponse.ok) {
+            const detail = await analyzeResponse.json().catch(() => ({}));
+            throw new Error(detail.detail || "Analyze request failed.");
+          }
+
+          const analyzeData = await analyzeResponse.json();
+          const jobId = analyzeData.job_id;
+          setStatus("queued", jobId);
+          await pollStatus(jobId);
+
+          const resultData = await fetchResult(jobId);
+          lastResult = resultData;
+          markdownOutput.textContent = resultData.reports.markdown || "";
+          previewButton.disabled = false;
+          downloadButton.disabled = false;
+          setStatus("succeeded", jobId);
+        } catch (error) {
+          setStatus("error");
+          showToast(error.message || "Something went wrong.");
+          markdownOutput.textContent = "";
+        } finally {
+          runButton.disabled = false;
+        }
+      });
+
+      previewButton.addEventListener("click", () => {
+        if (!lastResult) {
+          showToast("Run an analysis first.");
+          return;
+        }
+        const rawHtml = marked.parse(lastResult.reports.markdown || "");
+        preview.innerHTML = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
+      });
+
+      downloadButton.addEventListener("click", () => {
+        if (!lastResult) {
+          showToast("Run an analysis first.");
+          return;
+        }
+        const jobId = lastResult.job_id;
+        window.location.href = `/api/jobs/${jobId}/download/html`;
+      });
+    </script>
+  </body>
+</html>
