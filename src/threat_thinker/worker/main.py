@@ -3,7 +3,12 @@ from __future__ import annotations
 import argparse
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    TimeoutError as FuturesTimeout,
+    wait,
+    FIRST_COMPLETED,
+)
 from dataclasses import asdict
 from typing import Optional
 
@@ -53,13 +58,34 @@ def _process_job(job_id: str, store: SyncJobStore, config: ServeConfig) -> None:
 def run_worker(config: ServeConfig) -> None:
     redis = redis_from_url(config.queue.redis_url, decode_responses=True)
     store = SyncJobStore(redis, config.queue)
-    logger.info("Worker started. Listening on queue %s", config.queue.queue_key)
+    max_workers = max(1, config.security.concurrency.max_in_flight_per_worker)
+    logger.info(
+        "Worker started. Listening on queue %s (max_in_flight_per_worker=%s)",
+        config.queue.queue_key,
+        max_workers,
+    )
+    futures = {}
     try:
-        while True:
-            job_id = store.dequeue(timeout=5)
-            if not job_id:
-                continue
-            _process_job(job_id, store, config)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            while True:
+                if len(futures) < max_workers:
+                    job_id = store.dequeue(timeout=5)
+                    if job_id:
+                        future = executor.submit(_process_job, job_id, store, config)
+                        futures[future] = job_id
+                        continue
+                if futures:
+                    done, _ = wait(futures, timeout=1, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        job_id = futures.pop(future, None)
+                        if job_id is None:
+                            continue
+                        try:
+                            future.result()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.exception("Job %s failed with unexpected error", job_id)
+                else:
+                    time.sleep(0.2)
     except KeyboardInterrupt:
         logger.info("Worker interrupted, shutting down.")
     finally:

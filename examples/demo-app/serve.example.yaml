@@ -18,7 +18,7 @@ security:
   rate_limit:
     enabled: true
     scope: "ip"
-    requests_per_minute: 10
+    requests_per_minute: 3
   request_limits:
     max_body_bytes: 8000000
     max_files: 1
@@ -31,7 +31,7 @@ security:
   timeouts:
     analyze_seconds: 90
   concurrency:
-    max_in_flight_per_worker: 1
+    max_in_flight_per_worker: 2
 
 queue:
   backend: "redis"
