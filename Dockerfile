@@ -10,6 +10,6 @@ COPY src /app/src
 
 RUN pip install --no-cache-dir .
 
-COPY configs/serve.example.yaml /config/serve.example.yaml
+COPY examples/demo-app/serve.example.yaml /config/serve.example.yaml
 
 CMD ["threat-thinker", "serve", "--config", "/config/serve.example.yaml"]

@@ -28,14 +28,14 @@ This document describes how human contributors and AI assistants should operate 
 - `examples/`: canonical diagrams (`.mmd`, `.xml`, `.png`) and sample reports under `examples/**/reports/`.
 - `reports/`: generated analysis artifacts in Markdown/JSON/HTML; never hand-edit these.
 - `benchmarking/`: notebooks/scripts for perf or accuracy comparisons.
-- `configs/`: configuration templates (e.g., `configs/serve.example.yaml`).
+- `examples/demo-app/`: sample service configuration and Docker Compose setup.
 - Root configuration: `pyproject.toml`, `pytest.ini`, `requirements.txt` (Ruff config lives in `pyproject.toml`).
 - `dist/`: built artifacts; do not edit by hand.
 
 ## 3. Execution Modes & Entry Points
 - **CLI**: `think`, `diff`, `kb` for local usage and automation.
 - **Web UI**: `webui` launches Gradio (default `http://localhost:7860`).
-- **API service**: `serve` runs a FastAPI server configured via YAML (`configs/serve.example.yaml`).
+- **API service**: `serve` runs a FastAPI server configured via YAML (`examples/demo-app/serve.example.yaml`).
 - **Worker**: `worker` processes queued analysis jobs for the API service.
 
 ## 4. Development Workflow
@@ -117,8 +117,8 @@ This document describes how human contributors and AI assistants should operate 
 - **Knowledge Base (RAG)**: data lives under `~/.threat-thinker/kb/<name>/{raw,chunks,index}` (see `rag/`). Guard against corrupt KBs by raising `KnowledgeBaseError`.
 - **Export Surfaces**: Markdown/HTML outputs are reviewer-friendly; JSON feeds automation and diffing. Maintain schema stability: version keys in JSON and reflect changes in tests.
 - **Threat Dragon**: import v2 JSON with `--threat-dragon` and export updated Threat Dragon JSON; keep layout metadata intact.
-- **API Service**: configuration is YAML-driven (see `configs/serve.example.yaml`), and the worker is required to process queued analysis jobs.
-- **Docker**: `docker/compose.yaml` exists for service-oriented setups; keep secrets out of version control.
+- **API Service**: configuration is YAML-driven (see `examples/demo-app/serve.example.yaml`), and the worker is required to process queued analysis jobs.
+- **Docker**: `examples/demo-app/compose.yaml` and `examples/demo-app/.env` exist for service-oriented setups; keep secrets out of version control. The Dockerfile lives at `Dockerfile`.
 - **Benchmarks**: store notebooks/scripts in `benchmarking/` and keep dependencies optional; document reproduction steps if numbers appear in README/docs.
 
 ## 9. Examples & Playbooks

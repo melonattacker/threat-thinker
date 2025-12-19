@@ -5,8 +5,8 @@ services:
 
   server:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../..
+      dockerfile: Dockerfile
     command: ["threat-thinker", "serve", "--config", "/config/serve.yaml"]
     environment:
       - REDIS_URL=redis://redis:6379/0
@@ -18,7 +18,7 @@ services:
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     volumes:
-      - ../configs/serve.example.yaml:/config/serve.yaml:ro
+      - ./serve.example.yaml:/config/serve.yaml:ro
     depends_on:
       - redis
     ports:
@@ -27,8 +27,8 @@ services:
 
   worker:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../..
+      dockerfile: Dockerfile
     command: ["threat-thinker", "worker", "--config", "/config/serve.yaml"]
     environment:
       - REDIS_URL=redis://redis:6379/0
@@ -40,7 +40,7 @@ services:
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     volumes:
-      - ../configs/serve.example.yaml:/config/serve.yaml:ro
+      - ./serve.example.yaml:/config/serve.yaml:ro
     depends_on:
       - redis
     restart: unless-stopped

@@ -2,7 +2,7 @@
 
 `threat-thinker serve` and `threat-thinker worker` load the same YAML configuration file.
 This guide documents the schema defined in `src/threat_thinker/serve/config.py` and uses
-`configs/serve.example.yaml` as a sample starting point, not a mandatory template.
+`examples/demo-app/serve.example.yaml` as a sample starting point, not a mandatory template.
 
 > [!WARNING]
 > `serve` and `worker` are intended for internal or private network use only.
@@ -11,8 +11,8 @@ This guide documents the schema defined in `src/threat_thinker/serve/config.py` 
 ## 1. How to Load the Config
 
 ```bash
-threat-thinker serve --config configs/serve.example.yaml
-threat-thinker worker --config configs/serve.example.yaml
+threat-thinker serve --config examples/demo-app/serve.example.yaml
+threat-thinker worker --config examples/demo-app/serve.example.yaml
 ```
 
 - `serve` starts the HTTP API server.
@@ -185,7 +185,7 @@ security:
 
 ## 5. Full Example (Sample)
 
-`configs/serve.example.yaml` is a **sample** that demonstrates all fields. Use it as a
+`examples/demo-app/serve.example.yaml` is a **sample** that demonstrates all fields. Use it as a
 starting point and override only what you need for your environment.
 
 ```yaml
@@ -256,4 +256,4 @@ observability:
 - `security.auth.mode: api_key` with no API keys configured results in a startup error.
 - `queue.backend` values other than `redis` result in a startup error.
 
-If you are unsure, start from `configs/serve.example.yaml` and apply minimal overrides.
+If you are unsure, start from `examples/demo-app/serve.example.yaml` and apply minimal overrides.

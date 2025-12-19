@@ -128,10 +128,10 @@ threat-thinker think \
     --out-dir reports/
 
 # Serve: Launch API server
-threat-thinker serve --config configs/serve.example.yaml
+threat-thinker serve --config examples/demo-app/serve.example.yaml
 
 # Worker: Start background processor for queued jobs
-threat-thinker worker --config configs/serve.example.yaml
+threat-thinker worker --config examples/demo-app/serve.example.yaml
 ```
 
 ### Web UI
