@@ -120,6 +120,7 @@ async def analyze(payload: AnalyzeRequest) -> JSONResponse:
         },
         "report_formats": ["markdown", "html"],
         "language": payload.options.language,
+        "topn": 5,
     }
 
     response = _backend_request(

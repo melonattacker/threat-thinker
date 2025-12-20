@@ -288,7 +288,7 @@
         </section>
 
         <section class="card">
-          <h2>HTML Preview (sanitized)</h2>
+          <h2>HTML Preview</h2>
           <div id="preview" class="preview">Preview will appear here after you click Preview.</div>
         </section>
       </div>
@@ -297,8 +297,13 @@
     <div class="toast" id="toast"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.3.1/dist/purify.min.js"></script>
     <script>
+      const DEFAULT_MERMAID = `graph LR
+  user[User] --> api((API Gateway))
+  api --> app[App Service]
+  app --> db[(Customer DB)]`;
+
       const runButton = document.getElementById("runButton");
       const previewButton = document.getElementById("previewButton");
       const downloadButton = document.getElementById("downloadButton");
@@ -312,6 +317,18 @@
       const toast = document.getElementById("toast");
 
       let lastResult = null;
+
+      function applyMermaidDefault() {
+        if (diagramType.value !== "mermaid") {
+          return;
+        }
+        if (!diagramContent.value.trim()) {
+          diagramContent.value = DEFAULT_MERMAID;
+        }
+      }
+
+      applyMermaidDefault();
+      diagramType.addEventListener("change", applyMermaidDefault);
 
       function setStatus(text, jobId = "") {
         statusText.textContent = text;
