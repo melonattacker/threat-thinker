@@ -342,7 +342,7 @@
           if (data.status === "failed" || data.status === "expired") {
             throw new Error(data.error || "Job failed.");
           }
-          await sleep(1500);
+          await sleep(5000);
         }
       }
 

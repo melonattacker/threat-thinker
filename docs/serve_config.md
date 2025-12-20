@@ -95,6 +95,8 @@ security:
     enabled: true
     scope: "ip"               # ip | api_key
     requests_per_minute: 10
+    trust_proxy_headers: false
+    trusted_proxies: []       # Optional list of proxy IPs/CIDRs
   request_limits:
     max_body_bytes: 8000000
     max_files: 1
@@ -115,6 +117,8 @@ Notes:
   - Provide it in YAML or via `SERVE_API_KEYS` or `SERVE_API_KEY`.
 - With `auth.scheme = bearer`, clients must send `Authorization: Bearer <token>`.
 - `rate_limit.scope = api_key` applies rate limiting per API key.
+- Enable `rate_limit.trust_proxy_headers` only when requests arrive through a trusted proxy.
+  If `trusted_proxies` is empty, all proxies are trusted once `trust_proxy_headers` is enabled.
 
 ### 3.3 queue
 Job queue settings. Only **Redis is supported** at the moment.
@@ -211,6 +215,9 @@ security:
     enabled: true
     scope: "api_key"
     requests_per_minute: 30
+    trust_proxy_headers: true
+    trusted_proxies:
+      - "10.0.0.0/8"
   request_limits:
     max_body_bytes: 8000000
     max_files: 1

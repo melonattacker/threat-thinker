@@ -35,7 +35,7 @@ from threat_thinker.serve.jobstore import (
     STATUS_RUNNING,
     STATUS_SUCCEEDED,
 )
-from threat_thinker.serve.ratelimit import RateLimiter
+from threat_thinker.serve.ratelimit import RateLimiter, resolve_client_ip
 from threat_thinker.serve.schemas import (
     AnalyzeRequest,
     AnalyzeOptions,
@@ -231,7 +231,9 @@ def create_app(config: ServeConfig) -> FastAPI:
         return authenticator.authenticate(request)
 
     async def rate_dep(request: Request, api_key: Optional[str] = Depends(auth_dep)):
-        scope_key = rate_limiter.scope_key(request.client.host if request.client else None, api_key)
+        client_host = request.client.host if request.client else None
+        client_ip = resolve_client_ip(client_host, request.headers, config.security.rate_limit)
+        scope_key = rate_limiter.scope_key(client_ip, api_key)
         allowed = await rate_limiter.allow(scope_key)
         if not allowed:
             raise HTTPException(

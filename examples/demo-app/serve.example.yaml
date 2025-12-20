@@ -18,7 +18,9 @@ security:
   rate_limit:
     enabled: true
     scope: "ip"
-    requests_per_minute: 3
+    requests_per_minute: 30
+    trust_proxy_headers: false
+    trusted_proxies: []
   request_limits:
     max_body_bytes: 8000000
     max_files: 1
@@ -52,7 +54,7 @@ engine:
     default_language: "ja"
   model:
     provider: "openai"
-    name: "gpt-4.1-mini"
+    name: "gpt-4.1-nano"
     params:
       temperature: 0.2
       max_output_tokens: 1200

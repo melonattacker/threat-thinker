@@ -57,3 +57,22 @@ engine:
     cfg = load_config(str(config_path))
     assert cfg.queue.redis_url == "redis://custom:6380/2"
     assert cfg.engine.model.name == "custom-model"
+
+
+def test_rate_limit_proxy_settings(tmp_path: Path):
+    config_path = tmp_path / "serve.yaml"
+    config_path.write_text(
+        """
+security:
+  auth:
+    mode: "none"
+  rate_limit:
+    trust_proxy_headers: true
+    trusted_proxies: "10.0.0.0/8,192.168.0.1"
+""",
+        encoding="utf-8",
+    )
+
+    cfg = load_config(str(config_path))
+    assert cfg.security.rate_limit.trust_proxy_headers is True
+    assert cfg.security.rate_limit.trusted_proxies == ["10.0.0.0/8", "192.168.0.1"]

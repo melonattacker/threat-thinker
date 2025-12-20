@@ -52,6 +52,8 @@ class RateLimitConfig:
     enabled: bool = True
     scope: str = "ip"  # ip | api_key
     requests_per_minute: int = 10
+    trust_proxy_headers: bool = False
+    trusted_proxies: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -228,6 +230,8 @@ def _load_security(data: Dict[str, Any]) -> SecurityConfig:
             enabled=bool(rate_data.get("enabled", True)),
             scope=rate_data.get("scope", "ip"),
             requests_per_minute=int(rate_data.get("requests_per_minute", 10)),
+            trust_proxy_headers=bool(rate_data.get("trust_proxy_headers", False)),
+            trusted_proxies=_coerce_list(rate_data.get("trusted_proxies")),
         ),
         request_limits=RequestLimitsConfig(
             max_body_bytes=int(limits_data.get("max_body_bytes", 8_000_000)),
