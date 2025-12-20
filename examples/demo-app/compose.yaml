@@ -69,7 +69,3 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
-
-volumes:
-  caddy_data:
-  caddy_config:
