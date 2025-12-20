@@ -3,19 +3,6 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - proxy
-
   proxy:
     build:
       context: ../..
@@ -27,16 +14,16 @@ services:
         "--host",
         "0.0.0.0",
         "--port",
-        "8001",
+        "8081",
         "--app-dir",
-        "/app/examples/demo-app/proxy",
-        "--proxy-headers",
-        "--forwarded-allow-ips=*"
+        "/app/examples/demo-app/proxy"
       ]
     environment:
       - TT_BACKEND_URL=http://server:8000
       - TT_BACKEND_API_KEY=${SERVE_API_KEYS:-tt-demo-key}
       - DEMO_RATE_LIMIT_RPM=${DEMO_RATE_LIMIT_RPM:-20}
+    ports:
+      - "8081:8081"
     volumes:
       - ./proxy:/app/examples/demo-app/proxy:ro
     depends_on:
