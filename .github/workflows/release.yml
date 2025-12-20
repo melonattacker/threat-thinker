@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag (e.g. v0.4.0)"
+        required: true
+        type: string
+      target_ref:
+        description: "Git ref to release from (branch/sha). Default: main"
+        required: false
+        default: "main"
+        type: string
+      push_latest:
+        description: "Also push :latest tag"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write          # create/push tags, create GitHub Release
+  packages: write          # push to GHCR
+  id-token: write          # keyless cosign
+  actions: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate version format
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ inputs.version }}"
+          if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+].*)?$ ]]; then
+            echo "Invalid version: $v"
+            echo "Expected semver like v0.4.0 (optionally with -rc.1, +meta)"
+            exit 1
+          fi
+
+      - name: Checkout target ref
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 0
+
+      - name: Fail if tag already exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.version }}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag already exists locally: ${tag}"
+            exit 1
+          fi
+          # remote check
+          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
+            echo "Tag already exists on origin: ${tag}"
+            exit 1
+          fi
+
+      - name: Create & push git tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.version }}"
+          sha="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$tag" -m "Release $tag" "$sha"
+          git push origin "refs/tags/$tag"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Compute tmp tag
+        id: tmp
+        shell: bash
+        run: |
+          set -euo pipefail
+          short="$(git rev-parse --short=12 HEAD)"
+          echo "tag=tmp-${short}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image locally (for Trivy scan)
+        id: build_local
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: local-scan:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Security scan with Trivy
+      - name: Trivy scan (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+        with:
+          image-ref: local-scan:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Build & push tmp image
+        id: push_tmp
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tmp.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Sign the image with cosign (keyless)
+      - name: Install cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Cosign sign (keyless)
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          DIGEST: ${{ steps.push_tmp.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Signing ${IMAGE}@${DIGEST}"
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Tag digest as release version
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          DIGEST: ${{ steps.push_tmp.outputs.digest }}
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${IMAGE}:${VERSION}" "${IMAGE}@${DIGEST}"
+
+      - name: Optionally tag :latest (post-sign)
+        if: ${{ inputs.push_latest }}
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          DIGEST: ${{ steps.push_tmp.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${IMAGE}:latest" "${IMAGE}@${DIGEST}"
+
+      # Create GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          prerelease: ${{ contains(inputs.version, '-rc.') || contains(inputs.version, '-beta') || contains(inputs.version, '-alpha') }}
+          tag_name: ${{ inputs.version }}
+          generate_release_notes: true
+          draft: false
