@@ -169,6 +169,13 @@ jobs:
           set -euo pipefail
           docker buildx imagetools create -t "${IMAGE}:latest" "${IMAGE}@${DIGEST}"
 
+      - name: Build Python package (wheel)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade uv
+          uv build
+
       # Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
@@ -177,3 +184,5 @@ jobs:
           tag_name: ${{ inputs.version }}
           generate_release_notes: true
           draft: false
+          files: |
+            dist/*.whl
