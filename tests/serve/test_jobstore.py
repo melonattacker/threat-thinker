@@ -11,7 +11,9 @@ from threat_thinker.serve.jobstore import AsyncJobStore, SyncJobStore, STATUS_SU
 async def test_async_jobstore_roundtrip():
     redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
     store = AsyncJobStore(redis, QueueConfig())
-    job_id = await store.enqueue({"input": {"type": "mermaid", "content": "graph LR;A-->B"}, "options": {}})
+    job_id = await store.enqueue(
+        {"input": {"type": "mermaid", "content": "graph LR;A-->B"}, "options": {}}
+    )
     status = await store.get_status(job_id)
     assert status["status"] == "queued"
 
@@ -32,7 +34,10 @@ def test_sync_jobstore_load_payload_and_status():
     cfg = QueueConfig()
     store = SyncJobStore(redis, cfg)
     job_id = "job123"
-    redis.hset(f"{cfg.job_key_prefix}:{job_id}", mapping={"payload": json.dumps({"hello": "world"})})
+    redis.hset(
+        f"{cfg.job_key_prefix}:{job_id}",
+        mapping={"payload": json.dumps({"hello": "world"})},
+    )
 
     payload = store.load_payload(job_id)
     assert payload == {"hello": "world"}

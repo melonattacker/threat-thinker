@@ -38,7 +38,11 @@ def _process_job(job_id: str, store: SyncJobStore, config: ServeConfig) -> None:
         try:
             result = future.result(timeout=config.security.timeouts.analyze_seconds)
         except FuturesTimeout:
-            logger.error("Job %s timed out after %ss", job_id, config.security.timeouts.analyze_seconds)
+            logger.error(
+                "Job %s timed out after %ss",
+                job_id,
+                config.security.timeouts.analyze_seconds,
+            )
             store.mark_failed(job_id, "Analysis timed out.")
             return
         except AnalysisError as exc:
@@ -83,7 +87,9 @@ def run_worker(config: ServeConfig) -> None:
                         try:
                             future.result()
                         except Exception as exc:  # noqa: BLE001
-                            logger.exception("Job %s failed with unexpected error", job_id)
+                            logger.exception(
+                                "Job %s failed with unexpected error", job_id
+                            )
                 else:
                     time.sleep(0.2)
     except KeyboardInterrupt:
@@ -97,7 +103,9 @@ def run_worker(config: ServeConfig) -> None:
 
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Threat Thinker worker")
-    parser.add_argument("--config", type=str, required=True, help="Path to serve config YAML")
+    parser.add_argument(
+        "--config", type=str, required=True, help="Path to serve config YAML"
+    )
     args = parser.parse_args(argv)
     config = load_config(args.config)
     logging.basicConfig(level=config.observability.log_level.upper())

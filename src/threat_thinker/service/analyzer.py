@@ -10,7 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from threat_thinker.exporters import export_html, export_json, export_md, export_threat_dragon
+from threat_thinker.exporters import (
+    export_html,
+    export_json,
+    export_md,
+    export_threat_dragon,
+)
 from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.llm.inference import (
     llm_infer_hints,
@@ -45,7 +50,9 @@ class AnalysisResult:
 
 
 def _write_temp_text(content: str, suffix: str) -> str:
-    tmp = tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", suffix=suffix)
+    tmp = tempfile.NamedTemporaryFile(
+        "w", delete=False, encoding="utf-8", suffix=suffix
+    )
     try:
         tmp.write(content)
     finally:
@@ -93,11 +100,11 @@ def _assert_provider_ready(
     if prov == "bedrock":
         if not (
             aws_profile
-            or (
-                os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")
-            )
+            or (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
         ):
-            logger.warning("AWS credentials are not fully configured for Bedrock usage.")
+            logger.warning(
+                "AWS credentials are not fully configured for Bedrock usage."
+            )
     if prov == "ollama" and input_type == "image":
         raise AnalysisError("Image inputs are not supported with the Ollama backend.")
 
@@ -209,13 +216,17 @@ def analyze_job(
         reports: list[ReportEntry] = []
         for fmt in formats:
             if fmt == "threat-dragon" and job_input.type != "threat-dragon":
-                raise AnalysisError("Threat Dragon report is only available for Threat Dragon inputs.")
+                raise AnalysisError(
+                    "Threat Dragon report is only available for Threat Dragon inputs."
+                )
             if fmt == "markdown":
                 content = export_md(threats)
             elif fmt == "html":
                 content = export_html(threats, graph=graph)
             elif fmt == "json":
-                content = export_json(threats, out_path=None, metrics=metrics, graph=graph)
+                content = export_json(
+                    threats, out_path=None, metrics=metrics, graph=graph
+                )
             elif fmt == "threat-dragon":
                 content = export_threat_dragon(threats, graph, None)
             else:

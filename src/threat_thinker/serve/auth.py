@@ -51,4 +51,3 @@ class APIKeyAuthenticator:
             cleaned = (key or "").strip()
             if cleaned:
                 self._keys.add(cleaned)
-

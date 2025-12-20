@@ -142,7 +142,9 @@ async def job_status(job_id: str) -> JSONResponse:
 async def job_result(job_id: str) -> JSONResponse:
     response = _backend_request("get", f"/v1/jobs/{job_id}/result")
     if response.status_code != 200:
-        return JSONResponse(status_code=response.status_code, content=_safe_json(response))
+        return JSONResponse(
+            status_code=response.status_code, content=_safe_json(response)
+        )
 
     data = response.json()
     reports = data.get("reports", [])
@@ -166,7 +168,9 @@ async def job_result(job_id: str) -> JSONResponse:
 async def download_html(job_id: str) -> Response:
     response = _backend_request("get", f"/v1/jobs/{job_id}/result")
     if response.status_code != 200:
-        return JSONResponse(status_code=response.status_code, content=_safe_json(response))
+        return JSONResponse(
+            status_code=response.status_code, content=_safe_json(response)
+        )
 
     data = response.json()
     reports = data.get("reports", [])
@@ -175,7 +179,7 @@ async def download_html(job_id: str) -> Response:
         raise HTTPException(status_code=502, detail="Missing HTML report content.")
 
     filename = f"threat-report-{job_id}.html"
-    headers = {"Content-Disposition": f"attachment; filename=\"{filename}\""}
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return Response(content=html, media_type="text/html", headers=headers)
 
 
@@ -192,7 +196,9 @@ def _backend_request(method: str, path: str, **kwargs) -> requests.Response:
             **kwargs,
         )
     except requests.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"Backend request failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Backend request failed: {exc}"
+        ) from exc
 
     return response
 

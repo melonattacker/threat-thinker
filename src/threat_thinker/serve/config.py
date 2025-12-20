@@ -247,16 +247,16 @@ def _load_security(data: Dict[str, Any]) -> SecurityConfig:
             analyze_seconds=int(timeouts_data.get("analyze_seconds", 90))
         ),
         concurrency=ConcurrencyConfig(
-            max_in_flight_per_worker=int(
-                conc_data.get("max_in_flight_per_worker", 1)
-            )
+            max_in_flight_per_worker=int(conc_data.get("max_in_flight_per_worker", 1))
         ),
     )
 
 
 def _load_queue(data: Dict[str, Any]) -> QueueConfig:
     q = data.get("queue", {}) or {}
-    redis_url = q.get("redis_url") or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
+    redis_url = (
+        q.get("redis_url") or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
+    )
     return QueueConfig(
         backend=q.get("backend", "redis"),
         redis_url=redis_url,

@@ -144,12 +144,17 @@ def _validate_body_size(request: Request, limit: int) -> None:
 
 def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeRequest:
     allowed: set[str] = {"markdown", "html", "json", "threat-dragon"}
+
     def _format_value(fmt: object) -> str:
         if isinstance(fmt, ReportFormat):
             return fmt.value
         return str(fmt)
 
-    formats = [_format_value(fmt) for fmt in req.report_formats if _format_value(fmt) in allowed]
+    formats = [
+        _format_value(fmt)
+        for fmt in req.report_formats
+        if _format_value(fmt) in allowed
+    ]
     if not formats:
         formats = [config.engine.report.default_format]
     req.report_formats = [ReportFormat(fmt) for fmt in formats]
@@ -232,7 +237,9 @@ def create_app(config: ServeConfig) -> FastAPI:
 
     async def rate_dep(request: Request, api_key: Optional[str] = Depends(auth_dep)):
         client_host = request.client.host if request.client else None
-        client_ip = resolve_client_ip(client_host, request.headers, config.security.rate_limit)
+        client_ip = resolve_client_ip(
+            client_host, request.headers, config.security.rate_limit
+        )
         scope_key = rate_limiter.scope_key(client_ip, api_key)
         allowed = await rate_limiter.allow(scope_key)
         if not allowed:
@@ -292,7 +299,9 @@ def create_app(config: ServeConfig) -> FastAPI:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Invalid options JSON: {exc}",
                     ) from exc
-            effective_autodetect = config.engine.autodetect and parsed_options.autodetect
+            effective_autodetect = (
+                config.engine.autodetect and parsed_options.autodetect
+            )
             input_type = input_type or (
                 _detect_input_type(file.filename) if effective_autodetect else None
             )
@@ -314,7 +323,10 @@ def create_app(config: ServeConfig) -> FastAPI:
                 )
             raw_bytes = await file.read()
             if input_type == InputType.IMAGE:
-                if file.content_type not in config.security.request_limits.allowed_image_types:
+                if (
+                    file.content_type
+                    not in config.security.request_limits.allowed_image_types
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                         detail="Image content type not allowed.",
@@ -395,7 +407,8 @@ def create_app(config: ServeConfig) -> FastAPI:
 
             if (
                 job_payload.input.content
-                and len(job_payload.input.content) > config.security.request_limits.max_text_chars
+                and len(job_payload.input.content)
+                > config.security.request_limits.max_text_chars
             ):
                 raise HTTPException(
                     status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -426,19 +439,25 @@ def create_app(config: ServeConfig) -> FastAPI:
             )
         reports = result.get("reports") or []
         parsed_reports = [
-            ReportContent(report_format=entry.get("report_format"), content=entry.get("content", ""))
+            ReportContent(
+                report_format=entry.get("report_format"),
+                content=entry.get("content", ""),
+            )
             for entry in reports
             if entry.get("report_format")
         ]
         if not parsed_reports and result.get("report_format"):
             parsed_reports = [
                 ReportContent(
-                    report_format=result.get("report_format"), content=result.get("content", "")
+                    report_format=result.get("report_format"),
+                    content=result.get("content", ""),
                 )
             ]
         return JobResultResponse(
             reports=parsed_reports,
-            duration_ms=int(result["duration_ms"]) if result.get("duration_ms") else None,
+            duration_ms=int(result["duration_ms"])
+            if result.get("duration_ms")
+            else None,
             model=result.get("model"),
         )
 
@@ -452,7 +471,10 @@ def create_app(config: ServeConfig) -> FastAPI:
             )
         reports = result.get("reports") or []
         parsed_reports = [
-            ReportContent(report_format=entry.get("report_format"), content=entry.get("content", ""))
+            ReportContent(
+                report_format=entry.get("report_format"),
+                content=entry.get("content", ""),
+            )
             for entry in reports
             if entry.get("report_format")
         ]
@@ -466,6 +488,8 @@ def create_app(config: ServeConfig) -> FastAPI:
             "Content-Type": "application/zip",
             "Content-Disposition": f'attachment; filename="threat-thinker-{job_id}.zip"',
         }
-        return Response(content=zip_bytes, media_type="application/zip", headers=headers)
+        return Response(
+            content=zip_bytes, media_type="application/zip", headers=headers
+        )
 
     return app

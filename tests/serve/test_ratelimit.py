@@ -8,7 +8,9 @@ from threat_thinker.serve.ratelimit import RateLimiter, resolve_client_ip
 @pytest.mark.asyncio
 async def test_rate_limiter_blocks_after_threshold():
     redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    limiter = RateLimiter(redis, RateLimitConfig(enabled=True, scope="ip", requests_per_minute=2))
+    limiter = RateLimiter(
+        redis, RateLimitConfig(enabled=True, scope="ip", requests_per_minute=2)
+    )
 
     assert await limiter.allow("client1")
     assert await limiter.allow("client1")
