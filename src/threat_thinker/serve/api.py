@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import base64
 import io
-import json
 import logging
 import zipfile
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Optional
 
 from fastapi import (
     Depends,
     FastAPI,
-    File,
-    Form,
     HTTPException,
     Response,
     Request,
@@ -30,10 +26,7 @@ from threat_thinker.serve.config import ServeConfig
 from threat_thinker.serve.jobstore import (
     AsyncJobStore,
     STATUS_EXPIRED,
-    STATUS_FAILED,
     STATUS_QUEUED,
-    STATUS_RUNNING,
-    STATUS_SUCCEEDED,
 )
 from threat_thinker.serve.ratelimit import RateLimiter, resolve_client_ip
 from threat_thinker.serve.schemas import (

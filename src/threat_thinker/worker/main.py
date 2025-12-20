@@ -86,7 +86,7 @@ def run_worker(config: ServeConfig) -> None:
                             continue
                         try:
                             future.result()
-                        except Exception as exc:  # noqa: BLE001
+                        except Exception:  # noqa: BLE001
                             logger.exception(
                                 "Job %s failed with unexpected error", job_id
                             )

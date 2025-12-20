@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from threat_thinker.serve.config import load_config
