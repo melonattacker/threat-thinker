@@ -1,0 +1,71 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command:
+      [
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8081",
+        "--app-dir",
+        "/app/examples/demo-app/proxy"
+      ]
+    environment:
+      - TT_BACKEND_URL=http://server:8000
+      - TT_BACKEND_API_KEY=${SERVE_API_KEYS:-tt-demo-key}
+      - DEMO_RATE_LIMIT_RPM=${DEMO_RATE_LIMIT_RPM:-20}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./proxy:/app/examples/demo-app/proxy:ro
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["threat-thinker", "serve", "--config", "/config/serve.yaml"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SERVE_API_KEYS=${SERVE_API_KEYS:-tt-demo-key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - ./serve.example.yaml:/config/serve.yaml:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["threat-thinker", "worker", "--config", "/config/serve.yaml"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SERVE_API_KEYS=${SERVE_API_KEYS:-tt-demo-key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - ./serve.example.yaml:/config/serve.yaml:ro
+    depends_on:
+      - redis
+    restart: unless-stopped

@@ -9,4 +9,5 @@ Quick links to Threat Thinker docs.
 - **Hint YAML Guide**: How to provide/override attributes — [`docs/hints.md`](hints.md)
 - **Report Formats**: What Markdown/JSON/HTML and diff outputs contain — [`docs/reports.md`](reports.md)
 - **Knowledge Base (RAG)**: Build/search/use local KBs (docs stay local; inference uses remote LLM) — [`docs/rag.md`](rag.md)
+- **Serve/Worker Config**: YAML configuration for API service and worker — [`docs/serve_config.md`](serve_config.md)
 - **Troubleshooting & Safety**: Common issues, security notes, Web UI tips — [`docs/troubleshooting.md`](troubleshooting.md)

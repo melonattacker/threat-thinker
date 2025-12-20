@@ -3,3 +3,4 @@ src/*.egg-info
 .DS_Store
 reports/*
 tmp/*
+.env

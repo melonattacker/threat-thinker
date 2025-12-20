@@ -126,6 +126,12 @@ threat-thinker think \
     --llm-model llama3.1 \
     --ollama-host http://localhost:11434 \
     --out-dir reports/
+
+# Serve: Launch API server
+threat-thinker serve --config examples/demo-app/serve.example.yaml
+
+# Worker: Start background processor for queued jobs
+threat-thinker worker --config examples/demo-app/serve.example.yaml
 ```
 
 ### Web UI

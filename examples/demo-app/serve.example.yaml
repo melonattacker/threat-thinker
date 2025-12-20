@@ -1,0 +1,66 @@
+server:
+  bind: "0.0.0.0"
+  port: 8000
+  cors:
+    enabled: false
+    allow_origins: []
+  openapi:
+    enabled: true
+    docs_enabled: true
+    redoc_enabled: true
+
+security:
+  auth:
+    mode: "api_key"
+    scheme: "bearer"
+    header_name: "Authorization"
+    api_keys: "$SERVE_API_KEYS"
+  rate_limit:
+    enabled: true
+    scope: "ip"
+    requests_per_minute: 30
+    trust_proxy_headers: false
+    trusted_proxies: []
+  request_limits:
+    max_body_bytes: 8000000
+    max_files: 1
+    max_text_chars: 200000
+    allowed_image_types:
+      - "image/png"
+      - "image/jpeg"
+      - "image/webp"
+    max_image_bytes: 4000000
+  timeouts:
+    analyze_seconds: 90
+  concurrency:
+    max_in_flight_per_worker: 2
+
+queue:
+  backend: "redis"
+  redis_url: "$REDIS_URL"
+  queue_key: "tt:queue"
+  job_key_prefix: "tt:job"
+  job_ttl_seconds: 900
+
+engine:
+  allowed_inputs:
+    - "mermaid"
+    - "drawio"
+    - "threat-dragon"
+    - "image"
+  autodetect: true
+  report:
+    default_format: "markdown"
+    default_language: "ja"
+  model:
+    provider: "openai"
+    name: "gpt-4.1-nano"
+    params:
+      temperature: 0.2
+      max_output_tokens: 1200
+
+observability:
+  log_level: "info"
+  redact:
+    input_content: true
+    result_content: true
