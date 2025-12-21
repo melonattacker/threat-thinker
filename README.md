@@ -1,6 +1,12 @@
 # Threat Thinker
 AI-powered threat modeling that turns architecture diagrams into actionable risks.
 
+**Public Demo**: [https://threat-thinker.melonattacker.com](https://threat-thinker.melonattacker.com/)
+
+> [!IMPORTANT]
+> This is a public demo environment. Please do not upload sensitive or confidential architecture diagrams.
+> For sensitive use cases, use the local CLI or Web UI.
+
 <img width="360" alt="threat-thinker-logo" src="./docs/images/threat-thinker-logo.png" />
 
 
