@@ -165,7 +165,7 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
     # nodes
     for nid, attrs in (hints.get("nodes") or {}).items():
         if nid not in g.nodes:
-            g.nodes[nid] = Node(id=nid, label=attrs.get("label", nid))
+            continue
         n = g.nodes[nid]
         n.label = attrs.get("label", n.label)
         n.type = attrs.get("type", n.type)
@@ -192,11 +192,6 @@ def merge_llm_hints(g: Graph, hints: dict) -> Graph:
                 matched.protocol = e["protocol"]
             if isinstance(e.get("data"), list):
                 matched.data = list({*matched.data, *[str(x) for x in e["data"]]})
-        else:
-            ne = Edge(src=src, dst=dst, protocol=e.get("protocol"))
-            if isinstance(e.get("data"), list):
-                ne.data = [str(x) for x in e["data"]]
-            g.edges.append(ne)
 
     return g
 
