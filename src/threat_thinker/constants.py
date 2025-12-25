@@ -35,7 +35,7 @@ HINT_INSTRUCTIONS = (
     "- Do not add or remove graph elements; only patch attributes for existing ids.\n"
     "- If multiple trust boundaries apply, set the ordered outer->inner list in 'zones' (keep 'zone' as the innermost representative).\n"
     "- Keep arrays short and high-signal.\n"
-    "- If there are no updates, return {\"nodes\": {}, \"edges\": [], \"policies\": {}}.\n"
+    '- If there are no updates, return {"nodes": {}, "edges": [], "policies": {}}.\n'
     "- Return ONLY the JSON object, no other text or formatting.\n"
 )
 
