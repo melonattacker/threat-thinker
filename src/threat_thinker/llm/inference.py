@@ -27,7 +27,6 @@ HINT_JSON_SCHEMA: Dict = {
         "edges": {"type": "array", "items": {"type": "object"}},
         "policies": {"type": "object"},
     },
-    "required": ["nodes"],
 }
 THREAT_JSON_SCHEMA: Dict = {
     "type": "object",
@@ -60,11 +59,14 @@ def _validate_hints_payload(payload: dict) -> None:
     if not isinstance(payload, dict):
         raise ValueError("Hints payload must be a JSON object")
     nodes = payload.get("nodes")
-    if not isinstance(nodes, dict):
-        raise ValueError("Hints payload missing 'nodes' object")
+    if nodes is not None and not isinstance(nodes, dict):
+        raise ValueError("Hints payload 'nodes' must be an object when present")
     edges = payload.get("edges")
     if edges is not None and not isinstance(edges, list):
         raise ValueError("'edges' must be a list when present")
+    policies = payload.get("policies")
+    if policies is not None and not isinstance(policies, dict):
+        raise ValueError("'policies' must be an object when present")
 
 
 def _validate_threats_payload(payload: dict) -> None:

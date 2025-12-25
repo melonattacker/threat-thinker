@@ -9,7 +9,8 @@ HINT_SYSTEM = (
 )
 
 HINT_INSTRUCTIONS = (
-    "Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers) with EXACT shape:\n"
+    "Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers) "
+    "in PATCH form with this shape:\n"
     "{\n"
     '  "nodes": {\n'
     '    "<nodeId>": {\n'
@@ -27,10 +28,14 @@ HINT_INSTRUCTIONS = (
     "  ],\n"
     '  "policies": {}\n'
     "}\n"
-    "Rules:\n"
-    "- Use null/unknown if unsure. Do not add or remove graph elements.\n"
+    "Patch rules:\n"
+    "- Include only nodes/edges that need updates; omit unchanged elements.\n"
+    "- For each node/edge, include only the fields you are asserting.\n"
+    "- If unsure, omit the field entirely; use null only to explicitly clear a value.\n"
+    "- Do not add or remove graph elements; only patch attributes for existing ids.\n"
     "- If multiple trust boundaries apply, set the ordered outer->inner list in 'zones' (keep 'zone' as the innermost representative).\n"
     "- Keep arrays short and high-signal.\n"
+    "- If there are no updates, return {\"nodes\": {}, \"edges\": [], \"policies\": {}}.\n"
     "- Return ONLY the JSON object, no other text or formatting.\n"
 )
 

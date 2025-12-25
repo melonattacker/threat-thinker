@@ -253,7 +253,7 @@ class TestMergeLlmHints:
         assert "new_data" in node.data
 
     def test_merge_node_hints_new_node(self):
-        """Test merging node hints for new node"""
+        """Test merging node hints for new node is ignored"""
         graph = Graph()
 
         hints = {
@@ -264,11 +264,7 @@ class TestMergeLlmHints:
 
         result = merge_llm_hints(graph, hints)
 
-        assert "B" in result.nodes
-        node = result.nodes["B"]
-        assert node.label == "New Node"
-        assert node.type == "database"
-        assert "sensitive" in node.data
+        assert "B" not in result.nodes
 
     def test_merge_edge_hints_existing_edge(self):
         """Test merging edge hints for existing edge"""
@@ -293,7 +289,7 @@ class TestMergeLlmHints:
         assert "encrypted" in merged_edge.data
 
     def test_merge_edge_hints_new_edge(self):
-        """Test merging edge hints for new edge"""
+        """Test merging edge hints for new edge is ignored"""
         graph = Graph()
 
         hints = {
@@ -304,12 +300,7 @@ class TestMergeLlmHints:
 
         result = merge_llm_hints(graph, hints)
 
-        assert len(result.edges) == 1
-        new_edge = result.edges[0]
-        assert new_edge.src == "C"
-        assert new_edge.dst == "D"
-        assert new_edge.protocol == "gRPC"
-        assert "protobuf" in new_edge.data
+        assert len(result.edges) == 0
 
     def test_merge_hints_preserves_zone_ids_with_existing_map(self):
         """Zone names from hints should map to existing zone ids instead of clobbering them."""
@@ -417,6 +408,4 @@ class TestMergeLlmHints:
 
         result = merge_llm_hints(graph, hints)
 
-        assert "A" in result.nodes
-        assert result.nodes["A"].label == "Test"
-        assert result.nodes["A"].data == []  # Should remain empty
+        assert "A" not in result.nodes
