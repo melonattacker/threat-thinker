@@ -13,7 +13,7 @@ dependencies = [
     "anthropic==0.75.0",
     "beautifulsoup4==4.14.3",
     "boto3==1.42.14",
-    "fastapi==0.124.4",
+    "fastapi==0.128.0",
     "fakeredis==2.32.1",
     "gradio==5.49.1",
     "numpy==2.3.4",
