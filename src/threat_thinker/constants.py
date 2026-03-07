@@ -64,6 +64,7 @@ LLM_INSTRUCTIONS = (
     '      "why": "one-line developer-friendly reason",\n'
     '      "recommended_action": "specific actionable steps for developers to mitigate this threat",\n'
     '      "references": ["ASVS V5 ...","CWE-319 (optional)"],\n'
+    '      "rag_sources": [{"kb":"<kb>","source":"<doc>","chunk_id":"<chunk-id>","score":0.0}],\n'
     '      "evidence": {"nodes":["n1","n2"], "edges":["n1->n2"]},\n'
     '      "confidence": 0.0\n'
     "    }\n"
@@ -76,6 +77,7 @@ LLM_INSTRUCTIONS = (
     "- Prefer high-signal threats; de-duplicate similar findings.\n"
     "- If information is missing, make conservative assumptions and mention them in 'why'.\n"
     "- Each threat MUST include evidence (node/edge IDs) and at least one ASVS reference.\n"
+    "- Include rag_sources only when retrieved knowledge snippets are provided and relevant.\n"
     "- 'recommended_action' should be specific, actionable, and developer-focused (e.g., 'Implement HTTPS with TLS 1.3', 'Add OAuth 2.0 authentication', 'Enable database encryption at rest').\n"
     "- ENSURE the JSON is complete and properly closed - no truncated responses!\n"
     "- Return ONLY the JSON object, no explanatory text before or after.\n"

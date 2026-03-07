@@ -165,6 +165,26 @@ Notes:
 - `report.default_language` mirrors the CLI `--lang` option.
 - `model.params` is passed directly to the provider adapter.
 
+### 3.4.1 Analyze Request RAG Options
+RAG is controlled per request (not in YAML config) via `/v1/analyze` JSON body or multipart `options` JSON.
+
+```json
+{
+  "use_rag": true,
+  "kb_names": ["secure-web"],
+  "rag_topk": 8,
+  "rag_strategy": "hybrid",
+  "rag_reranker": "auto",
+  "rag_candidates": 40,
+  "rag_min_score": 0.25
+}
+```
+
+Notes:
+- `use_rag=true` requires at least one `kb_names` entry.
+- `rag_strategy`: `hybrid` (default) or `dense` (legacy behavior).
+- `rag_reranker`: `auto`, `local`, `llm`, `off`.
+
 ### 3.5 observability
 Logging level and redaction policy.
 

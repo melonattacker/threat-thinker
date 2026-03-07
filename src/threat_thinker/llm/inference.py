@@ -20,6 +20,7 @@ HINT_INFERENCE_MAX_TOKENS = 4096
 THREAT_INFERENCE_MAX_TOKENS = (
     4096  # Enough headroom for 12 verbose threats plus metadata
 )
+RERANK_MAX_TOKENS = 1500
 HINT_JSON_SCHEMA: Dict = {
     "type": "object",
     "properties": {
@@ -44,6 +45,19 @@ THREAT_JSON_SCHEMA: Dict = {
                     "why": {"type": "string"},
                     "recommended_action": {"type": "string"},
                     "references": {"type": "array"},
+                    "rag_sources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "kb": {"type": "string"},
+                                "source": {"type": "string"},
+                                "chunk_id": {"type": "string"},
+                                "score": {"type": ["integer", "number"]},
+                            },
+                            "required": ["chunk_id"],
+                        },
+                    },
                     "evidence": {"type": "object"},
                     "confidence": {"type": ["integer", "number", "null"]},
                 },
@@ -52,6 +66,23 @@ THREAT_JSON_SCHEMA: Dict = {
         }
     },
     "required": ["threats"],
+}
+RERANK_JSON_SCHEMA: Dict = {
+    "type": "object",
+    "properties": {
+        "scores": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "idx": {"type": "integer"},
+                    "score": {"type": ["integer", "number"]},
+                },
+                "required": ["idx", "score"],
+            },
+        }
+    },
+    "required": ["scores"],
 }
 
 
@@ -80,6 +111,19 @@ def _validate_threats_payload(payload: dict) -> None:
             raise ValueError("Each threat entry must be an object")
         if not threat.get("title"):
             raise ValueError("Each threat must include a title")
+
+
+def _validate_rerank_payload(payload: dict) -> None:
+    if not isinstance(payload, dict):
+        raise ValueError("Rerank payload must be a JSON object")
+    scores = payload.get("scores")
+    if not isinstance(scores, list):
+        raise ValueError("Rerank payload missing 'scores' list")
+    for item in scores:
+        if not isinstance(item, dict):
+            raise ValueError("Each rerank score entry must be an object")
+        if "idx" not in item or "score" not in item:
+            raise ValueError("Each rerank score entry requires idx and score")
 
 
 def _call_llm_json_with_retry(
@@ -221,6 +265,77 @@ def llm_infer_hints(
     return data
 
 
+def llm_rerank_chunks(
+    query: str,
+    chunks: List[dict],
+    api: str,
+    model: str,
+    aws_profile: str = None,
+    aws_region: str = None,
+    ollama_host: str = None,
+    batch_size: int = 12,
+) -> List[float]:
+    """
+    Re-rank retrieved chunks by semantic relevance to the query.
+    Returns a score list aligned to the input chunk order.
+    """
+    if not chunks:
+        return []
+
+    llm_client = LLMClient(
+        api=api,
+        model=model,
+        aws_profile=aws_profile,
+        aws_region=aws_region,
+        ollama_host=ollama_host,
+    )
+
+    out_scores = [0.0 for _ in chunks]
+    for start in range(0, len(chunks), max(1, int(batch_size))):
+        batch = chunks[start : start + max(1, int(batch_size))]
+        lines = []
+        for rel_idx, chunk in enumerate(batch):
+            text = str(chunk.get("text") or "").strip().replace("\n", " ")
+            if len(text) > 1200:
+                text = text[:1200] + "..."
+            lines.append(f"{rel_idx}: {text}")
+        snippets = "\n".join(lines)
+        user_prompt = (
+            "Rank snippet relevance to the security analysis query.\n"
+            "Return JSON with scores in range [0,1].\n"
+            "Query:\n"
+            f"{query}\n\n"
+            "Snippets:\n"
+            f"{snippets}\n\n"
+            'Return format: {"scores":[{"idx":0,"score":0.0}]}'
+        )
+
+        payload = _call_llm_json_with_retry(
+            lambda: llm_client.call_llm(
+                system_prompt=(
+                    "You are a strict relevance ranker for threat-modeling context retrieval."
+                ),
+                user_prompt=user_prompt,
+                response_format={"type": "json_object"},
+                json_schema=RERANK_JSON_SCHEMA,
+                temperature=0.0,
+                max_tokens=RERANK_MAX_TOKENS,
+            ),
+            _validate_rerank_payload,
+        )
+
+        for item in payload.get("scores", []):
+            try:
+                rel_idx = int(item.get("idx"))
+                score = float(item.get("score"))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= rel_idx < len(batch):
+                out_scores[start + rel_idx] = max(0.0, min(1.0, score))
+
+    return out_scores
+
+
 def llm_infer_threats(
     g: Graph,
     api: str,
@@ -230,6 +345,7 @@ def llm_infer_threats(
     ollama_host: str = None,
     lang: str = "en",
     rag_context: Optional[str] = None,
+    rag_candidates: Optional[List[dict]] = None,
 ) -> List[Threat]:
     """
     Use LLM to infer threats from graph.
@@ -265,15 +381,28 @@ def llm_infer_threats(
         lang_instruction = f"Please write threat titles, reasons, and descriptions in {lang_name}, but keep field names (id, title, why, etc.) in English. "
 
     context_block = ""
+    rag_source_instruction = ""
     if rag_context:
+        candidate_lines = []
+        for item in (rag_candidates or [])[:30]:
+            candidate_lines.append(
+                f"- chunk_id={item.get('chunk_id')} kb={item.get('kb')} source={item.get('source')}"
+            )
+        candidate_text = "\n".join(candidate_lines)
         context_block = (
             "\nRetrieved knowledge snippets (ground your reasoning in these when relevant):\n"
             f"{rag_context}\n"
+        )
+        rag_source_instruction = (
+            "When retrieved snippets support a threat, include `rag_sources` using only listed chunk_id values.\n"
+            'rag_sources item shape: {"kb":"...","source":"...","chunk_id":"...","score":0.0..1.0}\n'
+            f"Available chunks:\n{candidate_text}\n"
         )
 
     user_prompt = (
         f"System graph (JSON):\n{payload}\n"
         f"{context_block}\n"
+        f"{rag_source_instruction}\n"
         f"{lang_instruction}Perform threat analysis following the instructions below.\n"
         f"{LLM_INSTRUCTIONS}"
     )
@@ -318,6 +447,23 @@ def llm_infer_threats(
             conf = float(conf)
         else:
             conf = None
+        raw_sources = t.get("rag_sources") or []
+        rag_sources = []
+        if isinstance(raw_sources, list):
+            for src in raw_sources:
+                if not isinstance(src, dict):
+                    continue
+                chunk_id = str(src.get("chunk_id") or "").strip()
+                if not chunk_id:
+                    continue
+                rag_sources.append(
+                    {
+                        "kb": str(src.get("kb") or ""),
+                        "source": str(src.get("source") or ""),
+                        "chunk_id": chunk_id,
+                        "score": float(src.get("score") or 0.0),
+                    }
+                )
         threats_out.append(
             Threat(
                 id="",  # Empty ID - will be assigned later
@@ -334,6 +480,7 @@ def llm_infer_threats(
                 evidence_nodes=ev_nodes,
                 evidence_edges=ev_edges,
                 confidence=conf,
+                rag_sources=rag_sources,
             )
         )
     if not threats_out:

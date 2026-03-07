@@ -44,6 +44,15 @@ class TestExportJson:
             evidence_nodes=["DB", "API"],
             evidence_edges=["API->DB"],
             confidence=0.9,
+            rag_sources=[
+                {
+                    "kb": "owasp",
+                    "source": "sessions.md",
+                    "chunk_id": "sessions-00001",
+                    "score": 0.88,
+                    "method": "auto",
+                }
+            ],
         )
         threats = [threat]
 
@@ -59,6 +68,7 @@ class TestExportJson:
         assert threat_data["severity"] == "High"
         assert threat_data["score"] == 8.5
         assert threat_data["confidence"] == 0.9
+        assert threat_data["rag_sources"][0]["chunk_id"] == "sessions-00001"
 
     def test_export_with_metrics(self):
         """Test exporting with import metrics"""
@@ -130,6 +140,15 @@ class TestExportMd:
             evidence_nodes=["WebApp"],
             evidence_edges=["User->WebApp"],
             confidence=0.8,
+            rag_sources=[
+                {
+                    "kb": "kb",
+                    "source": "xss.md",
+                    "chunk_id": "xss-00001",
+                    "score": 0.77,
+                    "method": "llm",
+                }
+            ],
         )
         threats = [threat]
 
@@ -141,6 +160,8 @@ class TestExportMd:
         assert "Frontend" in result
         assert "T, I" in result
         assert "6" in result  # Score should be integer
+        assert "RAG Sources" in result
+        assert "xss-00001" in result
 
     def test_export_with_metrics_markdown(self):
         """Test exporting with metrics to markdown"""
@@ -209,6 +230,15 @@ class TestExportHtml:
             recommended_action="Use parameterized queries",
             evidence_nodes=["API", "DB"],
             evidence_edges=["API->DB", "edge-1"],
+            rag_sources=[
+                {
+                    "kb": "kb",
+                    "source": "sqli.md",
+                    "chunk_id": "sqli-00042",
+                    "score": 0.81,
+                    "method": "auto",
+                }
+            ],
         )
 
         result = export_html([threat], None, graph)
@@ -224,6 +254,8 @@ class TestExportHtml:
         assert "window.THREAT_REPORT" in result  # JSON payload embedded
         assert "cytoscape" in result  # cytoscape script reference
         assert "zone::" in result  # zone compound node template
+        assert "RAG Sources" in result
+        assert "sqli-00042" in result
 
     def test_export_html_escapes_content(self):
         graph = Graph(

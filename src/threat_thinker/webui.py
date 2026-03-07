@@ -22,13 +22,22 @@ from threat_thinker.rag import (
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_TOKENS,
     DEFAULT_TOPK,
+    DEFAULT_RAG_STRATEGY,
+    DEFAULT_RAG_RERANKER,
+    DEFAULT_RAG_CANDIDATES,
+    DEFAULT_RAG_MIN_SCORE,
     DEFAULT_EMBED_MODEL,
+    RAG_STRATEGIES,
+    RAG_RERANKERS,
+    RetrievalOptions,
     build_kb,
     get_kb_root,
     list_kbs,
     remove_kb,
     retrieve_context_for_graph,
+    attach_rag_sources_to_threats,
 )
+from threat_thinker.llm.inference import llm_rerank_chunks
 from threat_thinker.rag.local import SUPPORTED_EXTENSIONS
 
 
@@ -336,6 +345,10 @@ def _generate_report(
     use_rag: bool,
     kb_names,
     rag_topk: int,
+    rag_strategy: str,
+    rag_reranker: str,
+    rag_candidates: int,
+    rag_min_score: float,
 ) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
@@ -365,6 +378,10 @@ def _generate_report(
     aws_profile = (aws_profile or "").strip() or None
     aws_region = (aws_region or "").strip() or None
     rag_topk_val = int(rag_topk or DEFAULT_TOPK)
+    rag_candidates_val = int(rag_candidates or DEFAULT_RAG_CANDIDATES)
+    rag_min_score_val = float(rag_min_score or DEFAULT_RAG_MIN_SCORE)
+    rag_strategy = (rag_strategy or DEFAULT_RAG_STRATEGY).strip().lower()
+    rag_reranker = (rag_reranker or DEFAULT_RAG_RERANKER).strip().lower()
     ollama_host = (
         (ollama_host or "").strip()
         or os.getenv("OLLAMA_HOST")
@@ -396,6 +413,18 @@ def _generate_report(
             raise gr.Error("Select at least one knowledge base when RAG is enabled.")
         if rag_topk_val <= 0:
             raise gr.Error("RAG top-k must be a positive integer.")
+        if rag_candidates_val <= 0:
+            raise gr.Error("RAG candidates must be a positive integer.")
+        if rag_min_score_val < 0.0 or rag_min_score_val > 1.0:
+            raise gr.Error("RAG min score must be between 0 and 1.")
+        if rag_strategy not in RAG_STRATEGIES:
+            raise gr.Error(
+                f"Unsupported rag strategy: {rag_strategy}. Supported: {sorted(RAG_STRATEGIES)}"
+            )
+        if rag_reranker not in RAG_RERANKERS:
+            raise gr.Error(
+                f"Unsupported rag reranker: {rag_reranker}. Supported: {sorted(RAG_RERANKERS)}"
+            )
 
     # Prepare diagram file path
     diagram_path = None
@@ -419,6 +448,8 @@ def _generate_report(
 
     status_lines = []
     rag_context_text = None
+    retrieval = None
+    rerank_fn = None
 
     try:
         # Parse diagram based on input method and format
@@ -492,16 +523,41 @@ def _generate_report(
 
         if use_rag:
             try:
+                retrieval_options = RetrievalOptions(
+                    strategy=rag_strategy,
+                    reranker=rag_reranker,
+                    candidates=rag_candidates_val,
+                    min_score=rag_min_score_val,
+                )
+                if rag_reranker in {"auto", "llm"}:
+
+                    def _rerank_with_llm(q, candidates):
+                        return llm_rerank_chunks(
+                            q,
+                            candidates,
+                            llm_api,
+                            llm_model,
+                            aws_profile,
+                            aws_region,
+                            ollama_host,
+                        )
+
+                    rerank_fn = _rerank_with_llm
                 retrieval = retrieve_context_for_graph(
                     graph,
                     kb_list,
                     topk=rag_topk_val,
+                    options=retrieval_options,
+                    rerank_fn=rerank_fn,
                 )
                 rag_context_text = retrieval.get("context_text") or ""
                 num_chunks = len(retrieval.get("results", []))
                 if rag_context_text and num_chunks:
                     status_lines.append(
                         f"Retrieved {num_chunks} knowledge chunks from {', '.join(kb_list)}."
+                    )
+                    status_lines.append(
+                        f"RAG strategy={rag_strategy}, reranker={retrieval.get('reranker_backend', 'off')}."
                     )
                 else:
                     status_lines.append(
@@ -519,7 +575,21 @@ def _generate_report(
             ollama_host,
             lang,
             rag_context=rag_context_text,
+            rag_candidates=(retrieval or {}).get("candidate_results"),
         )
+        if use_rag:
+            threats, dropped_by_citation = attach_rag_sources_to_threats(
+                threats,
+                retrieval,
+                reranker_backend=(retrieval or {}).get("reranker_backend", "off"),
+                rerank_fn=rerank_fn,
+                min_score=rag_min_score_val,
+                max_sources_per_threat=2,
+            )
+            if dropped_by_citation:
+                status_lines.append(
+                    f"Excluded {dropped_by_citation} threats without RAG document attribution."
+                )
         status_lines.append(f"LLM returned {len(threats)} threats before filtering.")
 
         filtered = cli.denoise_threats(
@@ -727,6 +797,35 @@ def launch_webui(
                     value=DEFAULT_TOPK,
                     interactive=False,
                 )
+                with gr.Accordion("RAG Advanced Settings", open=False):
+                    rag_strategy_input = gr.Dropdown(
+                        label="RAG strategy",
+                        choices=sorted(RAG_STRATEGIES),
+                        value=DEFAULT_RAG_STRATEGY,
+                        interactive=False,
+                    )
+                    rag_reranker_input = gr.Dropdown(
+                        label="RAG reranker",
+                        choices=sorted(RAG_RERANKERS),
+                        value=DEFAULT_RAG_RERANKER,
+                        interactive=False,
+                    )
+                    rag_candidates_input = gr.Slider(
+                        label="RAG candidates before reranking",
+                        minimum=5,
+                        maximum=100,
+                        step=1,
+                        value=DEFAULT_RAG_CANDIDATES,
+                        interactive=False,
+                    )
+                    rag_min_score_input = gr.Slider(
+                        label="RAG min score",
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.05,
+                        value=DEFAULT_RAG_MIN_SCORE,
+                        interactive=False,
+                    )
 
                 generate_button = gr.Button("Generate Report", variant="primary")
 
@@ -779,6 +878,10 @@ def launch_webui(
                         use_rag_input,
                         kb_selector,
                         rag_topk_input,
+                        rag_strategy_input,
+                        rag_reranker_input,
+                        rag_candidates_input,
+                        rag_min_score_input,
                     ],
                     outputs=[
                         report_markdown_output,
@@ -820,12 +923,23 @@ def launch_webui(
                             value=kb_value if enabled else [],
                         ),
                         rag_topk_input: gr.update(interactive=enabled),
+                        rag_strategy_input: gr.update(interactive=enabled),
+                        rag_reranker_input: gr.update(interactive=enabled),
+                        rag_candidates_input: gr.update(interactive=enabled),
+                        rag_min_score_input: gr.update(interactive=enabled),
                     }
 
                 use_rag_input.change(
                     fn=toggle_rag_controls,
                     inputs=[use_rag_input, kb_selector],
-                    outputs=[kb_selector, rag_topk_input],
+                    outputs=[
+                        kb_selector,
+                        rag_topk_input,
+                        rag_strategy_input,
+                        rag_reranker_input,
+                        rag_candidates_input,
+                        rag_min_score_input,
+                    ],
                 )
 
             with gr.Tab("KB - Knowledge Base"):

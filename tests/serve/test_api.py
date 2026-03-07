@@ -43,6 +43,8 @@ def test_analyze_json_defaults_apply_config_language_and_format(monkeypatch):
     payload = captured["payload"]
     assert payload["language"] == "ja"
     assert payload["report_formats"] == ["html"]
+    assert payload["use_rag"] is False
+    assert payload["kb_names"] == []
 
 
 def test_analyze_multipart_options_are_used(monkeypatch):
@@ -59,6 +61,13 @@ def test_analyze_multipart_options_are_used(monkeypatch):
         "min_confidence": 0.6,
         "topn": 5,
         "autodetect": True,
+        "use_rag": True,
+        "kb_names": ["owasp"],
+        "rag_topk": 6,
+        "rag_strategy": "hybrid",
+        "rag_reranker": "off",
+        "rag_candidates": 25,
+        "rag_min_score": 0.2,
     }
     response = client.post(
         "/v1/analyze",
@@ -74,6 +83,13 @@ def test_analyze_multipart_options_are_used(monkeypatch):
     assert payload["require_asvs"] is True
     assert payload["min_confidence"] == 0.6
     assert payload["topn"] == 5
+    assert payload["use_rag"] is True
+    assert payload["kb_names"] == ["owasp"]
+    assert payload["rag_topk"] == 6
+    assert payload["rag_strategy"] == "hybrid"
+    assert payload["rag_reranker"] == "off"
+    assert payload["rag_candidates"] == 25
+    assert payload["rag_min_score"] == 0.2
 
 
 def test_analyze_autodetect_respects_server_config(monkeypatch):
@@ -94,3 +110,53 @@ def test_analyze_autodetect_respects_server_config(monkeypatch):
     assert response.status_code == 202
     payload = captured["payload"]
     assert payload["autodetect"] is False
+
+
+def test_analyze_json_rejects_rag_without_kb_names(monkeypatch):
+    cfg = _base_config()
+    _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={
+            "input": {"type": "mermaid", "content": "graph LR;A-->B"},
+            "use_rag": True,
+            "kb_names": [],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "kb_names is required" in response.json()["detail"]
+
+
+def test_analyze_json_accepts_rag_options(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={
+            "input": {"type": "mermaid", "content": "graph LR;A-->B"},
+            "use_rag": True,
+            "kb_names": ["owasp"],
+            "rag_topk": 4,
+            "rag_strategy": "hybrid",
+            "rag_reranker": "off",
+            "rag_candidates": 12,
+            "rag_min_score": 0.2,
+        },
+    )
+
+    assert response.status_code == 202
+    payload = captured["payload"]
+    assert payload["use_rag"] is True
+    assert payload["kb_names"] == ["owasp"]
+    assert payload["rag_topk"] == 4
+    assert payload["rag_strategy"] == "hybrid"
+    assert payload["rag_reranker"] == "off"
+    assert payload["rag_candidates"] == 12
+    assert payload["rag_min_score"] == 0.2

@@ -20,12 +20,19 @@ from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.llm.inference import (
     llm_infer_hints,
     llm_infer_threats,
+    llm_rerank_chunks,
 )
 from threat_thinker.parsers.drawio_parser import parse_drawio
 from threat_thinker.parsers.image_parser import parse_image
 from threat_thinker.parsers.mermaid_parser import parse_mermaid
 from threat_thinker.parsers.threat_dragon_parser import parse_threat_dragon
 from threat_thinker.threat_analyzer import denoise_threats
+from threat_thinker.rag import (
+    KnowledgeBaseError,
+    RetrievalOptions,
+    retrieve_context_for_graph,
+    attach_rag_sources_to_threats,
+)
 from threat_thinker.serve.config import EngineConfig, TimeoutConfig
 from threat_thinker.serve.schemas import AnalyzeRequest, InputPayload
 
@@ -192,6 +199,47 @@ def analyze_job(
             except Exception as exc:
                 raise AnalysisError(f"Failed to infer hints: {exc}") from exc
 
+        rag_context_text = None
+        retrieval = None
+        rerank_fn = None
+        if request.use_rag:
+            if not os.getenv("OPENAI_API_KEY"):
+                raise AnalysisError("OPENAI_API_KEY is required when use_rag is true.")
+            try:
+                retrieval_options = RetrievalOptions(
+                    strategy=request.rag_strategy,
+                    reranker=request.rag_reranker,
+                    candidates=request.rag_candidates,
+                    min_score=request.rag_min_score,
+                )
+                if request.rag_reranker in {"auto", "llm"}:
+
+                    def _rerank_with_llm(q, candidates):
+                        return llm_rerank_chunks(
+                            q,
+                            candidates,
+                            provider,
+                            model_name,
+                            engine.model.aws_profile,
+                            engine.model.aws_region,
+                            ollama_host,
+                        )
+
+                    rerank_fn = _rerank_with_llm
+
+                retrieval = retrieve_context_for_graph(
+                    graph,
+                    request.kb_names,
+                    topk=request.rag_topk,
+                    options=retrieval_options,
+                    rerank_fn=rerank_fn,
+                )
+                rag_context_text = retrieval.get("context_text") or None
+            except KnowledgeBaseError as exc:
+                raise AnalysisError(
+                    f"Failed to retrieve local knowledge: {exc}"
+                ) from exc
+
         try:
             threats = llm_infer_threats(
                 graph,
@@ -201,7 +249,18 @@ def analyze_job(
                 engine.model.aws_region,
                 ollama_host,
                 request.language or engine.report.default_language,
+                rag_context=rag_context_text,
+                rag_candidates=(retrieval or {}).get("candidate_results"),
             )
+            if request.use_rag:
+                threats, _ = attach_rag_sources_to_threats(
+                    threats,
+                    retrieval,
+                    reranker_backend=(retrieval or {}).get("reranker_backend", "off"),
+                    rerank_fn=rerank_fn,
+                    min_score=request.rag_min_score,
+                    max_sources_per_threat=2,
+                )
         except Exception as exc:
             raise AnalysisError(f"Threat inference failed: {exc}") from exc
 

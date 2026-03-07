@@ -12,9 +12,10 @@ Threat Thinker can enrich LLM reasoning with a local knowledge base (KB) so find
 ## Directory Layout
 ```
 ~/.threat-thinker/kb/<kb_name>/
-  raw/     # source docs you place (PDF/MD/HTML/TXT)
-  chunks/  # intermediate chunks (auto-generated)
-  index/   # vector index (auto-generated)
+  raw/            # source docs you place (PDF/MD/HTML/TXT)
+  chunks.jsonl    # chunk records + sparse stats (auto-generated)
+  embeddings.npy  # dense vectors (auto-generated)
+  meta.json       # build metadata (auto-generated)
 ```
 
 ## Build a KB
@@ -38,9 +39,6 @@ Notes:
 # List KBs
 threat-thinker kb list
 
-# Show contents
-threat-thinker kb show secure-web
-
 # Search
 threat-thinker kb search secure-web "api" --topk 5 --show
 ```
@@ -51,6 +49,8 @@ CLI:
 threat-thinker think \
     --mermaid diagram.mmd \
     --rag --kb secure-web --rag-topk 8 \
+    --rag-strategy hybrid --rag-reranker auto \
+    --rag-candidates 40 --rag-min-score 0.25 \
     --llm-api openai --llm-model gpt-4.1 \
     --out-dir reports/
 ```
@@ -63,9 +63,9 @@ Web UI:
 - Chunk sizes: 600–900 tokens with 10–15% overlap works well; adjust if you see truncated sentences.
 - Avoid placing secrets or proprietary keys in KB content.
 - Version KBs alongside architecture diagrams to reproduce results.
-- If a KB is corrupted, rebuild: remove `chunks/` and `index/`, then rerun `kb build`.
+- If a KB is corrupted, rebuild by re-running `kb build` (or delete `chunks.jsonl`, `embeddings.npy`, and `meta.json` first).
 
 ## Troubleshooting
 - "KB not found": confirm the name matches directory under `~/.threat-thinker/kb/`.
 - "No chunks indexed": ensure files exist in `raw/` before building.
-- Retrieval seems irrelevant: lower/raise `--rag-topk`, refine source docs, or narrow KB scope.
+- Retrieval seems irrelevant: tune `--rag-topk`, `--rag-candidates`, `--rag-min-score`, or switch strategy/reranker.
