@@ -208,6 +208,24 @@ class TestExportHtml:
         assert "Threat Analysis Report" in result
         assert "No threats identified" in result
 
+    def test_export_empty_threats_keeps_graph_when_available(self):
+        graph = Graph(
+            nodes={
+                "A": Node(id="A", label="Client"),
+                "B": Node(id="B", label="API"),
+            },
+            edges=[Edge(src="A", dst="B", label="HTTPS")],
+        )
+
+        result = export_html([], None, graph)
+
+        assert "No threats identified" in result
+        assert 'id="graph"' in result
+        assert "Architecture Graph" in result
+        assert "window.THREAT_REPORT" in result
+        assert "Client" in result
+        assert "HTTPS" in result
+
     def test_export_single_threat_with_graph_mapping(self):
         graph = Graph(
             nodes={

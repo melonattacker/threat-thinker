@@ -1,0 +1,20 @@
+flowchart LR
+  user["User Browser"]
+  waf["WAF"]
+  api["API Gateway"]
+  auth["Auth Service"]
+  order["Order Service"]
+  db["Orders DB"]
+  mq["Message Queue"]
+  worker["Async Worker"]
+  pay["Payment API"]
+
+  user -->|HTTPS| waf
+  waf -->|HTTPS| api
+  api -->|HTTPS| auth
+  api -->|HTTPS| order
+  order -->|TLS| db
+  order -->|AMQP| mq
+  mq -->|AMQP| worker
+  worker -->|TLS| db
+  order -->|HTTPS| pay

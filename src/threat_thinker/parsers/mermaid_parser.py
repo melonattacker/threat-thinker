@@ -3,7 +3,7 @@ Mermaid diagram parser
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Zone
 from threat_thinker.zone_utils import (
@@ -12,29 +12,106 @@ from threat_thinker.zone_utils import (
 )
 
 
-# tolerate variations:
-#   - Plain: A -> B, A --> B, A ---> B
-#   - Pipe label: A --> B |label|
-#   - Inline label: A -- label --> B
-#   - Source with inline node label: A[User] --> B
-# IDs allow letters, numbers, underscore, dash, dot
-# Optional inline node label after source is captured and ignored
-SOURCE_WITH_LABEL = r"([A-Za-z0-9_.-]+)(?:\s*[\[\(\{]{1,2}[^\]\)\}]+?[\]\)\}]{1,2})?"
-MERMAID_EDGE_INLINE_RE = re.compile(
-    rf"^\s*{SOURCE_WITH_LABEL}\s*--+\s*([^->\n]+?)\s*-+>\s*([A-Za-z0-9_.-]+)"
+ARROW_CANDIDATE_RE = re.compile(r"(?:<-->|==>|-\.->|--->|-->|->)")
+EDGE_OP_PATTERN = r"(?:==>|-\.->|--->|-->|->)"
+
+MERMAID_EDGE_BIDIRECTIONAL_RE = re.compile(
+    r"^\s*(?P<src>.+?)\s*<-->\s*(?:\|\s*(?P<label>[^|]+?)\s*\|\s*)?(?P<dst>.+?)\s*$"
 )
 MERMAID_EDGE_PIPE_RE = re.compile(
-    rf"^\s*{SOURCE_WITH_LABEL}\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)\s*\|\s*([^|]+?)\s*\|"
+    rf"^\s*(?P<src>.+?)\s*(?P<op>{EDGE_OP_PATTERN})\s*\|\s*(?P<label>[^|]+?)\s*\|\s*(?P<dst>.+?)\s*$"
+)
+MERMAID_EDGE_TRAILING_PIPE_RE = re.compile(
+    rf"^\s*(?P<src>.+?)\s*(?P<op>{EDGE_OP_PATTERN})\s*(?P<dst>.+?)\s*\|\s*(?P<label>[^|]+?)\s*\|\s*$"
+)
+MERMAID_EDGE_INLINE_RE = re.compile(
+    rf"^\s*(?P<src>.+?)\s*--+\s*(?P<label>[^|<>]+?)\s*(?P<op>{EDGE_OP_PATTERN})\s*(?P<dst>.+?)\s*$"
 )
 MERMAID_EDGE_PLAIN_RE = re.compile(
-    rf"^\s*{SOURCE_WITH_LABEL}\s*-\s*-*\s*>+\s*([A-Za-z0-9_.-]+)"
+    rf"^\s*(?P<src>.+?)\s*(?P<op>{EDGE_OP_PATTERN})\s*(?P<dst>.+?)\s*$"
 )
 
-NODE_LABEL_RE = re.compile(
-    r"^\s*([A-Za-z0-9_.-]+)\s*[\[\(\{]{1,2}\s*([^]\)\}]+?)\s*[\]\)\}]{1,2}"
-)
+NODE_ID_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)(.*)$")
 SUBGRAPH_START_RE = re.compile(r"^\s*subgraph\s+(.+)", re.IGNORECASE)
 SUBGRAPH_END_RE = re.compile(r"^\s*end\s*$", re.IGNORECASE)
+PAIR_DELIMITERS = [
+    ("[(", ")]"),
+    ("((", "))"),
+    ("{{", "}}"),
+    ("[[", "]]"),
+    ("[", "]"),
+    ("(", ")"),
+    ("{", "}"),
+]
+
+
+def _normalize_label(text: Optional[str]) -> Optional[str]:
+    if text is None:
+        return None
+    cleaned = text.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ("'", '"'):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned or None
+
+
+def _parse_node_token(token: str) -> Tuple[Optional[str], Optional[str]]:
+    cleaned = token.strip().rstrip(";")
+    if not cleaned:
+        return None, None
+
+    # Mermaid class assignment suffix (e.g., "api[API]:::trusted")
+    if ":::" in cleaned:
+        cleaned = cleaned.split(":::", 1)[0].strip()
+
+    match = NODE_ID_RE.match(cleaned)
+    if not match:
+        return None, None
+
+    node_id = match.group(1)
+    remainder = match.group(2).strip()
+    if not remainder:
+        return node_id, None
+
+    for opener, closer in PAIR_DELIMITERS:
+        if remainder.startswith(opener) and remainder.endswith(closer):
+            inner = remainder[len(opener) : len(remainder) - len(closer)]
+            return node_id, _normalize_label(inner)
+
+    return None, None
+
+
+def _parse_edge_entries(
+    line: str,
+) -> List[Tuple[str, str, Optional[str], Optional[str], Optional[str]]]:
+    bidir = MERMAID_EDGE_BIDIRECTIONAL_RE.match(line)
+    if bidir:
+        src_id, src_label = _parse_node_token(bidir.group("src"))
+        dst_id, dst_label = _parse_node_token(bidir.group("dst"))
+        if not src_id or not dst_id:
+            return []
+        label = _normalize_label(bidir.group("label"))
+        return [
+            (src_id, dst_id, label, src_label, dst_label),
+            (dst_id, src_id, label, dst_label, src_label),
+        ]
+
+    for pattern in (
+        MERMAID_EDGE_PIPE_RE,
+        MERMAID_EDGE_TRAILING_PIPE_RE,
+        MERMAID_EDGE_INLINE_RE,
+        MERMAID_EDGE_PLAIN_RE,
+    ):
+        match = pattern.match(line)
+        if not match:
+            continue
+        src_id, src_label = _parse_node_token(match.group("src"))
+        dst_id, dst_label = _parse_node_token(match.group("dst"))
+        if not src_id or not dst_id:
+            return []
+        label = _normalize_label(match.groupdict().get("label"))
+        return [(src_id, dst_id, label, src_label, dst_label)]
+
+    return []
 
 
 def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
@@ -82,44 +159,45 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
                 zone_stack.pop()
             continue
 
-        # normalize common arrow typos
-        norm = line.replace("—", "-").replace("→", ">")  # emdash/arrow variants
-        match = None
-        label = None
-        m_inline = MERMAID_EDGE_INLINE_RE.search(norm)
-        if m_inline:
-            match = m_inline
-            src, label, dst = m_inline.group(1), m_inline.group(2), m_inline.group(3)
-        else:
-            m_pipe = MERMAID_EDGE_PIPE_RE.search(norm)
-            if m_pipe:
-                match = m_pipe
-                src, dst, label = m_pipe.group(1), m_pipe.group(2), m_pipe.group(3)
-            else:
-                m_plain = MERMAID_EDGE_PLAIN_RE.search(norm)
-                if m_plain:
-                    match = m_plain
-                    src, dst = m_plain.group(1), m_plain.group(2)
-        if match:
-            metrics.edge_candidates += 1
-            g.edges.append(
-                Edge(src=src, dst=dst, label=label.strip() if label else None)
-            )
-            metrics.edges_parsed += 1
-            for nid in (src, dst):
-                _ensure_node(nid)
-                if zone_stack:
-                    node_zone_membership.setdefault(nid, []).extend(zone_stack)
+        # normalize common arrow typos and strip Mermaid comments
+        norm = (
+            line.split("%%", 1)[0].replace("—", "-").replace("→", ">").strip()
+        )  # emdash/arrow variants
+        if not norm:
+            continue
 
-        # node labels like A[User], B((API))
-        m = NODE_LABEL_RE.search(line)
-        if m:
+        edge_entries: List[
+            Tuple[str, str, Optional[str], Optional[str], Optional[str]]
+        ] = []
+        if ARROW_CANDIDATE_RE.search(norm):
+            metrics.edge_candidates += 1
+            edge_entries = _parse_edge_entries(norm)
+
+        if edge_entries:
+            for src, dst, label, src_label, dst_label in edge_entries:
+                g.edges.append(Edge(src=src, dst=dst, label=label))
+                metrics.edges_parsed += 1
+
+                src_node = _ensure_node(src)
+                dst_node = _ensure_node(dst)
+                if src_label:
+                    src_node.label = src_label
+                if dst_label:
+                    dst_node.label = dst_label
+                if zone_stack:
+                    node_zone_membership.setdefault(src, []).extend(zone_stack)
+                    node_zone_membership.setdefault(dst, []).extend(zone_stack)
+
+            continue
+
+        # standalone node labels like A[User], B((API))
+        node_id, node_label = _parse_node_token(norm)
+        if node_id and node_label:
             metrics.node_label_candidates += 1
-            nid, nlabel = m.group(1), m.group(2)
-            n = _ensure_node(nid)
-            n.label = nlabel.strip()
+            n = _ensure_node(node_id)
+            n.label = node_label
             if zone_stack:
-                node_zone_membership.setdefault(nid, []).extend(zone_stack)
+                node_zone_membership.setdefault(node_id, []).extend(zone_stack)
             metrics.node_labels_parsed += 1
 
     # finalize zone membership/order
