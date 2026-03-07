@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from threat_thinker.parsers.mermaid_parser import parse_mermaid
 from threat_thinker.models import Graph, ImportMetrics
 
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
 
 class TestParseMermaid:
     """Test cases for parse_mermaid function"""
@@ -149,7 +151,7 @@ G -- TLS --> H"""
 
     def test_parse_edge_with_source_inline_label(self):
         """Test parsing edge when source has inline label like user[User] --> api"""
-        content = "user[User] --> api((API Gateway))"
+        content = 'user["User Browser"] -->|HTTPS| api((API Gateway))'
         with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
             f.write(content)
             temp_path = f.name
@@ -161,9 +163,74 @@ G -- TLS --> H"""
             edge = graph.edges[0]
             assert edge.src == "user"
             assert edge.dst == "api"
+            assert edge.label == "HTTPS"
+            assert graph.nodes["user"].label == "User Browser"
+            assert graph.nodes["api"].label == "API Gateway"
             assert metrics.edges_parsed == 1
             assert metrics.edge_candidates == 1
             assert "user" in graph.nodes and "api" in graph.nodes
+        finally:
+            os.unlink(temp_path)
+
+    def test_parse_standard_pipe_edge_variations(self):
+        """Test Mermaid-standard pipe labels and bidirectional expansion."""
+        content = """A -->|HTTPS| B
+A --> |TLS| C
+C -.->|AMQP| D
+D ==>|gRPC| E
+E <--> F
+G --> H |legacy|"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            graph, metrics = parse_mermaid(temp_path)
+            edge_tuples = [(edge.src, edge.dst, edge.label) for edge in graph.edges]
+
+            assert ("A", "B", "HTTPS") in edge_tuples
+            assert ("A", "C", "TLS") in edge_tuples
+            assert ("C", "D", "AMQP") in edge_tuples
+            assert ("D", "E", "gRPC") in edge_tuples
+            assert ("E", "F", None) in edge_tuples
+            assert ("F", "E", None) in edge_tuples
+            assert ("G", "H", "legacy") in edge_tuples
+            assert metrics.edge_candidates == 6
+            assert metrics.edges_parsed == 7
+        finally:
+            os.unlink(temp_path)
+
+    def test_parse_mermaid_flowchart_sample_with_pipe_labels(self):
+        """Test user-reported flowchart parsing with Mermaid-standard labels."""
+        fixture_path = os.path.join(FIXTURE_DIR, "mermaid_flowchart_with_pipe_labels.mmd")
+        graph, metrics = parse_mermaid(fixture_path)
+
+        assert len(graph.nodes) == 9
+        assert len(graph.edges) == 9
+        assert metrics.edge_candidates == 9
+        assert metrics.edges_parsed == 9
+
+        labels = {(edge.src, edge.dst): edge.label for edge in graph.edges}
+        assert labels[("user", "waf")] == "HTTPS"
+        assert labels[("order", "db")] == "TLS"
+        assert labels[("mq", "worker")] == "AMQP"
+        assert labels[("order", "pay")] == "HTTPS"
+
+    def test_parse_invalid_edge_counts_candidate_without_parsing(self):
+        """Invalid arrow line should count as edge candidate but not parsed edge."""
+        content = """A -->
+B --> C"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            graph, metrics = parse_mermaid(temp_path)
+            assert len(graph.edges) == 1
+            assert graph.edges[0].src == "B"
+            assert graph.edges[0].dst == "C"
+            assert metrics.edge_candidates == 2
+            assert metrics.edges_parsed == 1
         finally:
             os.unlink(temp_path)
 

@@ -201,7 +201,8 @@ def export_html(
     Mirrors Markdown content and adds mapping between threats and architecture nodes/edges.
     """
 
-    if not threats:
+    has_graph = bool(graph and (graph.nodes or graph.edges))
+    if not threats and not has_graph:
         content = """<!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -355,6 +356,8 @@ def export_html(
     html_parts.append("</head>")
     html_parts.append("<body>")
     html_parts.append("  <h1>Threat Analysis Report</h1>")
+    if not threats:
+        html_parts.append('  <p class="meta">No threats identified.</p>')
 
     # Summary table
     html_parts.append("  <h2>Threat Summary</h2>")
