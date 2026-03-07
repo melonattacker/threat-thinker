@@ -206,7 +206,9 @@ def _extract_graph_models(
 
     if _local_name(root.tag) == "mxfile":
         diagrams = [
-            elem for elem in list(root) if isinstance(elem.tag, str) and _local_name(elem.tag) == "diagram"
+            elem
+            for elem in list(root)
+            if isinstance(elem.tag, str) and _local_name(elem.tag) == "diagram"
         ]
         for diagram in diagrams:
             model = _graph_model_from_diagram(diagram)
@@ -445,7 +447,9 @@ def _is_edge_label_cell(cell: ET.Element, style: str) -> bool:
     )
 
 
-def _rect_contains(outer: Tuple[float, float, float, float], inner: Tuple[float, float, float, float]) -> bool:
+def _rect_contains(
+    outer: Tuple[float, float, float, float], inner: Tuple[float, float, float, float]
+) -> bool:
     ox, oy, ow, oh = outer
     ix, iy, iw, ih = inner
     return ox <= ix and oy <= iy and ox + ow >= ix + iw and oy + oh >= iy + ih
@@ -512,5 +516,7 @@ def _is_zone_cell(
         or "container=1" in style
     )
 
-    contains_others = _contains_other_vertices(geometry, str(cell.get("id") or ""), vertex_cells)
+    contains_others = _contains_other_vertices(
+        geometry, str(cell.get("id") or ""), vertex_cells
+    )
     return is_container_like and (has_boundary_hint or contains_others)
