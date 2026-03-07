@@ -68,6 +68,7 @@ def test_analyze_multipart_options_are_used(monkeypatch):
         "rag_reranker": "off",
         "rag_candidates": 25,
         "rag_min_score": 0.2,
+        "drawio_page": "Page-1",
     }
     response = client.post(
         "/v1/analyze",
@@ -90,6 +91,7 @@ def test_analyze_multipart_options_are_used(monkeypatch):
     assert payload["rag_reranker"] == "off"
     assert payload["rag_candidates"] == 25
     assert payload["rag_min_score"] == 0.2
+    assert payload["drawio_page"] == "Page-1"
 
 
 def test_analyze_autodetect_respects_server_config(monkeypatch):
@@ -148,6 +150,7 @@ def test_analyze_json_accepts_rag_options(monkeypatch):
             "rag_reranker": "off",
             "rag_candidates": 12,
             "rag_min_score": 0.2,
+            "drawio_page": "p2",
         },
     )
 
@@ -160,3 +163,4 @@ def test_analyze_json_accepts_rag_options(monkeypatch):
     assert payload["rag_reranker"] == "off"
     assert payload["rag_candidates"] == 12
     assert payload["rag_min_score"] == 0.2
+    assert payload["drawio_page"] == "p2"

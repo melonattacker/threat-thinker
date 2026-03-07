@@ -59,6 +59,7 @@ class AnalyzeOptions(BaseModel):
     rag_reranker: RagReranker = DEFAULT_RAG_RERANKER
     rag_candidates: int = DEFAULT_RAG_CANDIDATES
     rag_min_score: float = DEFAULT_RAG_MIN_SCORE
+    drawio_page: Optional[str] = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -79,6 +80,7 @@ class AnalyzeRequest(BaseModel):
     rag_reranker: RagReranker = DEFAULT_RAG_RERANKER
     rag_candidates: int = DEFAULT_RAG_CANDIDATES
     rag_min_score: float = DEFAULT_RAG_MIN_SCORE
+    drawio_page: Optional[str] = None
 
 
 class JobResponse(BaseModel):

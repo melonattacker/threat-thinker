@@ -199,6 +199,7 @@ def _options_from_request(req: AnalyzeRequest) -> AnalyzeOptions:
         rag_reranker=req.rag_reranker,
         rag_candidates=req.rag_candidates,
         rag_min_score=req.rag_min_score,
+        drawio_page=req.drawio_page,
     )
 
 
@@ -405,6 +406,7 @@ def create_app(config: ServeConfig) -> FastAPI:
                 rag_reranker=parsed_options.rag_reranker,
                 rag_candidates=parsed_options.rag_candidates,
                 rag_min_score=parsed_options.rag_min_score,
+                drawio_page=parsed_options.drawio_page,
             )
             req = _normalize_request(req, config)
             job_payload = req

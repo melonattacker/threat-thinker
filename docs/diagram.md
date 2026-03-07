@@ -15,9 +15,10 @@ Practical notes for crafting diagrams that Threat Thinker can parse cleanly. The
 - **Keep it deterministic**: Avoid Mermaid features that do not emit `subgraph` blocks or `--` arrows (e.g., flowcharts with implicit direction) because the parser only reads explicit edges and subgraphs.
 
 ## Draw.io
-- **Nodes**: Any non-edge `mxCell` with a label becomes a node; IDs are taken from the cell ID. Default cells `0`/`1` are ignored.
-- **Edges**: Use connectors with `source` and `target` set; labels are taken from the edge text or attached `edgeLabel` cells.
-- **Trust boundaries**: Dashed/dotted rectangles with a label are treated as zones. Shapes with `rectangle`, `shape=rect`, or `rounded=1` plus hints like `dashed=1`, `dashpattern`, `boundary`, `zone`, or `trust` in the style are detected.
+- **Nodes**: `vertex=\"1\"` non-edge cells become node candidates. Labels are required by default; unlabeled vertices are only kept when they are edge endpoints (fallback label = cell ID). Default cells `0`/`1` are ignored.
+- **Edges**: Use connectors with `source` and `target` set; labels are taken from edge text first, then attached `edgeLabel` cells. Edge IDs are retained from the diagram cell ID.
+- **Trust boundaries**: Dashed/dotted rectangles, swimlanes, and group/container-like vertices with labels are treated as zone candidates. Detection uses style hints (`dashed=1`, `dashpattern`, `boundary`, `zone`, `trust`, `swimlane`, `group`) and/or containment of other vertices.
+- **Pages**: Multi-page `.drawio` (`mxfile`) diagrams are supported. By default, the first page is parsed; CLI/API/WebUI can target a specific page.
 - **Placement**: The parser looks at element centers; keep nodes fully inside boundary rectangles (including nested rectangles) so containment is unambiguous.
 
 ## Threat Dragon (v2 JSON)
