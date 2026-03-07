@@ -202,7 +202,9 @@ G --> H |legacy|"""
 
     def test_parse_mermaid_flowchart_sample_with_pipe_labels(self):
         """Test user-reported flowchart parsing with Mermaid-standard labels."""
-        fixture_path = os.path.join(FIXTURE_DIR, "mermaid_flowchart_with_pipe_labels.mmd")
+        fixture_path = os.path.join(
+            FIXTURE_DIR, "mermaid_flowchart_with_pipe_labels.mmd"
+        )
         graph, metrics = parse_mermaid(fixture_path)
 
         assert len(graph.nodes) == 9

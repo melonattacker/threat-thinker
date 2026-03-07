@@ -166,9 +166,9 @@ def parse_mermaid(path: str) -> Tuple[Graph, ImportMetrics]:
         if not norm:
             continue
 
-        edge_entries: List[Tuple[str, str, Optional[str], Optional[str], Optional[str]]] = (
-            []
-        )
+        edge_entries: List[
+            Tuple[str, str, Optional[str], Optional[str], Optional[str]]
+        ] = []
         if ARROW_CANDIDATE_RE.search(norm):
             metrics.edge_candidates += 1
             edge_entries = _parse_edge_entries(norm)
