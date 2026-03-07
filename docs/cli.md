@@ -8,7 +8,11 @@ Common flags used in `threat-thinker` commands.
 | `--infer-hints` | Ask LLM to infer node/edge attributes | Combine with `--hints` to override specific fields. |
 | `--hints <path>` | Apply custom `hint.yaml` | Used after inference; can add missing nodes/edges. |
 | `--rag --kb <name>` | Enable local KB retrieval | Requires a built KB; pairs with `--rag-topk`. |
-| `--rag-topk <n>` | Set number of KB chunks to retrieve | Typical 5–10. |
+| `--rag-topk <n>` | Set number of KB chunks to inject | Typical 5–10. |
+| `--rag-strategy <hybrid|dense>` | Select retrieval strategy | Default `hybrid` (dense+sparse+rerank+MMR). |
+| `--rag-reranker <auto|local|llm|off>` | Select reranker backend | Default `auto` (local cross-encoder, fallback LLM). |
+| `--rag-candidates <n>` | Candidate pool before rerank/MMR | Default 40. |
+| `--rag-min-score <0..1>` | Drop weak retrieval results | Applied after reranking normalization. |
 | `--require-asvs` | Ensure each threat has ASVS references | Helpful for compliance-driven runs. |
 | `--lang <code>` | Set output language | ISO language code (e.g., `en`, `ja`). |
 | `--topn <n>` | Limit number of threats | Default top critical findings; keep ≤12 for clarity. |

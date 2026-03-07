@@ -86,3 +86,4 @@ class Threat:
     evidence_nodes: List[str] = field(default_factory=list)  # node IDs
     evidence_edges: List[str] = field(default_factory=list)  # edge IDs (src->dst)
     confidence: Optional[float] = None
+    rag_sources: List[Dict[str, Any]] = field(default_factory=list)

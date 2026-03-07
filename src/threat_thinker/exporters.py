@@ -45,6 +45,7 @@ def export_json(
                 "why": t.why,
                 "recommended_action": t.recommended_action,
                 "references": t.references,
+                "rag_sources": getattr(t, "rag_sources", []) or [],
                 "evidence": {"nodes": t.evidence_nodes, "edges": t.evidence_edges},
                 "confidence": t.confidence,
             }
@@ -136,6 +137,20 @@ def export_md(threats: List[Threat], output_file: str = None) -> str:
 
         if threat.references:
             md_content += f"**References:** {', '.join(threat.references)}\n\n"
+        rag_sources = getattr(threat, "rag_sources", []) or []
+        if rag_sources:
+            md_content += "**RAG Sources:**\n\n"
+            for src in rag_sources:
+                kb = src.get("kb") or ""
+                source = src.get("source") or ""
+                chunk_id = src.get("chunk_id") or ""
+                method = src.get("method") or ""
+                score = src.get("score")
+                score_text = (
+                    f"{float(score):.3f}" if isinstance(score, (int, float)) else ""
+                )
+                md_content += f"- kb={kb}, source={source}, chunk={chunk_id}, score={score_text}, method={method}\n"
+            md_content += "\n"
 
         recommended_action = getattr(threat, "recommended_action", "Not specified")
         md_content += f"**Recommended Actions:**\n\n{recommended_action}\n\n"
@@ -445,6 +460,23 @@ def export_html(
             html_parts.append(
                 f"    <p><strong>References:</strong> {_safe(', '.join(threat.references))}</p>"
             )
+        rag_sources = getattr(threat, "rag_sources", []) or []
+        if rag_sources:
+            html_parts.append("    <p><strong>RAG Sources:</strong></p>")
+            html_parts.append('    <ul class="mapping-list">')
+            for src in rag_sources:
+                score = src.get("score")
+                if isinstance(score, (int, float)):
+                    score_text = f"{float(score):.3f}"
+                else:
+                    score_text = "-"
+                line = (
+                    f"kb={src.get('kb') or ''}, source={src.get('source') or ''}, "
+                    f"chunk={src.get('chunk_id') or ''}, score={score_text}, "
+                    f"method={src.get('method') or ''}"
+                )
+                html_parts.append(f"      <li>{_safe(line)}</li>")
+            html_parts.append("    </ul>")
 
         recommended_action = getattr(threat, "recommended_action", "Not specified")
         html_parts.append(
@@ -517,6 +549,7 @@ def export_html(
                 "affected": t.affected,
                 "why": t.why,
                 "references": t.references,
+                "rag_sources": getattr(t, "rag_sources", []) or [],
                 "recommended_action": t.recommended_action,
                 "evidence": {
                     "nodes": t.evidence_nodes,
@@ -803,13 +836,26 @@ def _threat_to_threat_dragon(threat: Threat) -> Dict[str, Any]:
     if not title.startswith("[Threat Thinker]"):
         title = f"[Threat Thinker] {title}"
     stride_type = threat.stride[0] if threat.stride else ""
+    description = threat.why or ""
+    rag_sources = getattr(threat, "rag_sources", []) or []
+    if rag_sources:
+        source_items = []
+        for src in rag_sources:
+            source_items.append(
+                f"{src.get('source') or '?'}#{src.get('chunk_id') or '?'}"
+            )
+        description = (
+            f"{description}\n\nRAG Sources: " + "; ".join(source_items)
+            if description
+            else "RAG Sources: " + "; ".join(source_items)
+        )
     return {
         "id": threat.id,
         "title": title,
         "type": stride_type,
         "status": "Open",
         "severity": threat.severity,
-        "description": threat.why,
+        "description": description,
         "mitigation": threat.recommended_action,
         "references": threat.references,
         "score": threat.score,

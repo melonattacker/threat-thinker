@@ -43,6 +43,15 @@ def test_export_threat_dragon_maps_threats_and_preserves_layout():
             evidence_nodes=[web_id],
             evidence_edges=[],
             confidence=0.9,
+            rag_sources=[
+                {
+                    "kb": "kb",
+                    "source": "web-hardening.md",
+                    "chunk_id": "web-hardening-00001",
+                    "score": 0.9,
+                    "method": "auto",
+                }
+            ],
         ),
         Threat(
             id="T002",
@@ -82,6 +91,8 @@ def test_export_threat_dragon_maps_threats_and_preserves_layout():
     web_cell = cells[web_id]
     assert web_cell["data"]["threats"][0]["id"] == "T001"
     assert web_cell["data"]["threats"][0]["title"].startswith("[Threat Thinker] ")
+    assert "RAG Sources:" in web_cell["data"]["threats"][0]["description"]
+    assert "web-hardening-00001" in web_cell["data"]["threats"][0]["description"]
     assert (
         web_cell["data"]["threats"][0]["mitigation"] == "Apply strict input validation"
     )

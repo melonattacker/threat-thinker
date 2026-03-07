@@ -5,7 +5,17 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from threat_thinker.rag import (
+    DEFAULT_RAG_CANDIDATES,
+    DEFAULT_RAG_MIN_SCORE,
+    DEFAULT_RAG_RERANKER,
+    DEFAULT_RAG_STRATEGY,
+    DEFAULT_TOPK,
+)
+
 JobStatus = Literal["queued", "running", "succeeded", "failed", "expired"]
+RagStrategy = Literal["hybrid", "dense"]
+RagReranker = Literal["auto", "local", "llm", "off"]
 
 
 class InputType(str, Enum):
@@ -42,6 +52,13 @@ class AnalyzeOptions(BaseModel):
     min_confidence: float = 0.5
     topn: Optional[int] = 10
     autodetect: bool = True
+    use_rag: bool = False
+    kb_names: List[str] = Field(default_factory=list)
+    rag_topk: int = DEFAULT_TOPK
+    rag_strategy: RagStrategy = DEFAULT_RAG_STRATEGY
+    rag_reranker: RagReranker = DEFAULT_RAG_RERANKER
+    rag_candidates: int = DEFAULT_RAG_CANDIDATES
+    rag_min_score: float = DEFAULT_RAG_MIN_SCORE
 
 
 class AnalyzeRequest(BaseModel):
@@ -55,6 +72,13 @@ class AnalyzeRequest(BaseModel):
     min_confidence: float = 0.5
     topn: Optional[int] = 10
     autodetect: bool = True
+    use_rag: bool = False
+    kb_names: List[str] = Field(default_factory=list)
+    rag_topk: int = DEFAULT_TOPK
+    rag_strategy: RagStrategy = DEFAULT_RAG_STRATEGY
+    rag_reranker: RagReranker = DEFAULT_RAG_RERANKER
+    rag_candidates: int = DEFAULT_RAG_CANDIDATES
+    rag_min_score: float = DEFAULT_RAG_MIN_SCORE
 
 
 class JobResponse(BaseModel):

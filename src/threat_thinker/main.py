@@ -56,7 +56,11 @@ from threat_thinker.parsers.threat_dragon_parser import (
     parse_threat_dragon,
 )
 from threat_thinker.hint_processor import apply_hints, merge_llm_hints
-from threat_thinker.llm.inference import llm_infer_hints, llm_infer_threats
+from threat_thinker.llm.inference import (
+    llm_infer_hints,
+    llm_infer_threats,
+    llm_rerank_chunks,
+)
 from threat_thinker.threat_analyzer import denoise_threats
 from threat_thinker.exporters import (
     export_json,
@@ -73,11 +77,19 @@ from threat_thinker.rag import (
     DEFAULT_CHUNK_TOKENS,
     DEFAULT_EMBED_MODEL,
     DEFAULT_TOPK,
+    DEFAULT_RAG_STRATEGY,
+    DEFAULT_RAG_RERANKER,
+    DEFAULT_RAG_CANDIDATES,
+    DEFAULT_RAG_MIN_SCORE,
+    RAG_STRATEGIES,
+    RAG_RERANKERS,
+    RetrievalOptions,
     build_kb,
     list_kbs,
     search_kb,
     remove_kb,
     retrieve_context_for_graph,
+    attach_rag_sources_to_threats,
     get_kb_root,
 )
 from threat_thinker.serve.api import create_app
@@ -220,6 +232,32 @@ def main():
         type=int,
         default=DEFAULT_TOPK,
         help=f"Number of retrieved knowledge chunks to inject (default: {DEFAULT_TOPK})",
+    )
+    p_think.add_argument(
+        "--rag-strategy",
+        type=str,
+        default=DEFAULT_RAG_STRATEGY,
+        choices=sorted(RAG_STRATEGIES),
+        help=f"RAG retrieval strategy (default: {DEFAULT_RAG_STRATEGY})",
+    )
+    p_think.add_argument(
+        "--rag-reranker",
+        type=str,
+        default=DEFAULT_RAG_RERANKER,
+        choices=sorted(RAG_RERANKERS),
+        help=f"RAG reranker backend (default: {DEFAULT_RAG_RERANKER})",
+    )
+    p_think.add_argument(
+        "--rag-candidates",
+        type=int,
+        default=DEFAULT_RAG_CANDIDATES,
+        help=f"Candidate pool size before reranking/MMR (default: {DEFAULT_RAG_CANDIDATES})",
+    )
+    p_think.add_argument(
+        "--rag-min-score",
+        type=float,
+        default=DEFAULT_RAG_MIN_SCORE,
+        help=f"Minimum normalized retrieval score [0..1] after reranking (default: {DEFAULT_RAG_MIN_SCORE})",
     )
 
     p_kb = sub.add_parser("kb", help="Manage local knowledge bases for RAG")
@@ -481,6 +519,15 @@ def main():
                     "Example: --kb owasp,internal-standards",
                 )
                 sys.exit(2)
+            if args.rag_topk <= 0:
+                ui.error("--rag-topk must be a positive integer.")
+                sys.exit(2)
+            if args.rag_candidates <= 0:
+                ui.error("--rag-candidates must be a positive integer.")
+                sys.exit(2)
+            if args.rag_min_score < 0.0 or args.rag_min_score > 1.0:
+                ui.error("--rag-min-score must be between 0 and 1.")
+                sys.exit(2)
 
         # 1) Parse diagram to skeleton graph (+ metrics)
         ui.step("Parsing architecture diagram")
@@ -586,19 +633,47 @@ def main():
         ui.debug("Graph after applying user hints", str(g))
 
         rag_context_text = None
+        retrieval = None
+        rerank_fn = None
         if args.rag:
             ui.step("Retrieving local knowledge")
             try:
+                retrieval_options = RetrievalOptions(
+                    strategy=args.rag_strategy,
+                    reranker=args.rag_reranker,
+                    candidates=args.rag_candidates,
+                    min_score=args.rag_min_score,
+                )
+                if args.rag_reranker in {"auto", "llm"}:
+
+                    def _rerank_with_llm(q, candidates):
+                        return llm_rerank_chunks(
+                            q,
+                            candidates,
+                            args.llm_api,
+                            args.llm_model,
+                            args.aws_profile,
+                            args.aws_region,
+                            ollama_host,
+                        )
+
+                    rerank_fn = _rerank_with_llm
                 retrieval = retrieve_context_for_graph(
                     g,
                     rag_kbs,
                     topk=args.rag_topk or DEFAULT_TOPK,
+                    options=retrieval_options,
+                    rerank_fn=rerank_fn,
                 )
                 rag_context_text = retrieval.get("context_text") or ""
                 num_chunks = len(retrieval.get("results", []))
                 if rag_context_text and num_chunks:
                     ui.success(
                         f"Retrieved {num_chunks} knowledge chunks from {', '.join(rag_kbs)}"
+                    )
+                    ui.debug(
+                        "RAG strategy",
+                        f"{args.rag_strategy} (reranker={retrieval.get('reranker_backend', 'off')})",
                     )
                     ui.debug("RAG query", retrieval.get("query", ""))
                 else:
@@ -627,7 +702,21 @@ def main():
                 ollama_host,
                 args.lang,
                 rag_context=rag_context_text,
+                rag_candidates=(retrieval or {}).get("candidate_results"),
             )
+            if args.rag:
+                threats, dropped_by_citation = attach_rag_sources_to_threats(
+                    threats,
+                    retrieval,
+                    reranker_backend=(retrieval or {}).get("reranker_backend", "off"),
+                    rerank_fn=rerank_fn,
+                    min_score=args.rag_min_score,
+                    max_sources_per_threat=2,
+                )
+                if dropped_by_citation > 0:
+                    ui.info(
+                        f"Excluded {dropped_by_citation} threats without RAG document attribution"
+                    )
             thinking.stop()
             ui.success(f"Identified {len(threats)} potential threats")
             ui.debug("LLM inferred threats", "\n".join(str(t) for t in threats))

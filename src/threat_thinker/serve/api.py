@@ -153,6 +153,33 @@ def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeReque
     req.report_formats = [ReportFormat(fmt) for fmt in formats]
     if not req.language:
         req.language = config.engine.report.default_language
+
+    req.kb_names = [
+        name.strip() for name in (req.kb_names or []) if name and name.strip()
+    ]
+    if req.use_rag:
+        if not req.kb_names:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="kb_names is required when use_rag is true.",
+            )
+        if req.rag_topk <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="rag_topk must be a positive integer.",
+            )
+        if req.rag_candidates <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="rag_candidates must be a positive integer.",
+            )
+        if req.rag_min_score < 0 or req.rag_min_score > 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="rag_min_score must be between 0 and 1.",
+            )
+    else:
+        req.kb_names = []
     return req
 
 
@@ -165,6 +192,13 @@ def _options_from_request(req: AnalyzeRequest) -> AnalyzeOptions:
         min_confidence=req.min_confidence,
         topn=req.topn,
         autodetect=req.autodetect,
+        use_rag=req.use_rag,
+        kb_names=req.kb_names,
+        rag_topk=req.rag_topk,
+        rag_strategy=req.rag_strategy,
+        rag_reranker=req.rag_reranker,
+        rag_candidates=req.rag_candidates,
+        rag_min_score=req.rag_min_score,
     )
 
 
@@ -364,6 +398,13 @@ def create_app(config: ServeConfig) -> FastAPI:
                 min_confidence=parsed_options.min_confidence,
                 topn=parsed_options.topn,
                 autodetect=effective_autodetect,
+                use_rag=parsed_options.use_rag,
+                kb_names=parsed_options.kb_names,
+                rag_topk=parsed_options.rag_topk,
+                rag_strategy=parsed_options.rag_strategy,
+                rag_reranker=parsed_options.rag_reranker,
+                rag_candidates=parsed_options.rag_candidates,
+                rag_min_score=parsed_options.rag_min_score,
             )
             req = _normalize_request(req, config)
             job_payload = req
