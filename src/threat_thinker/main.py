@@ -142,6 +142,11 @@ def main():
     p_think.add_argument("--mermaid", type=str, help="Path to Mermaid (.mmd/.mermaid)")
     p_think.add_argument("--drawio", type=str, help="Path to Draw.io (.drawio/.xml)")
     p_think.add_argument(
+        "--drawio-page",
+        type=str,
+        help="Optional Draw.io page selector (page id, page name, or 0-based index)",
+    )
+    p_think.add_argument(
         "--threat-dragon", type=str, help="Path to Threat Dragon JSON (.json)"
     )
     p_think.add_argument(
@@ -540,7 +545,7 @@ def main():
             if diagram_format == "mermaid":
                 g, metrics = parse_mermaid(diagram_file)
             elif diagram_format == "drawio":
-                g, metrics = parse_drawio(diagram_file)
+                g, metrics = parse_drawio(diagram_file, page=args.drawio_page)
             elif diagram_format == "threat-dragon":
                 g, metrics = parse_threat_dragon(diagram_file)
             elif diagram_format == "image":

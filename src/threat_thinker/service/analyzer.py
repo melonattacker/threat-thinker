@@ -155,7 +155,7 @@ def analyze_job(
         if job_input.type == "mermaid":
             graph, metrics = parse_mermaid(diagram_path)
         elif job_input.type == "drawio":
-            graph, metrics = parse_drawio(diagram_path)
+            graph, metrics = parse_drawio(diagram_path, page=request.drawio_page)
         elif job_input.type == "threat-dragon":
             graph, metrics = parse_threat_dragon(diagram_path)
         elif job_input.type == "image":

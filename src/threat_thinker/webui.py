@@ -330,6 +330,7 @@ def _generate_report(
     input_method: str,
     diagram_text: str,
     diagram_format: str,
+    drawio_page: str,
     image_file: str,
     hints_text: str,
     infer_hints: bool,
@@ -359,6 +360,7 @@ def _generate_report(
         diagram_format = (diagram_format or "mermaid").strip().lower()
         if diagram_format not in ["mermaid", "drawio", "threat-dragon"]:
             raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+        drawio_page = (drawio_page or "").strip() or None
     else:  # Image
         if not image_file:
             raise gr.Error("Image file is required when using image input method.")
@@ -460,7 +462,7 @@ def _generate_report(
                     f"Parsed Mermaid diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
                 )
             elif diagram_format == "drawio":
-                graph, metrics = cli.parse_drawio(diagram_path)
+                graph, metrics = cli.parse_drawio(diagram_path, page=drawio_page)
                 status_lines.append(
                     f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
                 )
@@ -702,6 +704,11 @@ def launch_webui(
                     value="mermaid",
                     visible=True,
                 )
+                drawio_page_input = gr.Textbox(
+                    label="Draw.io Page (optional)",
+                    placeholder="Page id, name, or 0-based index",
+                    visible=False,
+                )
 
                 # Image input (hidden by default)
                 image_input = gr.File(
@@ -863,6 +870,7 @@ def launch_webui(
                         input_method,
                         diagram_input,
                         diagram_format_input,
+                        drawio_page_input,
                         image_input,
                         hints_input,
                         infer_hints_input,
@@ -895,24 +903,43 @@ def launch_webui(
                 )
 
                 # Toggle visibility based on input method selection
-                def update_input_visibility(method):
+                def update_input_visibility(method, diagram_format):
                     if method == "Text":
                         return {
                             diagram_input: gr.update(visible=True),
                             diagram_format_input: gr.update(visible=True),
+                            drawio_page_input: gr.update(
+                                visible=diagram_format == "drawio"
+                            ),
                             image_input: gr.update(visible=False),
                         }
                     else:  # Image
                         return {
                             diagram_input: gr.update(visible=False),
                             diagram_format_input: gr.update(visible=False),
+                            drawio_page_input: gr.update(visible=False),
                             image_input: gr.update(visible=True),
                         }
 
                 input_method.change(
                     fn=update_input_visibility,
-                    inputs=[input_method],
-                    outputs=[diagram_input, diagram_format_input, image_input],
+                    inputs=[input_method, diagram_format_input],
+                    outputs=[
+                        diagram_input,
+                        diagram_format_input,
+                        drawio_page_input,
+                        image_input,
+                    ],
+                )
+                diagram_format_input.change(
+                    fn=update_input_visibility,
+                    inputs=[input_method, diagram_format_input],
+                    outputs=[
+                        diagram_input,
+                        diagram_format_input,
+                        drawio_page_input,
+                        image_input,
+                    ],
                 )
 
                 def toggle_rag_controls(enabled, current_selection):
