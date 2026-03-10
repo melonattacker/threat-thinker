@@ -189,7 +189,9 @@ def test_analyze_multipart_accepts_explicit_ir_type(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/v1/analyze",
-        files={"file": ("system.ir.json", '{"nodes": {}, "edges": []}', "application/json")},
+        files={
+            "file": ("system.ir.json", '{"nodes": {}, "edges": []}', "application/json")
+        },
         data={"type": "ir"},
     )
 
@@ -221,7 +223,9 @@ def test_analyze_multipart_json_autodetect_stays_threat_dragon(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/v1/analyze",
-        files={"file": ("system.json", '{"nodes": {}, "edges": []}', "application/json")},
+        files={
+            "file": ("system.json", '{"nodes": {}, "edges": []}', "application/json")
+        },
     )
 
     assert response.status_code == 202

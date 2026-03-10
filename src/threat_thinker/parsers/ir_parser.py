@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
 
 from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Zone
-from threat_thinker.zone_utils import representative_zone_name, sort_zone_ids_by_hierarchy
+from threat_thinker.zone_utils import (
+    representative_zone_name,
+    sort_zone_ids_by_hierarchy,
+)
 
 
 class IRValidationError(ValueError):
@@ -166,16 +169,16 @@ def _parse_edges(payload: Iterable[Any], nodes: Dict[str, Node]) -> list[Edge]:
             dst=dst,
             label=_strip_optional_str(edge_value.get("label")),
             protocol=_strip_optional_str(edge_value.get("protocol")),
-            data=_normalize_string_list(edge_value.get("data"), "edge.data", str(index)),
+            data=_normalize_string_list(
+                edge_value.get("data"), "edge.data", str(index)
+            ),
             id=_strip_optional_str(edge_value.get("id")),
         )
         edges.append(edge)
     return edges
 
 
-def _normalize_zone_refs(
-    value: Any, node_id: str, zones: Dict[str, Zone]
-) -> list[str]:
+def _normalize_zone_refs(value: Any, node_id: str, zones: Dict[str, Zone]) -> list[str]:
     if value is None:
         return []
     if not isinstance(value, list):

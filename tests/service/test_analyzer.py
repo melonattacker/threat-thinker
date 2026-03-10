@@ -5,9 +5,7 @@ from threat_thinker.service.analyzer import analyze_job
 from threat_thinker.serve.config import EngineConfig, TimeoutConfig
 
 
-FIXTURE_PATH = (
-    Path(__file__).resolve().parents[1] / "fixtures" / "sample_graph_ir.json"
-)
+FIXTURE_PATH = Path(__file__).resolve().parents[1] / "fixtures" / "sample_graph_ir.json"
 
 
 def test_analyze_job_accepts_ir_input(monkeypatch):

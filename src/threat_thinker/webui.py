@@ -445,7 +445,9 @@ def _generate_report(
     diagram_path = None
     if input_method == "Text":
         # Determine file extension based on format
-        diagram_path = _write_temp_file(diagram_text, suffix_for_text_input(diagram_format))
+        diagram_path = _write_temp_file(
+            diagram_text, suffix_for_text_input(diagram_format)
+        )
     else:  # Image
         diagram_path = image_file  # Use the uploaded file directly
     hints_path = None
