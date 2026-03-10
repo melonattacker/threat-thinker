@@ -4,7 +4,7 @@ Common flags used in `threat-thinker` commands.
 
 | Flag | Purpose | Notes |
 | --- | --- | --- |
-| `--mermaid / --drawio / --threat-dragon / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
+| `--mermaid / --drawio / --threat-dragon / --ir / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, native Graph IR `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
 | `--drawio-page <id|name|index>` | Select Draw.io page to parse | Optional; supports page id, page name, or 0-based index for multi-page `.drawio` files. |
 | `--infer-hints` | Ask LLM to infer node/edge attributes | Combine with `--hints` to override specific fields. |
 | `--hints <path>` | Apply custom `hint.yaml` | Used after inference; can add missing nodes/edges. |
@@ -24,6 +24,7 @@ Common flags used in `threat-thinker` commands.
 
 Notes:
 - Ollama backend does not support image inputs; use Mermaid/Draw.io/Threat Dragon files with `--llm-api ollama`.
+- Native IR JSON is explicit-only in v1; use `--ir` or API/UI `type=ir`, not `--diagram`.
 - RAG requires OpenAI embeddings; set `OPENAI_API_KEY` when using `--rag`.
 
 Diff command specifics:

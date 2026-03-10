@@ -14,7 +14,7 @@ AI-powered threat modeling that turns architecture diagrams into actionable risk
 Threat Thinker is an open-source tool that turns architecture diagrams into threat models automatically. It keeps models current with minimal manual work by pairing deterministic parsing with LLM reasoning.
 
 Key Features:
-- **Diagram coverage**: Ingests Mermaid, draw.io, Threat Dragon JSON, and images.
+- **Diagram coverage**: Ingests Mermaid, draw.io, Threat Dragon JSON, native Graph IR JSON, and images.
 - **Attribute inference**: Uses LLMs to enrich components, data flows, and trust boundaries.
 - **RAG boost**: Strengthens threat reasoning with local docs/KBs (e.g., OWASP/MITRE/internal).
 - **Threat Dragon**: Imports Threat Dragon diagrams and can export findings back in Threat Dragon format.
@@ -23,7 +23,7 @@ Key Features:
 ## Key Features
 ### Diagram-to-threat reasoning
 - Drop in a diagram via CLI (`--diagram` or format-specific flags) or Web UI and get threats without manual modeling.
-- Supports Mermaid, draw.io, Threat Dragon JSON, and image-based diagrams with autodetection.
+- Supports Mermaid, draw.io, Threat Dragon JSON, native Graph IR JSON, and image-based diagrams.
 - Deterministic parsing plus LLM reasoning fills missing labels, trust boundaries, and protocols.
 - Outputs prioritized threats with short rationales and OWASP ASVS/CWE references for quick review.
 

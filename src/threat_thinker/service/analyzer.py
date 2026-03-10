@@ -17,15 +17,12 @@ from threat_thinker.exporters import (
     export_threat_dragon,
 )
 from threat_thinker.hint_processor import merge_llm_hints
+from threat_thinker.input_loader import INPUT_FORMAT_IR, load_input
 from threat_thinker.llm.inference import (
     llm_infer_hints,
     llm_infer_threats,
     llm_rerank_chunks,
 )
-from threat_thinker.parsers.drawio_parser import parse_drawio
-from threat_thinker.parsers.image_parser import parse_image
-from threat_thinker.parsers.mermaid_parser import parse_mermaid
-from threat_thinker.parsers.threat_dragon_parser import parse_threat_dragon
 from threat_thinker.threat_analyzer import denoise_threats
 from threat_thinker.rag import (
     KnowledgeBaseError,
@@ -83,15 +80,18 @@ def _decode_bytes(data_b64: Optional[str]) -> bytes:
 
 
 def _suffix_for_input(job_input: InputPayload) -> str:
+    input_type = getattr(job_input.type, "value", job_input.type)
     if job_input.filename:
         return Path(job_input.filename).suffix or ""
-    if job_input.type == "mermaid":
+    if input_type == "mermaid":
         return ".mmd"
-    if job_input.type == "drawio":
+    if input_type == "drawio":
         return ".xml"
-    if job_input.type == "threat-dragon":
+    if input_type == "threat-dragon":
         return ".json"
-    if job_input.type == "image":
+    if input_type == INPUT_FORMAT_IR:
+        return ".json"
+    if input_type == "image":
         return ".png"
     return ""
 
@@ -152,23 +152,16 @@ def analyze_job(
 
         temp_paths.append(diagram_path)
 
-        if job_input.type == "mermaid":
-            graph, metrics = parse_mermaid(diagram_path)
-        elif job_input.type == "drawio":
-            graph, metrics = parse_drawio(diagram_path, page=request.drawio_page)
-        elif job_input.type == "threat-dragon":
-            graph, metrics = parse_threat_dragon(diagram_path)
-        elif job_input.type == "image":
-            graph, metrics = parse_image(
-                diagram_path,
-                api=provider,
-                model=model_name,
-                aws_profile=engine.model.aws_profile,
-                aws_region=engine.model.aws_region,
-                ollama_host=ollama_host,
-            )
-        else:
-            raise AnalysisError(f"Unsupported input type: {job_input.type}")
+        graph, metrics = load_input(
+            getattr(job_input.type, "value", job_input.type),
+            diagram_path,
+            drawio_page=request.drawio_page,
+            api=provider,
+            model=model_name,
+            aws_profile=engine.model.aws_profile,
+            aws_region=engine.model.aws_region,
+            ollama_host=ollama_host,
+        )
 
         if request.infer_hints:
             skeleton = json.dumps(

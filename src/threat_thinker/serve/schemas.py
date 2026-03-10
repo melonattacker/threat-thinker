@@ -23,6 +23,7 @@ class InputType(str, Enum):
     DRAWIO = "drawio"
     THREAT_DRAGON = "threat-dragon"
     IMAGE = "image"
+    IR = "ir"
 
 
 class InputPayload(BaseModel):

@@ -164,3 +164,65 @@ def test_analyze_json_accepts_rag_options(monkeypatch):
     assert payload["rag_candidates"] == 12
     assert payload["rag_min_score"] == 0.2
     assert payload["drawio_page"] == "p2"
+
+
+def test_analyze_json_accepts_ir_input(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={"input": {"type": "ir", "content": '{"nodes": {}, "edges": []}'}},
+    )
+
+    assert response.status_code == 202
+    assert captured["payload"]["input"]["type"] == "ir"
+
+
+def test_analyze_multipart_accepts_explicit_ir_type(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        files={"file": ("system.ir.json", '{"nodes": {}, "edges": []}', "application/json")},
+        data={"type": "ir"},
+    )
+
+    assert response.status_code == 202
+    assert captured["payload"]["input"]["type"] == "ir"
+
+
+def test_analyze_ir_rejects_when_not_allowed(monkeypatch):
+    cfg = _base_config()
+    cfg.engine.allowed_inputs = ["mermaid"]
+    _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={"input": {"type": "ir", "content": '{"nodes": {}, "edges": []}'}},
+    )
+
+    assert response.status_code == 400
+    assert "not allowed" in response.json()["detail"]
+
+
+def test_analyze_multipart_json_autodetect_stays_threat_dragon(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        files={"file": ("system.json", '{"nodes": {}, "edges": []}', "application/json")},
+    )
+
+    assert response.status_code == 202
+    assert captured["payload"]["input"]["type"] == "threat-dragon"
