@@ -1,11 +1,17 @@
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from threat_thinker.main import _prepare_diff_output_paths, _prepare_output_paths
+from threat_thinker.main import (
+    _prepare_diff_output_paths,
+    _prepare_output_paths,
+    _select_think_input,
+)
+from threat_thinker.input_loader import INPUT_FORMAT_IR, INPUT_FORMAT_THREAT_DRAGON
 
 
 def test_prepare_output_paths_uses_diagram_stem(tmp_path: Path):
@@ -52,3 +58,36 @@ def test_prepare_diff_output_paths_use_after_stem(tmp_path: Path):
     assert json_path.parent == out_dir
     assert json_path.name == "new-report_diff.json"
     assert md_path.name == "new-report_diff.md"
+
+
+def test_select_think_input_supports_ir():
+    args = SimpleNamespace(
+        diagram=None,
+        mermaid=None,
+        drawio=None,
+        threat_dragon=None,
+        image=None,
+        ir="graphs/system.ir.json",
+    )
+
+    diagram_file, diagram_format = _select_think_input(args)
+
+    assert diagram_file == "graphs/system.ir.json"
+    assert diagram_format == INPUT_FORMAT_IR
+
+
+def test_select_think_input_keeps_json_autodetect_as_threat_dragon():
+    fixture_path = Path(__file__).parent / "fixtures" / "threat_dragon_simple.json"
+    args = SimpleNamespace(
+        diagram=str(fixture_path),
+        mermaid=None,
+        drawio=None,
+        threat_dragon=None,
+        image=None,
+        ir=None,
+    )
+
+    diagram_file, diagram_format = _select_think_input(args)
+
+    assert diagram_file == str(fixture_path)
+    assert diagram_format == INPUT_FORMAT_THREAT_DRAGON

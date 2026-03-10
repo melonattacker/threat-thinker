@@ -8,7 +8,7 @@ It automatically extracts components, data flows, and trust boundaries from syst
 Threat Thinker is composed of five major layers:
 
 1. **Parser Layer**  
-   Converts diagrams (Mermaid, Draw.io, or image files via LLM vision) into a unified intermediate representation (`Graph` of `Node` and `Edge`). Supports multiple input formats including `.mmd/.mermaid`, `.drawio/.xml`, and image files (`.jpg/.jpeg/.png/.gif/.bmp/.webp`).
+   Converts diagrams (Mermaid, Draw.io, Threat Dragon, or image files via LLM vision) into a unified intermediate representation (`Graph` of `Node` and `Edge`) and also accepts native `Graph` IR JSON directly. Supports Mermaid `.mmd/.mermaid`, Draw.io `.drawio/.xml`, Threat Dragon v2 `.json`, native IR `.json` via explicit selection, and image files (`.jpg/.jpeg/.png/.gif/.bmp/.webp`).
 
 2. **Inference Layer (LLM-assisted)**  
    Infers missing attributes such as zone, type, and data sensitivity using a combination of syntax parsing and large language model reasoning. Supports multiple LLM providers (OpenAI, Anthropic, AWS Bedrock).
@@ -25,9 +25,9 @@ Threat Thinker is composed of five major layers:
 ## Processing Flow
 
 ```
-Diagram (.mmd/.mermaid, .drawio/.xml, or image files)
+Diagram or IR (.mmd/.mermaid, .drawio/.xml, Threat Dragon JSON, native IR JSON, or image files)
 ↓
-[Parser] → Graph(nodes, edges) + ImportMetrics
+[Parser/Input Loader] → Graph(nodes, edges) + ImportMetrics
 ↓
 [LLM Attribute Inference] (optional, multilingual)
 ↓

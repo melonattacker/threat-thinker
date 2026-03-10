@@ -1,0 +1,55 @@
+{
+  "nodes": {
+    "user": {
+      "id": "user",
+      "label": "User",
+      "type": "actor",
+      "zones": ["internet"]
+    },
+    "api": {
+      "id": "api",
+      "label": "API",
+      "type": "service",
+      "zones": ["internet", "dmz"],
+      "auth": true,
+      "data": ["PII"]
+    },
+    "db": {
+      "id": "db",
+      "label": "Database",
+      "type": "store",
+      "zones": ["internet", "dmz", "private"]
+    }
+  },
+  "edges": [
+    {
+      "id": "edge-1",
+      "src": "user",
+      "dst": "api",
+      "label": "HTTPS",
+      "protocol": "HTTPS"
+    },
+    {
+      "src": "api",
+      "dst": "db",
+      "label": "SQL",
+      "protocol": "TLS"
+    }
+  ],
+  "zones": {
+    "internet": {
+      "id": "internet",
+      "name": "Internet"
+    },
+    "dmz": {
+      "id": "dmz",
+      "name": "DMZ",
+      "parent_id": "internet"
+    },
+    "private": {
+      "id": "private",
+      "name": "Private",
+      "parent_id": "dmz"
+    }
+  }
+}

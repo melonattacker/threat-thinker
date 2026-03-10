@@ -15,7 +15,15 @@ import html
 import gradio as gr
 
 import threat_thinker.main as cli
-from threat_thinker.parsers.image_parser import parse_image
+from threat_thinker.input_loader import (
+    INPUT_FORMAT_DRAWIO,
+    INPUT_FORMAT_IR,
+    INPUT_FORMAT_MERMAID,
+    INPUT_FORMAT_THREAT_DRAGON,
+    TEXT_INPUT_FORMATS,
+    load_input,
+    suffix_for_text_input,
+)
 from threat_thinker.exporters import diff_reports, export_diff_md
 from threat_thinker.rag import (
     KnowledgeBaseError,
@@ -92,6 +100,13 @@ def _write_temp_file(content: str, suffix: str) -> str:
     finally:
         tmp.close()
     return tmp.name
+
+
+def _validate_text_input_format(diagram_format: str) -> str:
+    value = (diagram_format or INPUT_FORMAT_MERMAID).strip().lower()
+    if value not in TEXT_INPUT_FORMATS:
+        raise gr.Error(f"Unsupported diagram format: {value}")
+    return value
 
 
 def _normalize_embed_model(embed_arg: str) -> str:
@@ -357,9 +372,7 @@ def _generate_report(
         if not diagram_text:
             raise gr.Error("Diagram input is required.")
 
-        diagram_format = (diagram_format or "mermaid").strip().lower()
-        if diagram_format not in ["mermaid", "drawio", "threat-dragon"]:
-            raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+        diagram_format = _validate_text_input_format(diagram_format)
         drawio_page = (drawio_page or "").strip() or None
     else:  # Image
         if not image_file:
@@ -393,7 +406,7 @@ def _generate_report(
         if input_method == "Image":
             raise gr.Error(
                 "Image diagrams are not supported with the Ollama backend. "
-                "Use OpenAI/Anthropic/Bedrock for image extraction or provide Mermaid/Draw.io/Threat Dragon input."
+                "Use OpenAI/Anthropic/Bedrock for image extraction or provide Mermaid/Draw.io/Threat Dragon/IR input."
             )
         normalized_model = llm_model.lower()
         if not normalized_model or normalized_model.startswith("gpt-4"):
@@ -432,16 +445,9 @@ def _generate_report(
     diagram_path = None
     if input_method == "Text":
         # Determine file extension based on format
-        if diagram_format == "mermaid":
-            file_suffix = ".mmd"
-        elif diagram_format == "drawio":
-            file_suffix = ".drawio"
-        elif diagram_format == "threat-dragon":
-            file_suffix = ".json"
-        else:
-            file_suffix = ".txt"
-
-        diagram_path = _write_temp_file(diagram_text, file_suffix)
+        diagram_path = _write_temp_file(
+            diagram_text, suffix_for_text_input(diagram_format)
+        )
     else:  # Image
         diagram_path = image_file  # Use the uploaded file directly
     hints_path = None
@@ -456,25 +462,17 @@ def _generate_report(
     try:
         # Parse diagram based on input method and format
         if input_method == "Text":
-            if diagram_format == "mermaid":
-                graph, metrics = cli.parse_mermaid(diagram_path)
-                status_lines.append(
-                    f"Parsed Mermaid diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
-                )
-            elif diagram_format == "drawio":
-                graph, metrics = cli.parse_drawio(diagram_path, page=drawio_page)
-                status_lines.append(
-                    f"Parsed Draw.io diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
-                )
-            elif diagram_format == "threat-dragon":
-                graph, metrics = cli.parse_threat_dragon(diagram_path)
-                status_lines.append(
-                    f"Parsed Threat Dragon diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
-                )
-            else:
-                raise gr.Error(f"Unsupported diagram format: {diagram_format}")
+            graph, metrics = load_input(
+                diagram_format,
+                diagram_path,
+                drawio_page=drawio_page,
+            )
+            status_lines.append(
+                f"Parsed {diagram_format} diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+            )
         else:  # Image
-            graph, metrics = parse_image(
+            graph, metrics = load_input(
+                "image",
                 diagram_path,
                 api=llm_api,
                 model=llm_model,
@@ -693,15 +691,20 @@ def launch_webui(
                 # Text input (visible by default)
                 diagram_input = gr.TextArea(
                     label="Diagram Content",
-                    placeholder="Paste your diagram content here (Mermaid, Draw.io XML, or Threat Dragon JSON)...",
+                    placeholder="Paste your diagram content here (Mermaid, Draw.io XML, Threat Dragon JSON, or native IR JSON)...",
                     lines=20,
                     autofocus=True,
                     visible=True,
                 )
                 diagram_format_input = gr.Radio(
                     label="Diagram Format",
-                    choices=["mermaid", "drawio", "threat-dragon"],
-                    value="mermaid",
+                    choices=[
+                        INPUT_FORMAT_MERMAID,
+                        INPUT_FORMAT_DRAWIO,
+                        INPUT_FORMAT_THREAT_DRAGON,
+                        INPUT_FORMAT_IR,
+                    ],
+                    value=INPUT_FORMAT_MERMAID,
                     visible=True,
                 )
                 drawio_page_input = gr.Textbox(
@@ -909,7 +912,7 @@ def launch_webui(
                             diagram_input: gr.update(visible=True),
                             diagram_format_input: gr.update(visible=True),
                             drawio_page_input: gr.update(
-                                visible=diagram_format == "drawio"
+                                visible=diagram_format == INPUT_FORMAT_DRAWIO
                             ),
                             image_input: gr.update(visible=False),
                         }

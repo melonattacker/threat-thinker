@@ -46,6 +46,7 @@ ALLOWED_INPUT_TYPES = {
     "mermaid": "mermaid",
     "drawio": "drawio",
     "threat_dragon": "threat-dragon",
+    "ir": "ir",
 }
 
 ALLOWED_LANGUAGES = {"en", "ja"}

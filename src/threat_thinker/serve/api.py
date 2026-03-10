@@ -21,6 +21,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from redis.asyncio import from_url as redis_from_url
 
+from threat_thinker.input_loader import (
+    INPUT_FORMAT_DRAWIO,
+    INPUT_FORMAT_IMAGE,
+    INPUT_FORMAT_MERMAID,
+    INPUT_FORMAT_THREAT_DRAGON,
+)
 from threat_thinker.serve.auth import APIKeyAuthenticator
 from threat_thinker.serve.config import ServeConfig
 from threat_thinker.serve.jobstore import (
@@ -105,13 +111,13 @@ def _detect_input_type(filename: Optional[str]) -> Optional[InputType]:
         return None
     name = filename.lower()
     if name.endswith((".mmd", ".mermaid")):
-        return InputType.MERMAID
+        return InputType(INPUT_FORMAT_MERMAID)
     if name.endswith((".drawio", ".xml")):
-        return InputType.DRAWIO
+        return InputType(INPUT_FORMAT_DRAWIO)
     if name.endswith(".json"):
-        return InputType.THREAT_DRAGON
+        return InputType(INPUT_FORMAT_THREAT_DRAGON)
     if name.endswith((".png", ".jpg", ".jpeg", ".webp")):
-        return InputType.IMAGE
+        return InputType(INPUT_FORMAT_IMAGE)
     return None
 
 

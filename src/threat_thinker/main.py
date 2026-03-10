@@ -48,12 +48,14 @@ import sys
 import time
 from pathlib import Path
 
-from threat_thinker.parsers.mermaid_parser import parse_mermaid
-from threat_thinker.parsers.drawio_parser import parse_drawio
-from threat_thinker.parsers.image_parser import parse_image
-from threat_thinker.parsers.threat_dragon_parser import (
-    is_threat_dragon_json,
-    parse_threat_dragon,
+from threat_thinker.input_loader import (
+    INPUT_FORMAT_DRAWIO,
+    INPUT_FORMAT_IMAGE,
+    INPUT_FORMAT_IR,
+    INPUT_FORMAT_MERMAID,
+    INPUT_FORMAT_THREAT_DRAGON,
+    detect_input_format,
+    load_input,
 )
 from threat_thinker.hint_processor import apply_hints, merge_llm_hints
 from threat_thinker.llm.inference import (
@@ -132,6 +134,41 @@ def _prepare_diff_output_paths(
     return target_dir, json_path, md_path
 
 
+def _select_think_input(args) -> tuple[str, str]:
+    if args.diagram:
+        diagram_file = args.diagram
+        diagram_format = detect_input_format(diagram_file)
+        if not diagram_format:
+            if diagram_file.lower().endswith(".json"):
+                ui.error(
+                    f"Unsupported diagram file format for {diagram_file}",
+                    "Only Threat Dragon v2 JSON files are accepted for --diagram JSON inputs. Use --ir for native IR JSON.",
+                )
+            else:
+                ui.error(
+                    f"Unsupported diagram file format for {diagram_file}",
+                    "Supported: Mermaid (.mmd/.mermaid), Draw.io (.drawio/.xml), Threat Dragon JSON (.json), or images (.jpg/.jpeg/.png/.gif/.bmp/.webp). Use --ir for native IR JSON.",
+                )
+            sys.exit(2)
+        return diagram_file, diagram_format
+    if args.mermaid:
+        return args.mermaid, INPUT_FORMAT_MERMAID
+    if args.drawio:
+        return args.drawio, INPUT_FORMAT_DRAWIO
+    if args.threat_dragon:
+        return args.threat_dragon, INPUT_FORMAT_THREAT_DRAGON
+    if args.image:
+        return args.image, INPUT_FORMAT_IMAGE
+    if args.ir:
+        return args.ir, INPUT_FORMAT_IR
+
+    ui.error(
+        "No diagram file specified",
+        "Please specify a diagram file using --diagram, --mermaid, --drawio, --threat-dragon, --image, or --ir",
+    )
+    sys.exit(2)
+
+
 def main():
     p = argparse.ArgumentParser(prog="threat_thinker", description="Threat Thinker CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -149,6 +186,7 @@ def main():
     p_think.add_argument(
         "--threat-dragon", type=str, help="Path to Threat Dragon JSON (.json)"
     )
+    p_think.add_argument("--ir", type=str, help="Path to native Graph IR JSON (.json)")
     p_think.add_argument(
         "--image", type=str, help="Path to image file (.jpg/.jpeg/.png/.gif/.bmp/.webp)"
     )
@@ -402,53 +440,7 @@ def main():
         )  # Parse, Infer hints, Apply hints, (Retrieve), Analyze threats, Denoise, Export
 
         # Determine diagram file and format
-        diagram_file = None
-        diagram_format = None
-
-        if args.diagram:
-            diagram_file = args.diagram
-            # Auto-detect format from extension
-            if diagram_file.lower().endswith((".mmd", ".mermaid")):
-                diagram_format = "mermaid"
-            elif diagram_file.lower().endswith((".drawio", ".xml")):
-                diagram_format = "drawio"
-            elif diagram_file.lower().endswith(".json"):
-                if is_threat_dragon_json(diagram_file):
-                    diagram_format = "threat-dragon"
-                else:
-                    ui.error(
-                        f"Unsupported diagram file format for {diagram_file}",
-                        "Only Threat Dragon v2 JSON files are accepted for .json inputs.",
-                    )
-                    sys.exit(2)
-            elif diagram_file.lower().endswith(
-                (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp")
-            ):
-                diagram_format = "image"
-            else:
-                ui.error(
-                    f"Unsupported diagram file format for {diagram_file}",
-                    "Supported: Mermaid (.mmd/.mermaid), Draw.io (.drawio/.xml), Threat Dragon JSON (.json), or images (.jpg/.jpeg/.png/.gif/.bmp/.webp)",
-                )
-                sys.exit(2)
-        elif args.mermaid:
-            diagram_file = args.mermaid
-            diagram_format = "mermaid"
-        elif args.drawio:
-            diagram_file = args.drawio
-            diagram_format = "drawio"
-        elif args.threat_dragon:
-            diagram_file = args.threat_dragon
-            diagram_format = "threat-dragon"
-        elif args.image:
-            diagram_file = args.image
-            diagram_format = "image"
-        else:
-            ui.error(
-                "No diagram file specified",
-                "Please specify a diagram file using --diagram, --mermaid, --drawio, --threat-dragon, or --image",
-            )
-            sys.exit(2)
+        diagram_file, diagram_format = _select_think_input(args)
 
         supported_apis = ["openai", "anthropic", "bedrock", "ollama"]
         if args.llm_api.lower() not in supported_apis:
@@ -542,30 +534,16 @@ def main():
         thinking.start()
 
         try:
-            if diagram_format == "mermaid":
-                g, metrics = parse_mermaid(diagram_file)
-            elif diagram_format == "drawio":
-                g, metrics = parse_drawio(diagram_file, page=args.drawio_page)
-            elif diagram_format == "threat-dragon":
-                g, metrics = parse_threat_dragon(diagram_file)
-            elif diagram_format == "image":
-                if args.llm_api.lower() == "ollama":
-                    ui.error(
-                        "Image diagrams are not supported with the Ollama backend.",
-                        "Use OpenAI/Anthropic/Bedrock for image extraction or provide a Mermaid/Draw.io/Threat Dragon file.",
-                    )
-                    sys.exit(2)
-                g, metrics = parse_image(
-                    diagram_file,
-                    api=args.llm_api,
-                    model=args.llm_model,
-                    aws_profile=args.aws_profile,
-                    aws_region=args.aws_region,
-                    ollama_host=ollama_host,
-                )
-            else:
-                ui.error(f"Unsupported diagram format: {diagram_format}")
-                sys.exit(2)
+            g, metrics = load_input(
+                diagram_format,
+                diagram_file,
+                drawio_page=args.drawio_page,
+                api=args.llm_api,
+                model=args.llm_model,
+                aws_profile=args.aws_profile,
+                aws_region=args.aws_region,
+                ollama_host=ollama_host,
+            )
 
             thinking.stop()
             ui.success("Successfully parsed diagram")

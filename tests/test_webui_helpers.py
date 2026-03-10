@@ -24,6 +24,12 @@ def test_validate_kb_name_rejects_invalid():
     assert webui._validate_kb_name("kb-good") == "kb-good"
 
 
+def test_validate_text_input_format_supports_ir():
+    assert webui._validate_text_input_format("ir") == "ir"
+    with pytest.raises(gr.Error):
+        webui._validate_text_input_format("unknown")
+
+
 def test_copy_uploaded_files_to_kb(tmp_path, monkeypatch):
     monkeypatch.setenv("THREAT_THINKER_KB_ROOT", str(tmp_path))
     source_file = tmp_path / "doc.txt"
