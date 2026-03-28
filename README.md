@@ -88,20 +88,42 @@ export AWS_SESSION_TOKEN=...
 
 ### Installation
 
+Choose one of the following methods:
+
+#### Using [pipx](https://pipx.pypa.io/) 
 ```bash
-# Option 1 (Recommended): Install as a CLI tool using uv
-uv tool install \
-  https://github.com/melonattacker/threat-thinker/releases/download/vX.Y.Z/threat_thinker-X.Y.Z-py3-none-any.whl
-
-# Option 2: Development / editable install
-git clone https://github.com/melonattacker/threat-thinker.git
-cd threat-thinker
-
-uv venv
-source .venv/bin/activate
-uv pip install -e .
+pipx install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.0/threat_thinker-0.6.0-py3-none-any.whl
 ```
 
+#### Using [uv](https://docs.astral.sh/uv/)
+```bash
+uv tool install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.0/threat_thinker-0.6.0-py3-none-any.whl
+```
+
+#### Using pip
+```bash
+pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.0/threat_thinker-0.6.0-py3-none-any.whl
+
+# Or install latest from main
+pip install git+https://github.com/melonattacker/threat-thinker.git
+```
+
+> **Note**: If you see `externally-managed-environment` error,
+> use `pipx` or `uv` instead, or create a virtual environment first.
+
+#### For development
+```bash
+git clone https://github.com/melonattacker/threat-thinker.git
+cd threat-thinker
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+#### Verify installation
+```bash
+threat-thinker --help
+```
 ### CLI Usage
 Here is an example of command using CLI mode.
 
