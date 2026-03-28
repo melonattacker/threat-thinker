@@ -18,7 +18,7 @@ dependencies = [
     "gradio==5.49.1",
     "numpy==2.3.4",
     "openai==2.29.0",
-    "pyaml==25.7.0",
+    "pyaml==26.2.1",
     "python-multipart==0.0.20",
     "pypdf==6.7.4",
     "pytest==8.4.2",
