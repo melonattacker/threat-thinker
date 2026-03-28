@@ -57,8 +57,12 @@ jobs:
             stable=true
           fi
 
+          version="${tag#v}"
+          base_version="${version%%[-+]*}"
+
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "base_version=$base_version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "stable=$stable" >> "$GITHUB_OUTPUT"
 
@@ -94,7 +98,12 @@ jobs:
           pkg_version="$(
             git show "${tag}:pyproject.toml" | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["project"]["version"])'
           )"
-          if [[ "$pkg_version" != "${{ steps.meta.outputs.version }}" ]]; then
+          if [[ "${{ steps.meta.outputs.prerelease }}" == "true" ]]; then
+            if [[ "$pkg_version" != "${{ steps.meta.outputs.base_version }}" ]]; then
+              echo "For prerelease tags, pyproject.toml version (${pkg_version}) must match base version ${{ steps.meta.outputs.base_version }} derived from ${tag}"
+              exit 1
+            fi
+          elif [[ "$pkg_version" != "${{ steps.meta.outputs.version }}" ]]; then
             echo "pyproject.toml version (${pkg_version}) does not match tag ${tag}"
             exit 1
           fi
