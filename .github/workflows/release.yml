@@ -1,29 +1,22 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
-      version:
-        description: "Release version tag (e.g. v0.4.0)"
+      tag:
+        description: "Existing release tag to publish (e.g. v0.6.0)"
         required: true
         type: string
-      target_ref:
-        description: "Git ref to release from (branch/sha). Default: main"
-        required: false
-        default: "main"
-        type: string
-      push_latest:
-        description: "Also push :latest tag"
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: release-${{ github.repository }}
   cancel-in-progress: false
 
 permissions:
-  contents: write          # create/push tags, create GitHub Release
+  contents: write          # create GitHub Release
   packages: write          # push to GHCR
   id-token: write          # keyless cosign
   actions: read
@@ -37,49 +30,83 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate version format
+      - name: Resolve release tag
+        id: meta
         shell: bash
         run: |
           set -euo pipefail
-          v="${{ inputs.version }}"
-          if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+].*)?$ ]]; then
-            echo "Invalid version: $v"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${{ inputs.tag }}"
+          fi
+
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+].*)?$ ]]; then
+            echo "Invalid version: $tag"
             echo "Expected semver like v0.4.0 (optionally with -rc.1, +meta)"
             exit 1
           fi
 
-      - name: Checkout target ref
+          prerelease=false
+          if [[ "$tag" == *"-rc."* || "$tag" == *"-beta"* || "$tag" == *"-alpha"* ]]; then
+            prerelease=true
+          fi
+
+          stable=false
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            stable=true
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "stable=$stable" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ inputs.target_ref }}
           fetch-depth: 0
 
-      - name: Fail if tag already exists
+      - name: Fetch release tags
         shell: bash
         run: |
           set -euo pipefail
-          tag="${{ inputs.version }}"
-          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            echo "Tag already exists locally: ${tag}"
-            exit 1
-          fi
-          # remote check
-          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
-            echo "Tag already exists on origin: ${tag}"
-            exit 1
-          fi
+          git fetch --force --tags origin
 
-      - name: Create & push git tag
+      - name: Validate release tag
+        id: validate
         shell: bash
         run: |
           set -euo pipefail
-          tag="${{ inputs.version }}"
-          sha="$(git rev-parse HEAD)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag="${{ steps.meta.outputs.tag }}"
 
-          git tag -a "$tag" -m "Release $tag" "$sha"
-          git push origin "refs/tags/$tag"
+          if ! git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag does not exist on origin: ${tag}"
+            exit 1
+          fi
+
+          object_type="$(git for-each-ref --format='%(objecttype)' "refs/tags/${tag}")"
+          if [[ "$object_type" != "tag" ]]; then
+            echo "Release tags must be annotated/signed tags. Found object type: ${object_type}"
+            exit 1
+          fi
+
+          pkg_version="$(
+            git show "${tag}:pyproject.toml" | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["project"]["version"])'
+          )"
+          if [[ "$pkg_version" != "${{ steps.meta.outputs.version }}" ]]; then
+            echo "pyproject.toml version (${pkg_version}) does not match tag ${tag}"
+            exit 1
+          fi
+
+          commit_sha="$(git rev-parse "${tag}^{}")"
+          echo "commit_sha=${commit_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tagged commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "${{ steps.validate.outputs.commit_sha }}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -90,13 +117,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Compute tmp tag
         id: tmp
         shell: bash
         run: |
           set -euo pipefail
-          short="$(git rev-parse --short=12 HEAD)"
+          short="${{ steps.validate.outputs.commit_sha }}"
+          short="${short:0:12}"
           echo "tag=tmp-${short}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push tmp image
@@ -109,11 +137,10 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tmp.outputs.tag }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.validate.outputs.commit_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Sign the image with cosign (keyless)
       - name: Install cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
@@ -131,14 +158,14 @@ jobs:
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           DIGEST: ${{ steps.push_tmp.outputs.digest }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.meta.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
           docker buildx imagetools create -t "${IMAGE}:${VERSION}" "${IMAGE}@${DIGEST}"
 
-      - name: Optionally tag :latest (post-sign)
-        if: ${{ inputs.push_latest }}
+      - name: Tag stable release as :latest (post-sign)
+        if: ${{ steps.meta.outputs.stable == 'true' }}
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           DIGEST: ${{ steps.push_tmp.outputs.digest }}
@@ -147,19 +174,22 @@ jobs:
           set -euo pipefail
           docker buildx imagetools create -t "${IMAGE}:latest" "${IMAGE}@${DIGEST}"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.2"
+
       - name: Build Python package (wheel)
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --upgrade uv
           uv build
 
-      # Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
-          prerelease: ${{ contains(inputs.version, '-rc.') || contains(inputs.version, '-beta') || contains(inputs.version, '-alpha') }}
-          tag_name: ${{ inputs.version }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          tag_name: ${{ steps.meta.outputs.tag }}
           generate_release_notes: true
           draft: false
           files: |
