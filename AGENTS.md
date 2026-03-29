@@ -29,7 +29,7 @@ This document describes how human contributors and AI assistants should operate 
 - `reports/`: generated analysis artifacts in Markdown/JSON/HTML; never hand-edit these.
 - `benchmarking/`: notebooks/scripts for perf or accuracy comparisons.
 - `examples/demo-app/`: sample service configuration and Docker Compose setup.
-- Root configuration: `pyproject.toml`, `pytest.ini`, `requirements.txt` (Ruff config lives in `pyproject.toml`).
+- Root configuration: `pyproject.toml`, `uv.lock`, `pytest.ini` (Ruff config lives in `pyproject.toml`).
 - `dist/`: built artifacts; do not edit by hand.
 
 ## 3. Execution Modes & Entry Points
@@ -43,9 +43,10 @@ This document describes how human contributors and AI assistants should operate 
    ```bash
    uv venv                         # create .venv if absent
    source .venv/bin/activate
-   uv pip install -e . -r requirements.txt
+   uv sync --extra dev
+   uv sync --extra dev --frozen    # reproduce the reviewed dependency set
    ```
-   Use `pip install -e .` as a fallback if `uv` is unavailable.
+   Use `pip install -e .[dev]` as a fallback if `uv` is unavailable.
 2. **Credentials**: export one or more of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or configure AWS credentials (`aws configure --profile ...` or `AWS_ACCESS_KEY_ID/...`) before running CLI/web UI/API features that contact LLMs.
 3. **Iterate**
    - Run `ruff check src tests` and `ruff format` before committing.
@@ -85,7 +86,7 @@ This document describes how human contributors and AI assistants should operate 
    - Commit messages stay short & imperative (`add kb search tests`, `fix drawio parser bounds`).
 
 ## 5. Coding Standards & Patterns
-- Python 3.8+ with four-space indentation and full typing; prefer dataclasses for request/response payloads.
+- Python 3.11+ with four-space indentation and full typing; prefer dataclasses for request/response payloads.
 - Use descriptive `snake_case` for functions/variables and `PascalCase` for classes. Module docstrings summarize intent and key interactions.
 - Keep prompt-building helpers pure – no file I/O or network calls in `llm/` prompt modules.
 - Minimal but meaningful inline comments (e.g., explain unusual filtering logic or boundary conditions).

@@ -115,9 +115,12 @@ pip install git+https://github.com/melonattacker/threat-thinker.git
 ```bash
 git clone https://github.com/melonattacker/threat-thinker.git
 cd threat-thinker
+uv sync --extra dev --frozen
+
+# Fallback if uv is unavailable
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e .[dev]
 ```
 
 #### Verify installation

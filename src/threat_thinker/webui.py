@@ -667,13 +667,8 @@ def _generate_report(
                     pass
 
 
-def launch_webui(
-    *,
-    server_name: str = "127.0.0.1",
-    server_port: Optional[int] = None,
-) -> None:
-    """Launch the Gradio Web UI."""
-    cleanup_temp_dir = _setup_gradio_temp_dir()
+def _build_webui() -> gr.Blocks:
+    """Construct the Gradio Web UI without launching a server."""
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
         gr.Markdown(
             "## Threat Thinker WebUI\nAnalyze system diagrams for security threats or compare threat reports."
@@ -1154,6 +1149,18 @@ def launch_webui(
             outputs=[kb_status_md, kb_list_md, kb_selector, kb_delete_selector],
             api_name=False,
         )
+
+    return demo
+
+
+def launch_webui(
+    *,
+    server_name: str = "127.0.0.1",
+    server_port: Optional[int] = None,
+) -> None:
+    """Launch the Gradio Web UI."""
+    cleanup_temp_dir = _setup_gradio_temp_dir()
+    demo = _build_webui()
 
     try:
         demo.launch(server_name=server_name, server_port=server_port, share=False)

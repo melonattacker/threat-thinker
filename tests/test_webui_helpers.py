@@ -63,3 +63,11 @@ def test_delete_kb(tmp_path, monkeypatch):
 
     assert "Removed knowledge base" in status
     assert not kb_dir.exists()
+
+
+def test_build_webui_smoke():
+    demo = webui._build_webui()
+
+    assert isinstance(demo, gr.Blocks)
+    assert demo.title == "Threat Thinker WebUI"
+    assert len(demo.blocks) > 0
