@@ -19,7 +19,7 @@ jobs:
       - name: Set up Takumi Guard PyPI
         uses: flatt-security/setup-takumi-guard-pypi@7d825811bb293b9e0230477165442580a0074280 # v1.0.0
       - name: Install uv
-        uses: astral-sh/setup-uv@53e731ad7c31cb9d92e2db63b62737f50e934544 # v6.4.1
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
       - name: Install dependencies
         run: uv sync --extra dev --frozen
       - run: uv run ruff check src tests
