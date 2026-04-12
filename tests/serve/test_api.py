@@ -166,6 +166,33 @@ def test_analyze_json_accepts_rag_options(monkeypatch):
     assert payload["drawio_page"] == "p2"
 
 
+def test_analyze_json_accepts_context_options(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={
+            "input": {"type": "mermaid", "content": "graph LR;A-->B"},
+            "contexts": [
+                {
+                    "filename": "business.md",
+                    "content": "Business context: payment refunds.",
+                }
+            ],
+            "prompt_token_limit": 32000,
+        },
+    )
+
+    assert response.status_code == 202
+    payload = captured["payload"]
+    assert payload["contexts"][0]["filename"] == "business.md"
+    assert payload["contexts"][0]["content"] == "Business context: payment refunds."
+    assert payload["prompt_token_limit"] == 32000
+
+
 def test_analyze_json_accepts_ir_input(monkeypatch):
     cfg = _base_config()
     captured = _capture_enqueue(monkeypatch)
@@ -197,6 +224,30 @@ def test_analyze_multipart_accepts_explicit_ir_type(monkeypatch):
 
     assert response.status_code == 202
     assert captured["payload"]["input"]["type"] == "ir"
+
+
+def test_analyze_multipart_accepts_context_files(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        files=[
+            ("file", ("system.mmd", "graph LR;A-->B", "text/plain")),
+            ("context_files", ("business.txt", "Payment context", "text/plain")),
+            ("context_files", ("scope.md", "# Scope", "text/markdown")),
+        ],
+    )
+
+    assert response.status_code == 202
+    payload = captured["payload"]
+    assert [ctx["filename"] for ctx in payload["contexts"]] == [
+        "business.txt",
+        "scope.md",
+    ]
+    assert all(ctx["data_b64"] for ctx in payload["contexts"])
 
 
 def test_analyze_ir_rejects_when_not_allowed(monkeypatch):

@@ -73,6 +73,12 @@ from threat_thinker.exporters import (
     export_threat_dragon,
 )
 from threat_thinker.cliui import ui, set_verbose
+from threat_thinker.context_loader import (
+    ContextDocumentError,
+    context_summary,
+    format_context_documents,
+    load_context_documents,
+)
 from threat_thinker.rag import (
     KnowledgeBaseError,
     DEFAULT_CHUNK_OVERLAP,
@@ -197,6 +203,13 @@ def main():
     )
     p_think.add_argument("--hints", type=str, help="Optional YAML hints file")
     p_think.add_argument(
+        "--context",
+        type=str,
+        action="append",
+        default=[],
+        help="Business context document path to inject into the threat prompt. Repeat for multiple PDF, Markdown, or text files.",
+    )
+    p_think.add_argument(
         "--infer-hints",
         action="store_true",
         help="Infer node/edge attributes from Mermaid via LLM (multilingual)",
@@ -233,6 +246,11 @@ def main():
         "--ollama-host",
         type=str,
         help="Ollama host URL (default: http://localhost:11434 or env OLLAMA_HOST)",
+    )
+    p_think.add_argument(
+        "--prompt-token-limit",
+        type=int,
+        help="Fail if the assembled threat prompt exceeds this token budget.",
     )
 
     p_think.add_argument(
@@ -434,7 +452,7 @@ def main():
         set_verbose(args.verbose)
 
         # Set up progress tracking
-        total_steps = 6 + (1 if args.rag else 0)
+        total_steps = 6 + (1 if args.rag else 0) + (1 if args.context else 0)
         ui.set_total_steps(
             total_steps
         )  # Parse, Infer hints, Apply hints, (Retrieve), Analyze threats, Denoise, Export
@@ -525,6 +543,9 @@ def main():
             if args.rag_min_score < 0.0 or args.rag_min_score > 1.0:
                 ui.error("--rag-min-score must be between 0 and 1.")
                 sys.exit(2)
+        if args.prompt_token_limit is not None and args.prompt_token_limit <= 0:
+            ui.error("--prompt-token-limit must be a positive integer.")
+            sys.exit(2)
 
         # 1) Parse diagram to skeleton graph (+ metrics)
         ui.step("Parsing architecture diagram")
@@ -615,6 +636,21 @@ def main():
 
         ui.debug("Graph after applying user hints", str(g))
 
+        business_context_text = None
+        if args.context:
+            ui.step("Loading business context")
+            try:
+                context_docs = load_context_documents(args.context, args.llm_model)
+                doc_count, token_count, sources = context_summary(context_docs)
+                business_context_text = format_context_documents(context_docs)
+                ui.success(
+                    f"Loaded {doc_count} business context document(s), approximately {token_count} tokens"
+                )
+                ui.info(f"Context documents: {', '.join(sources)}")
+            except ContextDocumentError as e:
+                ui.error("Failed to load business context", str(e))
+                sys.exit(2)
+
         rag_context_text = None
         retrieval = None
         rerank_fn = None
@@ -686,6 +722,8 @@ def main():
                 args.lang,
                 rag_context=rag_context_text,
                 rag_candidates=(retrieval or {}).get("candidate_results"),
+                business_context=business_context_text,
+                prompt_token_limit=args.prompt_token_limit,
             )
             if args.rag:
                 threats, dropped_by_citation = attach_rag_sources_to_threats(

@@ -12,15 +12,18 @@ from threat_thinker.constants import (
     LLM_SYSTEM,
     LLM_INSTRUCTIONS,
 )
+from threat_thinker.context_loader import count_tokens
 from .client import LLMClient
 from .response_utils import safe_json_loads
 
 # Token budgets tuned for the JSON-heavy responses we expect from each flow.
 HINT_INFERENCE_MAX_TOKENS = 4096
 THREAT_INFERENCE_MAX_TOKENS = (
-    4096  # Enough headroom for 12 verbose threats plus metadata
+    10000  # Headroom for 10-12 verbose multilingual threats with evidence metadata
 )
 RERANK_MAX_TOKENS = 1500
+DEFAULT_HOSTED_PROMPT_TOKEN_LIMIT = 60000
+DEFAULT_OLLAMA_PROMPT_TOKEN_LIMIT = 12000
 HINT_JSON_SCHEMA: Dict = {
     "type": "object",
     "properties": {
@@ -206,6 +209,37 @@ def _get_language_name(lang_code: str) -> str:
     return lang_names.get(lang_code, lang_code.upper())
 
 
+def default_prompt_token_limit(api: str) -> int:
+    if (api or "").strip().lower() == "ollama":
+        return DEFAULT_OLLAMA_PROMPT_TOKEN_LIMIT
+    return DEFAULT_HOSTED_PROMPT_TOKEN_LIMIT
+
+
+def _validate_prompt_token_limit(
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    api: str,
+    model: str,
+    prompt_token_limit: Optional[int],
+) -> int:
+    limit = (
+        default_prompt_token_limit(api)
+        if prompt_token_limit is None
+        else prompt_token_limit
+    )
+    if limit <= 0:
+        raise ValueError("prompt_token_limit must be a positive integer")
+    total_tokens = count_tokens(f"{system_prompt}\n\n{user_prompt}", model)
+    if total_tokens > limit:
+        raise RuntimeError(
+            "Prompt token budget exceeded: "
+            f"{total_tokens} tokens estimated, limit is {limit}. "
+            "Reduce --context input size or increase --prompt-token-limit."
+        )
+    return total_tokens
+
+
 def llm_infer_hints(
     graph_skeleton_json: str,
     api: str,
@@ -346,6 +380,8 @@ def llm_infer_threats(
     lang: str = "en",
     rag_context: Optional[str] = None,
     rag_candidates: Optional[List[dict]] = None,
+    business_context: Optional[str] = None,
+    prompt_token_limit: Optional[int] = None,
 ) -> List[Threat]:
     """
     Use LLM to infer threats from graph.
@@ -358,6 +394,8 @@ def llm_infer_threats(
         aws_region: AWS region (for bedrock provider only)
         lang: Language code for output (en, ja, fr, de, es, etc.)
         rag_context: Optional retrieved knowledge to ground the analysis
+        business_context: Optional full business context document text
+        prompt_token_limit: Optional token limit for the assembled prompt
 
     Returns:
         List of Threat objects
@@ -380,6 +418,10 @@ def llm_infer_threats(
         lang_name = _get_language_name(lang)
         lang_instruction = f"Please write threat titles, reasons, and descriptions in {lang_name}, but keep field names (id, title, why, etc.) in English. "
 
+    business_context_block = ""
+    if business_context:
+        business_context_block = f"\n{business_context}\n"
+
     context_block = ""
     rag_source_instruction = ""
     if rag_context:
@@ -401,10 +443,19 @@ def llm_infer_threats(
 
     user_prompt = (
         f"System graph (JSON):\n{payload}\n"
+        f"{business_context_block}\n"
         f"{context_block}\n"
         f"{rag_source_instruction}\n"
         f"{lang_instruction}Perform threat analysis following the instructions below.\n"
         f"{LLM_INSTRUCTIONS}"
+    )
+
+    _validate_prompt_token_limit(
+        system_prompt=LLM_SYSTEM,
+        user_prompt=user_prompt,
+        api=api,
+        model=model,
+        prompt_token_limit=prompt_token_limit,
     )
 
     # Use LLMClient for better handling

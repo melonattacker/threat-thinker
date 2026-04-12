@@ -185,6 +185,39 @@ Notes:
 - `rag_strategy`: `hybrid` (default) or `dense` (legacy behavior).
 - `rag_reranker`: `auto`, `local`, `llm`, `off`.
 
+### 3.4.2 Analyze Request Business Context Options
+Business context documents are controlled per request and are injected into the threat prompt as full extracted text. This is independent of RAG retrieval.
+
+JSON requests can include text context directly:
+
+```json
+{
+  "input": {"type": "mermaid", "content": "graph LR;A-->B"},
+  "contexts": [
+    {
+      "filename": "business-scope.md",
+      "content": "Payment refunds are handled by support agents..."
+    }
+  ],
+  "prompt_token_limit": 60000
+}
+```
+
+For PDF or binary uploads in JSON, send `data_b64` with a filename. Multipart requests can upload repeated `context_files` fields alongside the diagram file:
+
+```bash
+curl -X POST http://localhost:8080/v1/analyze \
+  -F "file=@system.mmd;type=text/plain" \
+  -F "context_files=@business-scope.md;type=text/markdown" \
+  -F "context_files=@safety-assumptions.pdf;type=application/pdf" \
+  -F 'options={"report_formats":["markdown"],"prompt_token_limit":60000}'
+```
+
+Notes:
+- Supported context formats are PDF, Markdown, and plain text.
+- Context text is not summarized or truncated; requests fail if the assembled prompt exceeds the token budget.
+- Use `contexts` for required business context and RAG options for retrieved supporting references.
+
 ### 3.5 observability
 Logging level and redaction policy.
 

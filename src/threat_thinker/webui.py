@@ -25,6 +25,13 @@ from threat_thinker.input_loader import (
     suffix_for_text_input,
 )
 from threat_thinker.exporters import diff_reports, export_diff_md
+from threat_thinker.context_loader import (
+    ContextDocumentError,
+    SUPPORTED_CONTEXT_EXTENSIONS,
+    context_summary,
+    format_context_documents,
+    load_context_documents,
+)
 from threat_thinker.rag import (
     KnowledgeBaseError,
     DEFAULT_CHUNK_OVERLAP,
@@ -180,6 +187,26 @@ def _copy_uploaded_files_to_kb(
         shutil.copy(src, dest)
         stored.append(str(dest))
     return stored
+
+
+def _normalize_context_uploads(context_files) -> list[str]:
+    if context_files is None:
+        return []
+    if isinstance(context_files, list):
+        files = [str(f) for f in context_files if f]
+    else:
+        files = [str(context_files)]
+
+    supported = {ext.lower() for ext in SUPPORTED_CONTEXT_EXTENSIONS}
+    for file_path in files:
+        src = Path(file_path)
+        if not src.exists():
+            raise gr.Error(f"Uploaded context file not found: {src}")
+        if src.suffix.lower() not in supported:
+            raise gr.Error(
+                f"Unsupported context file type: {src.suffix}. Supported: {', '.join(sorted(supported))}"
+            )
+    return files
 
 
 def _refresh_kb_inventory(select_value: Optional[list[str]] = None):
@@ -348,6 +375,7 @@ def _generate_report(
     drawio_page: str,
     image_file: str,
     hints_text: str,
+    context_files,
     infer_hints: bool,
     llm_api: str,
     llm_model: str,
@@ -365,6 +393,7 @@ def _generate_report(
     rag_reranker: str,
     rag_candidates: int,
     rag_min_score: float,
+    prompt_token_limit: int,
 ) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
     # Validate input based on method
     if input_method == "Text":
@@ -397,6 +426,11 @@ def _generate_report(
     rag_min_score_val = float(rag_min_score or DEFAULT_RAG_MIN_SCORE)
     rag_strategy = (rag_strategy or DEFAULT_RAG_STRATEGY).strip().lower()
     rag_reranker = (rag_reranker or DEFAULT_RAG_RERANKER).strip().lower()
+    prompt_token_limit_val = (
+        int(prompt_token_limit) if prompt_token_limit is not None else None
+    )
+    if prompt_token_limit_val is not None and prompt_token_limit_val <= 0:
+        raise gr.Error("Prompt token limit must be a positive integer.")
     ollama_host = (
         (ollama_host or "").strip()
         or os.getenv("OLLAMA_HOST")
@@ -455,6 +489,8 @@ def _generate_report(
         hints_path = _write_temp_file(hints_text, ".yaml")
 
     status_lines = []
+    context_paths = _normalize_context_uploads(context_files)
+    business_context_text = None
     rag_context_text = None
     retrieval = None
     rerank_fn = None
@@ -521,6 +557,17 @@ def _generate_report(
         if hints_path:
             status_lines.append("Applied user-provided hints.")
 
+        if context_paths:
+            try:
+                context_docs = load_context_documents(context_paths, llm_model)
+                doc_count, token_count, sources = context_summary(context_docs)
+                business_context_text = format_context_documents(context_docs)
+                status_lines.append(
+                    f"Loaded {doc_count} business context document(s), approximately {token_count} tokens: {', '.join(sources)}."
+                )
+            except ContextDocumentError as exc:
+                raise gr.Error(f"Failed to load business context: {exc}")
+
         if use_rag:
             try:
                 retrieval_options = RetrievalOptions(
@@ -576,6 +623,8 @@ def _generate_report(
             lang,
             rag_context=rag_context_text,
             rag_candidates=(retrieval or {}).get("candidate_results"),
+            business_context=business_context_text,
+            prompt_token_limit=prompt_token_limit_val,
         )
         if use_rag:
             threats, dropped_by_citation = attach_rag_sources_to_threats(
@@ -721,6 +770,12 @@ def _build_webui() -> gr.Blocks:
                     placeholder="Paste YAML hints here to override attributes...",
                     lines=10,
                 )
+                context_files_input = gr.File(
+                    label="Business Context (PDF, Markdown, Text)",
+                    file_types=sorted(SUPPORTED_CONTEXT_EXTENSIONS),
+                    type="filepath",
+                    file_count="multiple",
+                )
 
                 with gr.Row():
                     llm_api_input = gr.Dropdown(
@@ -831,6 +886,14 @@ def _build_webui() -> gr.Blocks:
                         value=DEFAULT_RAG_MIN_SCORE,
                         interactive=False,
                     )
+                with gr.Accordion("Prompt Advanced Settings", open=False):
+                    prompt_token_limit_input = gr.Number(
+                        label="Prompt token limit",
+                        value=None,
+                        precision=0,
+                        minimum=1,
+                        info="Leave empty to use the provider default.",
+                    )
 
                 generate_button = gr.Button("Generate Report", variant="primary")
 
@@ -871,6 +934,7 @@ def _build_webui() -> gr.Blocks:
                         drawio_page_input,
                         image_input,
                         hints_input,
+                        context_files_input,
                         infer_hints_input,
                         llm_api_input,
                         llm_model_input,
@@ -888,6 +952,7 @@ def _build_webui() -> gr.Blocks:
                         rag_reranker_input,
                         rag_candidates_input,
                         rag_min_score_input,
+                        prompt_token_limit_input,
                     ],
                     outputs=[
                         report_markdown_output,
