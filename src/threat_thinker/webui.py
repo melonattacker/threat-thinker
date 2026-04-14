@@ -374,7 +374,6 @@ def _generate_report(
     diagram_format: str,
     drawio_page: str,
     image_file: str,
-    hints_text: str,
     context_files,
     infer_hints: bool,
     llm_api: str,
@@ -484,9 +483,6 @@ def _generate_report(
         )
     else:  # Image
         diagram_path = image_file  # Use the uploaded file directly
-    hints_path = None
-    if hints_text and hints_text.strip():
-        hints_path = _write_temp_file(hints_text, ".yaml")
 
     status_lines = []
     context_paths = _normalize_context_uploads(context_files)
@@ -552,10 +548,6 @@ def _generate_report(
             )
             graph = cli.merge_llm_hints(graph, inferred)
             status_lines.append("Applied LLM-inferred hints.")
-
-        graph = cli.apply_hints(graph, hints_path)
-        if hints_path:
-            status_lines.append("Applied user-provided hints.")
 
         if context_paths:
             try:
@@ -705,8 +697,6 @@ def _generate_report(
         cleanup_paths = []
         if input_method == "Text" and diagram_path:
             cleanup_paths.append(diagram_path)
-        if hints_path:
-            cleanup_paths.append(hints_path)
 
         for path in cleanup_paths:
             if path and os.path.exists(path):
@@ -765,11 +755,6 @@ def _build_webui() -> gr.Blocks:
                     visible=False,
                 )
 
-                hints_input = gr.TextArea(
-                    label="Hints YAML (optional)",
-                    placeholder="Paste YAML hints here to override attributes...",
-                    lines=10,
-                )
                 context_files_input = gr.File(
                     label="Business Context (PDF, Markdown, Text)",
                     file_types=sorted(SUPPORTED_CONTEXT_EXTENSIONS),
@@ -933,7 +918,6 @@ def _build_webui() -> gr.Blocks:
                         diagram_format_input,
                         drawio_page_input,
                         image_input,
-                        hints_input,
                         context_files_input,
                         infer_hints_input,
                         llm_api_input,

@@ -31,8 +31,6 @@ Diagram or IR (.mmd/.mermaid, .drawio/.xml, Threat Dragon JSON, native IR JSON, 
 ↓
 [LLM Attribute Inference] (optional, multilingual)
 ↓
-[User Hints Application] (optional YAML override)
-↓
 [LLM Threat Generation] (multilingual)
 ↓
 [Threat Filtering & Denoising]
@@ -42,7 +40,7 @@ Diagram or IR (.mmd/.mermaid, .drawio/.xml, Threat Dragon JSON, native IR JSON, 
 
 ## Key Technical Concepts
 - **Multi-Format Support:** Supports Mermaid diagrams, Draw.io files, and image-based architecture diagrams using LLM vision capabilities.  
-- **Multilingual Support:** Both hint inference and threat generation support multiple languages through ISO language codes.  
+- **Multilingual Support:** Attribute inference and threat generation support multiple languages through ISO language codes.
 - **Multiple LLM Providers:** Supports OpenAI, Anthropic, and AWS Bedrock APIs with flexible configuration.  
 - **Hybrid Parsing:** Combines static syntax parsing with LLM completion to improve structure accuracy and reduce noise.  
 - **Low-Noise Threat Extraction:** Advanced filtering and denoising algorithms remove generalized findings and focus on diagram-specific risks through multiple quality gates including ASVS reference requirements, confidence thresholds, evidence validation, and near-duplicate detection.  

@@ -1,6 +1,6 @@
 # Diagram Authoring Tips
 
-Practical notes for crafting diagrams that Threat Thinker can parse cleanly. These tips mirror the current Mermaid/Draw.io/Threat Dragon parsers so you get predictable nodes, edges, and trust boundaries without heavy hinting.
+Practical notes for crafting diagrams that Threat Thinker can parse cleanly. These tips mirror the current Mermaid/Draw.io/Threat Dragon parsers so you get predictable nodes, edges, and trust boundaries.
 
 ## Common Principles
 - Use stable node IDs; keep human-friendly names in labels. Directional arrows determine source/destination.
@@ -39,4 +39,4 @@ Practical notes for crafting diagrams that Threat Thinker can parse cleanly. The
 - You’ve labeled edges with protocols or data classifications and want to keep those exact values.
 - Determinism matters (CI snapshots, golden files) and you don’t want LLM variance.
 
-If you do combine inference with hand-authored hints, remember your `hint.yaml` overrides the inferred values. Keep node IDs consistent between the diagram and hints to avoid duplicates.
+Use `--context` for business assumptions that are not visible in the diagram, such as sensitive workflows, regulatory scope, or asset ownership.
