@@ -18,6 +18,13 @@ from threat_thinker.exporters import (
 )
 from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.input_loader import INPUT_FORMAT_IR, load_input
+from threat_thinker.context_loader import (
+    ContextDocument,
+    ContextDocumentError,
+    format_context_documents,
+    read_context_file,
+    read_context_text,
+)
 from threat_thinker.llm.inference import (
     llm_infer_hints,
     llm_infer_threats,
@@ -31,7 +38,7 @@ from threat_thinker.rag import (
     attach_rag_sources_to_threats,
 )
 from threat_thinker.serve.config import EngineConfig, TimeoutConfig
-from threat_thinker.serve.schemas import AnalyzeRequest, InputPayload
+from threat_thinker.serve.schemas import AnalyzeRequest, ContextPayload, InputPayload
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +101,42 @@ def _suffix_for_input(job_input: InputPayload) -> str:
     if input_type == "image":
         return ".png"
     return ""
+
+
+def _suffix_for_context(context: ContextPayload) -> str:
+    if context.filename:
+        return Path(context.filename).suffix or ".txt"
+    return ".txt"
+
+
+def _load_context_documents(
+    contexts: list[ContextPayload],
+    model_name: str,
+    temp_paths: list[str],
+) -> list[ContextDocument]:
+    documents: list[ContextDocument] = []
+    for index, context in enumerate(contexts or [], start=1):
+        filename = context.filename or f"context-{index}.txt"
+        if context.content is not None:
+            documents.append(read_context_text(filename, context.content, model_name))
+            continue
+        if context.data_b64:
+            data = _decode_bytes(context.data_b64)
+            if not data:
+                raise AnalysisError(f"Context document is empty: {filename}")
+            path = _write_temp_bytes(data, _suffix_for_context(context))
+            temp_paths.append(path)
+            doc = read_context_file(path, model_name)
+            documents.append(
+                ContextDocument(
+                    source=Path(filename).name,
+                    text=doc.text,
+                    token_count=doc.token_count,
+                )
+            )
+            continue
+        raise AnalysisError(f"Context document is empty: {filename}")
+    return documents
 
 
 def _assert_provider_ready(
@@ -192,6 +235,16 @@ def analyze_job(
             except Exception as exc:
                 raise AnalysisError(f"Failed to infer hints: {exc}") from exc
 
+        business_context_text = None
+        if request.contexts:
+            try:
+                context_docs = _load_context_documents(
+                    request.contexts, model_name, temp_paths
+                )
+                business_context_text = format_context_documents(context_docs)
+            except ContextDocumentError as exc:
+                raise AnalysisError(f"Failed to load business context: {exc}") from exc
+
         rag_context_text = None
         retrieval = None
         rerank_fn = None
@@ -244,6 +297,8 @@ def analyze_job(
                 request.language or engine.report.default_language,
                 rag_context=rag_context_text,
                 rag_candidates=(retrieval or {}).get("candidate_results"),
+                business_context=business_context_text,
+                prompt_token_limit=request.prompt_token_limit,
             )
             if request.use_rag:
                 threats, _ = attach_rag_sources_to_threats(

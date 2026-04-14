@@ -45,7 +45,12 @@ LLM_SYSTEM = (
     "Given a system graph (nodes/edges with attributes), output a concise, prioritized threat list. "
     "Use STRIDE. Provide a 1-line 'why' per threat (developer-friendly), include OWASP ASVS references, "
     "and provide actionable recommended actions for developers to mitigate each threat. "
-    "CWE refs are optional but helpful. Each threat must link to graph evidence (node/edge IDs)."
+    "CWE refs are optional but helpful. Each threat must link to graph evidence (node/edge IDs). "
+    "When business context is provided (scope, actors, assets, assumptions, constraints), "
+    "you MUST use it to identify domain-specific threats beyond generic OWASP Top 10 items. "
+    "For example, consider: safety risks unique to the business domain (e.g., food safety, physical safety), "
+    "insider threats from domain-specific actors, regulatory/compliance requirements, "
+    "and physical-cyber interactions specific to the system's operational environment."
 )
 
 LLM_INSTRUCTIONS = (
@@ -78,7 +83,13 @@ LLM_INSTRUCTIONS = (
     "- If information is missing, make conservative assumptions and mention them in 'why'.\n"
     "- Each threat MUST include evidence (node/edge IDs) and at least one ASVS reference.\n"
     "- Include rag_sources only when retrieved knowledge snippets are provided and relevant.\n"
-    "- 'recommended_action' should be specific, actionable, and developer-focused (e.g., 'Implement HTTPS with TLS 1.3', 'Add OAuth 2.0 authentication', 'Enable database encryption at rest').\n"
+    "- 'recommended_action' should be specific, actionable, and developer-focused.\n"
+    "- 'why' should be 1-3 sentences. When business context is available, explain the domain-specific impact chain "
+    "(e.g., 'data tampering -> allergy info corruption -> anaphylaxis risk -> life safety'), not just the generic technical risk.\n"
+    "- When business context is provided, at least 30% of threats MUST be domain-specific "
+    "(i.e., threats that would NOT appear in a generic web application threat model). "
+    "Examples: GPS spoofing for drone systems, food safety risks for restaurant systems, "
+    "physical safety risks for IoT/OT systems.\n"
     "- ENSURE the JSON is complete and properly closed - no truncated responses!\n"
     "- Return ONLY the JSON object, no explanatory text before or after.\n"
 )

@@ -2,6 +2,8 @@
 
 Threat Thinker can enrich LLM reasoning with a local knowledge base (KB) so findings reflect your standards (OWASP, MITRE, internal controls). KBs live under `~/.threat-thinker/kb/<kb_name>/`.
 
+RAG is different from `think --context`. Use `--context` for required business context such as scope, actors, assets, assumptions, and safety or operational constraints; Threat Thinker injects the full extracted text of those PDF, Markdown, or text files directly into the threat prompt. Use `--rag` for larger reference collections where only the most relevant chunks should be retrieved. Both can be enabled in the same run.
+
 > Note: Source documents stay local, but inference still calls your configured remote LLM provider. This is not a fully offline flow.
 
 ## When to Use RAG

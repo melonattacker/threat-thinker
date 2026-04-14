@@ -52,6 +52,21 @@ def test_copy_uploaded_files_to_kb_rejects_unsupported(tmp_path, monkeypatch):
         webui._copy_uploaded_files_to_kb("kb2", [str(unsupported)], clean_raw=True)
 
 
+def test_normalize_context_uploads_accepts_supported_files(tmp_path):
+    context = tmp_path / "scope.md"
+    context.write_text("business context", encoding="utf-8")
+
+    assert webui._normalize_context_uploads([str(context)]) == [str(context)]
+
+
+def test_normalize_context_uploads_rejects_unsupported(tmp_path):
+    unsupported = tmp_path / "scope.csv"
+    unsupported.write_text("bad", encoding="utf-8")
+
+    with pytest.raises(gr.Error):
+        webui._normalize_context_uploads([str(unsupported)])
+
+
 def test_delete_kb(tmp_path, monkeypatch):
     monkeypatch.setenv("THREAT_THINKER_KB_ROOT", str(tmp_path))
     kb_dir = tmp_path / "kb-del"

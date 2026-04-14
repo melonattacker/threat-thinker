@@ -38,6 +38,7 @@ from threat_thinker.serve.ratelimit import RateLimiter, resolve_client_ip
 from threat_thinker.serve.schemas import (
     AnalyzeRequest,
     AnalyzeOptions,
+    ContextPayload,
     InputPayload,
     InputType,
     JobResponse,
@@ -141,6 +142,30 @@ def _validate_body_size(request: Request, limit: int) -> None:
         return
 
 
+def _validate_context_payloads(
+    contexts: list[ContextPayload], max_text_chars: int
+) -> None:
+    for context in contexts or []:
+        if context.content and len(context.content) > max_text_chars:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Context text exceeds configured limit.",
+            )
+        if context.data_b64:
+            try:
+                raw = base64.b64decode(context.data_b64)
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Context file is not valid base64: {exc}",
+                ) from exc
+            if len(raw) > max_text_chars:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Context file exceeds configured limit.",
+                )
+
+
 def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeRequest:
     allowed: set[str] = {"markdown", "html", "json", "threat-dragon"}
 
@@ -159,6 +184,14 @@ def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeReque
     req.report_formats = [ReportFormat(fmt) for fmt in formats]
     if not req.language:
         req.language = config.engine.report.default_language
+    if req.prompt_token_limit is not None and req.prompt_token_limit <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="prompt_token_limit must be a positive integer.",
+        )
+    _validate_context_payloads(
+        req.contexts, config.security.request_limits.max_text_chars
+    )
 
     req.kb_names = [
         name.strip() for name in (req.kb_names or []) if name and name.strip()
@@ -206,6 +239,8 @@ def _options_from_request(req: AnalyzeRequest) -> AnalyzeOptions:
         rag_candidates=req.rag_candidates,
         rag_min_score=req.rag_min_score,
         drawio_page=req.drawio_page,
+        contexts=req.contexts,
+        prompt_token_limit=req.prompt_token_limit,
     )
 
 
@@ -219,6 +254,11 @@ def _analyze_request_body_schema() -> dict:
             "options": {
                 "type": "string",
                 "description": "AnalyzeOptions JSON string.",
+            },
+            "context_files": {
+                "type": "array",
+                "items": {"type": "string", "format": "binary"},
+                "description": "Business context documents to inject into the prompt.",
             },
         },
         "required": ["file"],
@@ -396,6 +436,27 @@ def create_app(config: ServeConfig) -> FastAPI:
                     content_type=file.content_type,
                 )
 
+            context_payloads = list(parsed_options.contexts or [])
+            for context_file in form.getlist("context_files"):
+                if not isinstance(context_file, (UploadFile, StarletteUploadFile)):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid context file payload.",
+                    )
+                context_bytes = await context_file.read()
+                if len(context_bytes) > config.security.request_limits.max_text_chars:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail="Context file exceeds configured limit.",
+                    )
+                context_payloads.append(
+                    ContextPayload(
+                        filename=context_file.filename,
+                        content_type=context_file.content_type,
+                        data_b64=base64.b64encode(context_bytes).decode("utf-8"),
+                    )
+                )
+
             req = AnalyzeRequest(
                 input=input_payload,
                 report_formats=parsed_options.report_formats,
@@ -413,6 +474,8 @@ def create_app(config: ServeConfig) -> FastAPI:
                 rag_candidates=parsed_options.rag_candidates,
                 rag_min_score=parsed_options.rag_min_score,
                 drawio_page=parsed_options.drawio_page,
+                contexts=context_payloads,
+                prompt_token_limit=parsed_options.prompt_token_limit,
             )
             req = _normalize_request(req, config)
             job_payload = req

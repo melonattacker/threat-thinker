@@ -8,6 +8,8 @@ Common flags used in `threat-thinker` commands.
 | `--drawio-page <id|name|index>` | Select Draw.io page to parse | Optional; supports page id, page name, or 0-based index for multi-page `.drawio` files. |
 | `--infer-hints` | Ask LLM to infer node/edge attributes | Combine with `--hints` to override specific fields. |
 | `--hints <path>` | Apply custom `hint.yaml` | Used after inference; can add missing nodes/edges. |
+| `--context <path>` | Inject business context into the threat prompt | Repeat for multiple PDF, Markdown, or text files. Unlike RAG, each file's extracted full text is included directly. |
+| `--prompt-token-limit <n>` | Fail before analysis if the assembled prompt is too large | Applies to graph, context documents, RAG snippets, and instructions. No truncation is performed. |
 | `--rag --kb <name>` | Enable local KB retrieval | Requires a built KB; pairs with `--rag-topk`. |
 | `--rag-topk <n>` | Set number of KB chunks to inject | Typical 5–10. |
 | `--rag-strategy <hybrid|dense>` | Select retrieval strategy | Default `hybrid` (dense+sparse+rerank+MMR). |
@@ -26,6 +28,17 @@ Notes:
 - Ollama backend does not support image inputs; use Mermaid/Draw.io/Threat Dragon files with `--llm-api ollama`.
 - Native IR JSON is explicit-only in v1; use `--ir` or API/UI `type=ir`, not `--diagram`.
 - RAG requires OpenAI embeddings; set `OPENAI_API_KEY` when using `--rag`.
+- Use `--context` for scope, actors, assets, and business assumptions that should always be visible to the LLM. Use `--rag` for optional supporting references retrieved from larger KBs. They can be combined:
+
+```bash
+threat-thinker think \
+    --mermaid examples/web/system.mmd \
+    --context docs/business-scope.md \
+    --context docs/safety-assumptions.pdf \
+    --rag --kb secure-web --rag-topk 8 \
+    --llm-api openai --llm-model gpt-4.1 \
+    --out-dir reports/
+```
 
 Diff command specifics:
 - `--before <report.json>` and `--after <report.json>` are required.

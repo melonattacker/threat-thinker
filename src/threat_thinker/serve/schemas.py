@@ -36,6 +36,15 @@ class InputPayload(BaseModel):
     )
 
 
+class ContextPayload(BaseModel):
+    content: Optional[str] = None
+    filename: Optional[str] = None
+    content_type: Optional[str] = None
+    data_b64: Optional[str] = Field(
+        default=None, description="Base64 encoded bytes for context uploads."
+    )
+
+
 class ReportFormat(str, Enum):
     MARKDOWN = "markdown"
     HTML = "html"
@@ -61,6 +70,8 @@ class AnalyzeOptions(BaseModel):
     rag_candidates: int = DEFAULT_RAG_CANDIDATES
     rag_min_score: float = DEFAULT_RAG_MIN_SCORE
     drawio_page: Optional[str] = None
+    contexts: List[ContextPayload] = Field(default_factory=list)
+    prompt_token_limit: Optional[int] = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -82,6 +93,8 @@ class AnalyzeRequest(BaseModel):
     rag_candidates: int = DEFAULT_RAG_CANDIDATES
     rag_min_score: float = DEFAULT_RAG_MIN_SCORE
     drawio_page: Optional[str] = None
+    contexts: List[ContextPayload] = Field(default_factory=list)
+    prompt_token_limit: Optional[int] = None
 
 
 class JobResponse(BaseModel):
