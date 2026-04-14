@@ -5,7 +5,7 @@ In this example, we will analyze the architecture diagram of a simple web applic
 ### What This Does
 - Analyzes a simple 3-tier web application architecture with User → API Gateway → App Service → Database flow
 - Uses Mermaid diagram format to parse the system components and data flows
-- Automatically infers potential security hints and generates the top 5 highest-priority threats
+- Automatically infers potential security attributes and generates the top 5 highest-priority threats
 - Applies STRIDE methodology to identify threats across spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege
 - Outputs results in Markdown/JSON/HTML with detailed threat descriptions, affected components, and security references
 

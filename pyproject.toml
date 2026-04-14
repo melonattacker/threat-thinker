@@ -17,7 +17,7 @@ dependencies = [
     "gradio==6.10.0",
     "numpy==2.4.3",
     "openai==2.30.0",
-    "pyaml==26.2.1",
+    "PyYAML==6.0.3",
     "python-multipart==0.0.22",
     "pypdf==6.9.2",
     "redis==7.4.0",

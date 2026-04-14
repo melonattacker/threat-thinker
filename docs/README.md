@@ -7,7 +7,6 @@ Quick links to Threat Thinker docs.
 - **Design & Architecture**: 5-layer architecture and processing flow — [`docs/design.md`](design.md)
 - **Native IR Guide**: How to write and validate Threat Thinker's Graph IR JSON — [`docs/ir.md`](ir.md)
 - **Diagram Authoring**: Format tips for Mermaid, Draw.io, Threat Dragon, and Screenshot — [`docs/diagram.md`](diagram.md)
-- **Hint YAML Guide**: How to provide/override attributes — [`docs/hints.md`](hints.md)
 - **Report Formats**: What Markdown/JSON/HTML and diff outputs contain — [`docs/reports.md`](reports.md)
 - **Knowledge Base (RAG)**: Build/search/use local KBs (docs stay local; inference uses remote LLM) — [`docs/rag.md`](rag.md)
 - **Serve/Worker Config**: YAML configuration for API service and worker — [`docs/serve_config.md`](serve_config.md)

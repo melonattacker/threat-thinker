@@ -5,7 +5,6 @@ Threat Thinker - CLI
 
 Inputs:
 - Mermaid file (.mmd/.mermaid)
-- Optional YAML hints for node/edge attributes
 
 Outputs:
 - Markdown table or JSON with threats (LLM-driven), each with 1-line "why" and ASVS refs (+ evidence IDs).
@@ -14,7 +13,6 @@ Outputs:
 Examples:
   export OPENAI_API_KEY=***
     python main.py think --mermaid examples.mmd --infer-hints --llm-api openai --llm-model gpt-4o-mini --out-dir reports/
-    python main.py think --mermaid examples.mmd --infer-hints --hints hints.yaml --llm-model gpt-4o-mini --out-dir reports/
     python main.py think --drawio examples.drawio --infer-hints --llm-api openai --llm-model gpt-4o-mini --lang ja --out-dir reports/
     python main.py think --image examples/architecture.png --infer-hints --llm-api openai --llm-model gpt-4o --out-dir reports/
     python main.py think --diagram examples/system.xml --infer-hints --llm-api openai --llm-model gpt-4o-mini --lang ko --out-dir reports/
@@ -57,7 +55,7 @@ from threat_thinker.input_loader import (
     detect_input_format,
     load_input,
 )
-from threat_thinker.hint_processor import apply_hints, merge_llm_hints
+from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.llm.inference import (
     llm_infer_hints,
     llm_infer_threats,
@@ -180,7 +178,7 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_think = sub.add_parser(
-        "think", help="Parse diagram + hints, generate threats (LLM required)"
+        "think", help="Parse diagram and generate threats (LLM required)"
     )
     p_think.add_argument("--mermaid", type=str, help="Path to Mermaid (.mmd/.mermaid)")
     p_think.add_argument("--drawio", type=str, help="Path to Draw.io (.drawio/.xml)")
@@ -201,7 +199,6 @@ def main():
         type=str,
         help="Path to diagram file (auto-detects format from extension)",
     )
-    p_think.add_argument("--hints", type=str, help="Optional YAML hints file")
     p_think.add_argument(
         "--context",
         type=str,
@@ -452,10 +449,10 @@ def main():
         set_verbose(args.verbose)
 
         # Set up progress tracking
-        total_steps = 6 + (1 if args.rag else 0) + (1 if args.context else 0)
+        total_steps = 5 + (1 if args.rag else 0) + (1 if args.context else 0)
         ui.set_total_steps(
             total_steps
-        )  # Parse, Infer hints, Apply hints, (Retrieve), Analyze threats, Denoise, Export
+        )  # Parse, Infer hints, (Context), (Retrieve), Analyze threats, Denoise, Export
 
         # Determine diagram file and format
         diagram_file, diagram_format = _select_think_input(args)
@@ -621,20 +618,6 @@ def main():
         else:
             ui.step("Skipping attribute inference")
             ui.info("Using basic component attributes from diagram")
-
-        # 3) Apply user hints to override inferred ones (if provided)
-        ui.step("Applying configuration")
-        if args.hints:
-            ui.info(f"Loading custom hints from: {args.hints}")
-            try:
-                g = apply_hints(g, args.hints)
-                ui.success("Applied custom hints successfully")
-            except Exception as e:
-                ui.warning("Failed to apply some hints", str(e))
-        else:
-            ui.info("No custom hints provided, using inferred attributes")
-
-        ui.debug("Graph after applying user hints", str(g))
 
         business_context_text = None
         if args.context:

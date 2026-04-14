@@ -6,8 +6,7 @@ Common flags used in `threat-thinker` commands.
 | --- | --- | --- |
 | `--mermaid / --drawio / --threat-dragon / --ir / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, native Graph IR `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
 | `--drawio-page <id|name|index>` | Select Draw.io page to parse | Optional; supports page id, page name, or 0-based index for multi-page `.drawio` files. |
-| `--infer-hints` | Ask LLM to infer node/edge attributes | Combine with `--hints` to override specific fields. |
-| `--hints <path>` | Apply custom `hint.yaml` | Used after inference; can add missing nodes/edges. |
+| `--infer-hints` | Ask LLM to infer node/edge attributes | Useful when diagrams omit component roles, protocols, or data sensitivity. |
 | `--context <path>` | Inject business context into the threat prompt | Repeat for multiple PDF, Markdown, or text files. Unlike RAG, each file's extracted full text is included directly. |
 | `--prompt-token-limit <n>` | Fail before analysis if the assembled prompt is too large | Applies to graph, context documents, RAG snippets, and instructions. No truncation is performed. |
 | `--rag --kb <name>` | Enable local KB retrieval | Requires a built KB; pairs with `--rag-topk`. |
