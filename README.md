@@ -1,5 +1,5 @@
 # Threat Thinker
-AI-powered threat modeling that turns architecture diagrams into actionable risks.
+AI-powered threat modeling that turns architecture diagrams and business context into actionable risks.
 
 **Public Demo**: [https://threat-thinker.melonattacker.com](https://threat-thinker.melonattacker.com/)
 
@@ -11,12 +11,13 @@ AI-powered threat modeling that turns architecture diagrams into actionable risk
 
 
 ## What is Threat Thinker?
-Threat Thinker is an open-source tool that turns architecture diagrams into threat models automatically. It keeps models current with minimal manual work by pairing deterministic parsing with LLM reasoning.
+Threat Thinker is an open-source tool that turns architecture diagrams and business context into threat models automatically. Provide a DFD or architecture diagram as the system shape, add Business Context for scope and assumptions, and optionally use RAG to bring in supporting standards or internal guidance.
 
 Key Features:
 - **Diagram coverage**: Ingests Mermaid, draw.io, Threat Dragon JSON, native Graph IR JSON, and images.
+- **Business Context**: Injects scope, actors, assets, assumptions, and constraints from PDF, Markdown, or text files.
 - **Attribute inference**: Uses LLMs to enrich components, data flows, and trust boundaries.
-- **RAG boost**: Strengthens threat reasoning with local docs/KBs (e.g., OWASP/MITRE/internal).
+- **RAG boost**: Strengthens threat reasoning with retrieved local docs/KB snippets (e.g., OWASP/MITRE/internal).
 - **Threat Dragon**: Imports Threat Dragon diagrams and can export findings back in Threat Dragon format.
 - **Reports**: Exports Markdown, JSON, and HTML for reviews and automation.
 
@@ -33,9 +34,15 @@ Key Features:
     <em>Input diagram and get prioritized threats automatically</em>
 </p>
 
+### Business Context as first-class input
+- Use `--context` to add required business context that is not visible in the DFD or architecture diagram.
+- Include scope, actors, sensitive assets, workflows, regulatory assumptions, availability needs, and audit expectations.
+- Threat Thinker injects the full extracted text from PDF, Markdown, or text files into the threat prompt.
+- Combine Business Context with RAG when you also want supporting references retrieved from larger KBs.
+
 ### Local RAG to boost accuracy
 - Build on-disk knowledge bases from PDFs/Markdown/HTML with `threat-thinker kb build` under `~/.threat-thinker/kb/<name>`.
-- Enable `--rag` in CLI or the “Use Knowledge Base” toggle in Web UI to ground LLM answers in security guidelines and your org's guidance.
+- Enable `--rag` in CLI or the “Use Knowledge Base” toggle in Web UI to retrieve relevant chunks from security guidelines and your org's guidance.
 - Retrieval stays local; only the final prompts go to your chosen LLM provider.
 - Tune top-k per run and swap KBs per project to balance depth, speed, and relevance.
 
@@ -134,7 +141,8 @@ Here is an example of command using CLI mode.
 ```bash
 # Think: Analyze a diagram
 threat-thinker think \
-    --diagram examples/web/system.mmd \
+    --diagram examples/diagrams/web/system.mmd \
+    --context examples/diagrams/web/business-context.md \
     --infer-hints \
     --topn 5 \
     --llm-api openai \
@@ -152,7 +160,7 @@ threat-thinker diff \
 
 # Run threat analysis with local Ollama (text-only diagrams)
 threat-thinker think \
-    --mermaid examples/web/system.mmd \
+    --mermaid examples/diagrams/web/system.mmd \
     --llm-api ollama \
     --llm-model llama3.1 \
     --ollama-host http://localhost:11434 \

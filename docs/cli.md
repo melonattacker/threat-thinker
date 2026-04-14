@@ -31,9 +31,8 @@ Notes:
 
 ```bash
 threat-thinker think \
-    --mermaid examples/web/system.mmd \
-    --context docs/business-scope.md \
-    --context docs/safety-assumptions.pdf \
+    --mermaid examples/diagrams/web/system.mmd \
+    --context examples/diagrams/web/business-context.md \
     --rag --kb secure-web --rag-topk 8 \
     --llm-api openai --llm-model gpt-4.1 \
     --out-dir reports/

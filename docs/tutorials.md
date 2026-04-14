@@ -5,24 +5,26 @@ In this example, we will analyze the architecture diagram of a simple web applic
 ### What This Does
 - Analyzes a simple 3-tier web application architecture with User → API Gateway → App Service → Database flow
 - Uses Mermaid diagram format to parse the system components and data flows
+- Adds Business Context for scope, actors, sensitive assets, and operational assumptions
 - Automatically infers potential security attributes and generates the top 5 highest-priority threats
 - Applies STRIDE methodology to identify threats across spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege
 - Outputs results in Markdown/JSON/HTML with detailed threat descriptions, affected components, and security references
 
 ### Diagram
 
-![web](../examples/web/system.png)
+![web](../examples/diagrams/web/system.png)
 
 ### Command
 
 ```bash
 threat-thinker think \
-    --mermaid examples/web/system.mmd \
+    --mermaid examples/diagrams/web/system.mmd \
+    --context examples/diagrams/web/business-context.md \
     --infer-hints \
     --topn 5 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir examples/web/reports/
+    --out-dir examples/diagrams/web/reports/
 ```
 You can optionally set `--out-name` if you want to override the base report filename.
 
@@ -35,9 +37,9 @@ You can optionally set `--out-name` if you want to override the base report file
 | T004 | Denial of Service via Unauthenticated API Access | Medium | 6.0 |
 | T005 | Insufficient Authentication on Internal Services | Medium | 6.0 |
 
-- [Markdown Report](../examples/web/reports/system_report.md)
-- [JSON Report](../examples/web/reports/system_report.json)
-- [HTML Report](../examples/web/reports/system_report.html)
+- [Markdown Report](../examples/diagrams/web/reports/system_report.md)
+- [JSON Report](../examples/diagrams/web/reports/system_report.json)
+- [HTML Report](../examples/diagrams/web/reports/system_report.html)
 
 ### What Was Discovered
 The analysis identified 5 threats in this simple web application:
@@ -63,19 +65,19 @@ In this example, we analyze the architecture diagram of the AWS-based system sho
 
 ### Diagram
 
-![aws](../examples/aws/system.png)
+![aws](../examples/diagrams/aws/system.png)
 
 ### Command
 
 ```bash
 threat-thinker think \
-    --image examples/aws/system.png \
+    --image examples/diagrams/aws/system.png \
     --infer-hints \
     --require-asvs \
     --topn 10 \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir examples/aws/reports/
+    --out-dir examples/diagrams/aws/reports/
 ```
 
 ### Discovered potential threats
@@ -93,9 +95,9 @@ threat-thinker think \
 | T009 | Potential for Message Tampering or Replay in SQS/SNS | Medium | 5.0 |
 | T010 | Lack of Input Validation on User-Provided Data | Low | 3.0 |
 
-- [Markdown Report](../examples/aws/reports/system_report.md)
-- [JSON Report](../examples/aws/reports/system_report.json)
-- [HTML Report](../examples/aws/reports/system_report.html)
+- [Markdown Report](../examples/diagrams/aws/reports/system_report.md)
+- [JSON Report](../examples/diagrams/aws/reports/system_report.json)
+- [HTML Report](../examples/diagrams/aws/reports/system_report.html)
 
 ### What Was Discovered
 The AWS architecture analysis revealed 10 threats:
@@ -128,26 +130,26 @@ In this example, we will analyze the differences between the threat analysis res
 ### Diagram
 
 #### Before
-![before](../examples/web/system.png)
+![before](../examples/diagrams/web/system.png)
 
 #### After
-![after](../examples/web/system-updated.png)
+![after](../examples/diagrams/web/system-updated.png)
 
 ### Command
 
 ```bash
 threat-thinker diff \
-    --after examples/web/reports/system-updated_report.json \
-    --before examples/web/reports/system_report.json \
+    --after examples/diagrams/web/reports/system-updated_report.json \
+    --before examples/diagrams/web/reports/system_report.json \
     --llm-api openai \
     --llm-model gpt-4.1 \
-    --out-dir examples/web/reports/ \
+    --out-dir examples/diagrams/web/reports/ \
     --out-name diff \
     --lang en
 ```
 
-- [Markdown Report](../examples/web/reports/diff.md)
-- [JSON Report](../examples/web/reports/diff.json)
+- [Markdown Report](../examples/diagrams/web/reports/diff.md)
+- [JSON Report](../examples/diagrams/web/reports/diff.json)
 
 ### What Was Discovered
 The diff shows major architecture changes but no documented threat changes:
