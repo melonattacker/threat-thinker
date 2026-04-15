@@ -6,6 +6,7 @@ from types import SimpleNamespace
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+import threat_thinker.main as cli
 from threat_thinker.main import (
     _prepare_diff_output_paths,
     _prepare_output_paths,
@@ -58,6 +59,48 @@ def test_prepare_diff_output_paths_use_after_stem(tmp_path: Path):
     assert json_path.parent == out_dir
     assert json_path.name == "new-report_diff.json"
     assert md_path.name == "new-report_diff.md"
+
+
+def test_version_command_prints_installed_version(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "get_threat_thinker_version", lambda: "9.8.7")
+    monkeypatch.setattr(sys, "argv", ["threat-thinker", "version"])
+
+    cli.main()
+
+    captured = capsys.readouterr()
+    assert captured.out == "9.8.7 (Threat Thinker)\n"
+    assert captured.err == ""
+
+
+def test_version_flags_print_installed_version(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "get_threat_thinker_version", lambda: "9.8.7")
+
+    for version_flag in ("-v", "--version", "--verison"):
+        monkeypatch.setattr(sys, "argv", ["threat-thinker", version_flag])
+        try:
+            cli.main()
+        except SystemExit as exc:
+            assert exc.code == 0
+
+        captured = capsys.readouterr()
+        assert captured.out == "9.8.7 (Threat Thinker)\n"
+        assert captured.err == ""
+
+
+def test_get_threat_thinker_version_uses_package_metadata(monkeypatch):
+    monkeypatch.setattr(cli, "package_version", lambda package_name: "1.2.3")
+
+    assert cli.get_threat_thinker_version() == "1.2.3"
+
+
+def test_get_threat_thinker_version_falls_back_to_pyproject(monkeypatch):
+    def _raise_package_not_found(package_name: str):
+        raise cli.PackageNotFoundError(package_name)
+
+    monkeypatch.setattr(cli, "package_version", _raise_package_not_found)
+    monkeypatch.setattr(cli, "_read_pyproject_version", lambda: "4.5.6")
+
+    assert cli.get_threat_thinker_version() == "4.5.6"
 
 
 def test_select_think_input_supports_ir():

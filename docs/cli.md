@@ -2,6 +2,12 @@
 
 Common flags used in `threat-thinker` commands.
 
+Version command:
+
+```bash
+threat-thinker version
+```
+
 | Flag | Purpose | Notes |
 | --- | --- | --- |
 | `--mermaid / --drawio / --threat-dragon / --ir / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, native Graph IR `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
