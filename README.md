@@ -132,6 +132,8 @@ pip install -e .[dev]
 
 #### Verify installation
 ```bash
+threat-thinker version
+threat-thinker -v
 threat-thinker --help
 ```
 ### CLI Usage

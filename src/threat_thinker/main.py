@@ -44,6 +44,9 @@ import logging
 import os
 import sys
 import time
+import tomllib
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 from threat_thinker.input_loader import (
@@ -103,6 +106,35 @@ from threat_thinker.serve.config import load_config
 from threat_thinker.worker.main import run_worker
 import threat_thinker.webui as webui
 import uvicorn
+
+
+def _read_pyproject_version() -> str | None:
+    pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        with open(pyproject_path, "rb") as f:
+            pyproject = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+
+    project = pyproject.get("project")
+    if not isinstance(project, dict):
+        return None
+
+    version = project.get("version")
+    if not isinstance(version, str):
+        return None
+    return version
+
+
+def get_threat_thinker_version() -> str:
+    try:
+        return package_version("threat-thinker")
+    except PackageNotFoundError:
+        return _read_pyproject_version() or "unknown"
+
+
+def format_version_output() -> str:
+    return f"{get_threat_thinker_version()} (Threat Thinker)"
 
 
 def _normalize_embed_model(embed_arg: str) -> str:
@@ -175,7 +207,17 @@ def _select_think_input(args) -> tuple[str, str]:
 
 def main():
     p = argparse.ArgumentParser(prog="threat_thinker", description="Threat Thinker CLI")
+    p.add_argument(
+        "-v",
+        "--version",
+        "--verison",
+        action="version",
+        version=format_version_output(),
+        help="Show the installed Threat Thinker version",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("version", help="Show the installed Threat Thinker version")
 
     p_think = sub.add_parser(
         "think", help="Parse diagram and generate threats (LLM required)"
@@ -442,7 +484,10 @@ def main():
 
     args = p.parse_args()
 
-    if args.cmd == "think":
+    if args.cmd == "version":
+        print(format_version_output())
+
+    elif args.cmd == "think":
         start_time = time.time()
 
         # Set verbose mode
