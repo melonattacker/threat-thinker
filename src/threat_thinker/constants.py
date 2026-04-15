@@ -11,9 +11,7 @@ AI_OUTPUT_DISCLAIMER_JA = (
     "結果の正しさを確認してから利用してください。"
 )
 AI_OUTPUT_DISCLAIMER_MD = (
-    f"> [!IMPORTANT]\n"
-    f"> {AI_OUTPUT_DISCLAIMER_EN}\n"
-    f"> {AI_OUTPUT_DISCLAIMER_JA}"
+    f"> [!IMPORTANT]\n> {AI_OUTPUT_DISCLAIMER_EN}\n> {AI_OUTPUT_DISCLAIMER_JA}"
 )
 
 # LLM-based attribute inference prompts
