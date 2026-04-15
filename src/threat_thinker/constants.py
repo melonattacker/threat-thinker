@@ -2,6 +2,18 @@
 Constants and prompts for Threat Thinker
 """
 
+AI_OUTPUT_DISCLAIMER_EN = (
+    "AI can make mistakes. Do not trust Threat Thinker's output as-is; "
+    "review the results and judge their correctness before using them."
+)
+AI_OUTPUT_DISCLAIMER_JA = (
+    "AIは間違うことがあります。Threat Thinkerによる出力をそのまま信頼せず、"
+    "結果の正しさを確認してから利用してください。"
+)
+AI_OUTPUT_DISCLAIMER_MD = (
+    f"> [!IMPORTANT]\n> {AI_OUTPUT_DISCLAIMER_EN}\n> {AI_OUTPUT_DISCLAIMER_JA}"
+)
+
 # LLM-based attribute inference prompts
 HINT_SYSTEM = (
     "You are Threat Thinker. Infer practical attributes for threat modeling from a graph skeleton. "

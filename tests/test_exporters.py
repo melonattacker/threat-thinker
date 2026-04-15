@@ -10,7 +10,18 @@ import json
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from threat_thinker.exporters import export_json, export_md, diff_reports, export_html
+from threat_thinker.constants import (
+    AI_OUTPUT_DISCLAIMER_EN,
+    AI_OUTPUT_DISCLAIMER_JA,
+    AI_OUTPUT_DISCLAIMER_MD,
+)
+from threat_thinker.exporters import (
+    diff_reports,
+    export_diff_md,
+    export_html,
+    export_json,
+    export_md,
+)
 from threat_thinker.models import Threat, ImportMetrics, Graph, Node, Edge
 
 
@@ -123,6 +134,8 @@ class TestExportMd:
         result = export_md(threats, None)
 
         assert "# Threat Analysis Report" in result
+        assert AI_OUTPUT_DISCLAIMER_EN in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
         assert "No threats identified" in result
 
     def test_export_single_threat_markdown(self):
@@ -155,6 +168,8 @@ class TestExportMd:
         result = export_md(threats, None)
 
         assert "XSS Attack" in result
+        assert AI_OUTPUT_DISCLAIMER_EN in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
         assert "Medium" in result
         assert "No input sanitization" in result
         assert "Frontend" in result
@@ -206,6 +221,8 @@ class TestExportHtml:
         result = export_html(threats, None, None)
 
         assert "Threat Analysis Report" in result
+        assert "AI can make mistakes" in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
         assert "No threats identified" in result
 
     def test_export_empty_threats_keeps_graph_when_available(self):
@@ -262,6 +279,8 @@ class TestExportHtml:
         result = export_html([threat], None, graph)
 
         assert "SQL Injection" in result
+        assert "AI can make mistakes" in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
         assert "API Service" in result  # node mapping
         assert "Database" in result
         assert "queries" in result  # edge label mapping
@@ -303,6 +322,21 @@ class TestExportHtml:
 
 class TestDiffReports:
     """Test cases for diff_reports function"""
+
+    def test_export_diff_markdown_includes_disclaimer(self):
+        diff_data = {
+            "generated_at": "2026-04-15T00:00:00Z",
+            "before_file": "before.json",
+            "after_file": "after.json",
+            "graph_changes": {},
+            "threat_changes": {},
+        }
+
+        result = export_diff_md(diff_data)
+
+        assert AI_OUTPUT_DISCLAIMER_MD in result
+        assert AI_OUTPUT_DISCLAIMER_EN in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
 
     def test_diff_identical_reports(self):
         """Test diffing identical reports"""

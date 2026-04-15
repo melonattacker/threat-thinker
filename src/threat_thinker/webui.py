@@ -15,6 +15,7 @@ import html
 import gradio as gr
 
 import threat_thinker.main as cli
+from threat_thinker.constants import AI_OUTPUT_DISCLAIMER_MD
 from threat_thinker.input_loader import (
     INPUT_FORMAT_DRAWIO,
     INPUT_FORMAT_IR,
@@ -710,7 +711,9 @@ def _build_webui() -> gr.Blocks:
     """Construct the Gradio Web UI without launching a server."""
     with gr.Blocks(title="Threat Thinker WebUI") as demo:
         gr.Markdown(
-            "## Threat Thinker WebUI\nAnalyze system diagrams for security threats or compare threat reports."
+            "## Threat Thinker WebUI\n"
+            "Analyze system diagrams for security threats or compare threat reports.\n\n"
+            f"{AI_OUTPUT_DISCLAIMER_MD}"
         )
 
         with gr.Tabs():
