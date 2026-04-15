@@ -102,17 +102,17 @@ Choose one of the following methods:
 
 #### Using [pipx](https://pipx.pypa.io/) 
 ```bash
-pipx install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.1/threat_thinker-0.6.1-py3-none-any.whl
+pipx install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
 ```
 
 #### Using [uv](https://docs.astral.sh/uv/)
 ```bash
-uv tool install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.1/threat_thinker-0.6.1-py3-none-any.whl
+uv tool install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
 ```
 
 #### Using pip
 ```bash
-pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.6.1/threat_thinker-0.6.1-py3-none-any.whl
+pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
 
 # Or install latest from main
 pip install git+https://github.com/melonattacker/threat-thinker.git
