@@ -7,6 +7,11 @@ import json
 from html import escape
 from typing import Any, Dict, List, Optional, Tuple
 
+from threat_thinker.constants import (
+    AI_OUTPUT_DISCLAIMER_EN,
+    AI_OUTPUT_DISCLAIMER_JA,
+    AI_OUTPUT_DISCLAIMER_MD,
+)
 from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Threat
 from threat_thinker.zone_utils import zone_path_names
 
@@ -110,7 +115,7 @@ def export_md(threats: List[Threat], output_file: str = None) -> str:
     """
     Export threats to Markdown format
     """
-    md_content = "# Threat Analysis Report\n\n"
+    md_content = f"# Threat Analysis Report\n\n{AI_OUTPUT_DISCLAIMER_MD}\n\n"
 
     if not threats:
         md_content += "No threats identified.\n"
@@ -202,19 +207,27 @@ def export_html(
     """
 
     has_graph = bool(graph and (graph.nodes or graph.edges))
+    disclaimer_en = _safe(AI_OUTPUT_DISCLAIMER_EN)
+    disclaimer_ja = _safe(AI_OUTPUT_DISCLAIMER_JA)
     if not threats and not has_graph:
-        content = """<!DOCTYPE html>
+        content = f"""<!DOCTYPE html>
 <html lang=\"en\">
 <head>
   <meta charset=\"UTF-8\" />
   <title>Threat Analysis Report</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
-    .empty { font-style: italic; color: #475569; }
+    body {{ font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }}
+    .empty {{ font-style: italic; color: #475569; }}
+    .disclaimer {{ border-left: 4px solid #f59e0b; background: #fffbeb; padding: 12px 16px; margin: 16px 0 24px; color: #78350f; }}
+    .disclaimer p {{ margin: 4px 0; }}
   </style>
 </head>
 <body>
   <h1>Threat Analysis Report</h1>
+  <div class=\"disclaimer\">
+    <p>{disclaimer_en}</p>
+    <p>{disclaimer_ja}</p>
+  </div>
   <p class=\"empty\">No threats identified.</p>
 </body>
 </html>"""
@@ -337,6 +350,10 @@ def export_html(
     html_parts.append("    .sev-Medium { background: #fef9c3; color: #b45309; }")
     html_parts.append("    .sev-Low { background: #dcfce7; color: #166534; }")
     html_parts.append("    .meta { color: #475569; font-size: 14px; }")
+    html_parts.append(
+        "    .disclaimer { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 12px 16px; margin: 16px 0 24px; color: #78350f; }"
+    )
+    html_parts.append("    .disclaimer p { margin: 4px 0; }")
     html_parts.append("    .section { margin-top: 24px; }")
     html_parts.append("    .mapping-list { list-style: disc; margin-left: 20px; }")
     html_parts.append(
@@ -356,6 +373,10 @@ def export_html(
     html_parts.append("</head>")
     html_parts.append("<body>")
     html_parts.append("  <h1>Threat Analysis Report</h1>")
+    html_parts.append('  <div class="disclaimer">')
+    html_parts.append(f"    <p>{disclaimer_en}</p>")
+    html_parts.append(f"    <p>{disclaimer_ja}</p>")
+    html_parts.append("  </div>")
     if not threats:
         html_parts.append('  <p class="meta">No threats identified.</p>')
 
@@ -1207,6 +1228,8 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
     """
     lines = []
     lines.append("# System Architecture and Threat Model Diff Report")
+    lines.append("")
+    lines.append(AI_OUTPUT_DISCLAIMER_MD)
     lines.append("")
     lines.append(f"**Generated:** {diff_data.get('generated_at', '')}")
     lines.append("")

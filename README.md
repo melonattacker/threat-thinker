@@ -7,6 +7,9 @@ AI-powered threat modeling that turns architecture diagrams and business context
 > This is a public demo environment. Please do not upload sensitive or confidential architecture diagrams.
 > For sensitive use cases, use the local CLI or Web UI.
 
+> [!IMPORTANT]
+> AI can make mistakes. Do not trust Threat Thinker's output as-is; review the results and judge their correctness before using them.
+
 <img width="360" alt="threat-thinker-logo" src="./docs/images/threat-thinker-logo.png" />
 
 
