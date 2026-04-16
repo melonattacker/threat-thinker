@@ -15,7 +15,7 @@ dependencies = [
     "boto3==1.42.74",
     "fastapi==0.135.2",
     "gradio==6.10.0",
-    "numpy==2.4.3",
+    "numpy==2.4.4",
     "openai==2.30.0",
     "PyYAML==6.0.3",
     "python-multipart==0.0.22",
