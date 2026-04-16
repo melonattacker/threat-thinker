@@ -12,7 +12,7 @@ license = { text = "Apache 2.0" }
 dependencies = [
     "anthropic==0.86.0",
     "beautifulsoup4==4.14.3",
-    "boto3==1.42.74",
+    "boto3==1.42.81",
     "fastapi==0.135.2",
     "gradio==6.10.0",
     "numpy==2.4.3",
