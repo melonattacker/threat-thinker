@@ -14,9 +14,10 @@ AI-powered threat modeling that turns architecture diagrams and business context
 
 
 ## What is Threat Thinker?
-Threat Thinker is an open-source tool that turns architecture diagrams and business context into threat models automatically. Provide a DFD or architecture diagram as the system shape, add Business Context for scope and assumptions, and optionally use RAG to bring in supporting standards or internal guidance.
+Threat Thinker is an open-source tool that turns system descriptions, architecture diagrams, and business context into threat models automatically. Provide a natural-language system description or a DFD/architecture diagram as the system shape, add Business Context for scope and assumptions, and optionally use RAG to bring in supporting standards or internal guidance.
 
 Key Features:
+- **Description-to-DFD**: Generates an intermediate Graph IR DFD from a natural-language system description when no diagram is available.
 - **Diagram coverage**: Ingests Mermaid, draw.io, Threat Dragon JSON, native Graph IR JSON, and images.
 - **Business Context**: Injects scope, actors, assets, assumptions, and constraints from PDF, Markdown, or text files.
 - **Attribute inference**: Uses LLMs to enrich components, data flows, and trust boundaries.
@@ -26,7 +27,7 @@ Key Features:
 
 ## Key Features
 ### Diagram-to-threat reasoning
-- Drop in a diagram via CLI (`--diagram` or format-specific flags) or Web UI and get threats without manual modeling.
+- Provide `--description` when you do not have a diagram, or drop in a diagram via CLI (`--diagram` or format-specific flags) or Web UI.
 - Supports Mermaid, draw.io, Threat Dragon JSON, native Graph IR JSON, and image-based diagrams.
 - Deterministic parsing plus LLM reasoning fills missing labels, trust boundaries, and protocols.
 - Outputs prioritized threats with short rationales and OWASP ASVS/CWE references for quick review.
@@ -38,6 +39,7 @@ Key Features:
 </p>
 
 ### Business Context as first-class input
+- Use `--description` for the system description that can generate a DFD when no diagram is provided.
 - Use `--context` to add required business context that is not visible in the DFD or architecture diagram.
 - Include scope, actors, sensitive assets, workflows, regulatory assumptions, availability needs, and audit expectations.
 - Threat Thinker injects the full extracted text from PDF, Markdown, or text files into the threat prompt.
@@ -144,6 +146,14 @@ Here is an example of command using CLI mode.
 
 
 ```bash
+# Think: Generate a DFD from a system description, then analyze threats
+threat-thinker think \
+    --description "Customers use a web app to manage orders. The app stores customer PII in Postgres and sends email through a third-party provider." \
+    --topn 5 \
+    --llm-api openai \
+    --llm-model gpt-4.1 \
+    --out-dir reports/
+
 # Think: Analyze a diagram
 threat-thinker think \
     --diagram examples/diagrams/web/system.mmd \

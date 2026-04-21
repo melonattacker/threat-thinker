@@ -86,3 +86,17 @@ def test_build_webui_smoke():
     assert isinstance(demo, gr.Blocks)
     assert demo.title == "Threat Thinker WebUI"
     assert len(demo.blocks) > 0
+
+
+def test_build_webui_has_system_description_entrypoint():
+    demo = webui._build_webui()
+    labels = {
+        getattr(block, "label", None)
+        for block in demo.blocks.values()
+        if getattr(block, "label", None)
+    }
+
+    assert "System Description" in labels
+    assert "Business Context (supplemental PDF, Markdown, Text)" in labels
+    assert "Diagram Content" in labels
+    assert "Download generated DFD JSON (description inputs only)" in labels

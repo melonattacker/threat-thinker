@@ -15,6 +15,10 @@ import html
 import gradio as gr
 
 import threat_thinker.main as cli
+from threat_thinker.business_context import (
+    dfd_result_from_payload,
+    dfd_result_to_sidecar_json,
+)
 from threat_thinker.constants import AI_OUTPUT_DISCLAIMER_MD
 from threat_thinker.input_loader import (
     INPUT_FORMAT_DRAWIO,
@@ -53,7 +57,10 @@ from threat_thinker.rag import (
     retrieve_context_for_graph,
     attach_rag_sources_to_threats,
 )
-from threat_thinker.llm.inference import llm_rerank_chunks
+from threat_thinker.llm.inference import (
+    llm_generate_dfd_from_description,
+    llm_rerank_chunks,
+)
 from threat_thinker.rag.local import SUPPORTED_EXTENSIONS
 
 
@@ -370,12 +377,13 @@ def _generate_diff_report(
 
 
 def _generate_report(
+    system_description: str,
+    context_files,
     input_method: str,
     diagram_text: str,
     diagram_format: str,
     drawio_page: str,
     image_file: str,
-    context_files,
     infer_hints: bool,
     llm_api: str,
     llm_model: str,
@@ -394,22 +402,27 @@ def _generate_report(
     rag_candidates: int,
     rag_min_score: float,
     prompt_token_limit: int,
-) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
-    # Validate input based on method
-    if input_method == "Text":
-        diagram_text = (diagram_text or "").strip()
-        if not diagram_text:
-            raise gr.Error("Diagram input is required.")
+) -> Tuple[
+    str,
+    str,
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+]:
+    system_description = (system_description or "").strip()
+    diagram_text = (diagram_text or "").strip()
+    diagram_format = _validate_text_input_format(diagram_format)
+    drawio_page = (drawio_page or "").strip() or None
+    has_text_diagram = input_method == "Text" and bool(diagram_text)
+    has_image_diagram = input_method == "Image" and bool(image_file)
+    has_diagram = has_text_diagram or has_image_diagram
+    if not has_diagram and not system_description:
+        raise gr.Error("System description is required when no diagram is provided.")
+    context_paths = _normalize_context_uploads(context_files)
 
-        diagram_format = _validate_text_input_format(diagram_format)
-        drawio_page = (drawio_page or "").strip() or None
-    else:  # Image
-        if not image_file:
-            raise gr.Error("Image file is required when using image input method.")
-
-        # Validate image file format
-        from pathlib import Path
-
+    if has_image_diagram:
         ext = Path(image_file).suffix.lower()
         supported_formats = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
         if ext not in supported_formats:
@@ -437,7 +450,7 @@ def _generate_report(
         or "http://localhost:11434"
     )
     if llm_api == "ollama":
-        if input_method == "Image":
+        if has_image_diagram:
             raise gr.Error(
                 "Image diagrams are not supported with the Ollama backend. "
                 "Use OpenAI/Anthropic/Bedrock for image extraction or provide Mermaid/Draw.io/Threat Dragon/IR input."
@@ -477,24 +490,22 @@ def _generate_report(
 
     # Prepare diagram file path
     diagram_path = None
-    if input_method == "Text":
-        # Determine file extension based on format
+    if has_text_diagram:
         diagram_path = _write_temp_file(
             diagram_text, suffix_for_text_input(diagram_format)
         )
-    else:  # Image
-        diagram_path = image_file  # Use the uploaded file directly
+    elif has_image_diagram:
+        diagram_path = image_file
 
     status_lines = []
-    context_paths = _normalize_context_uploads(context_files)
-    business_context_text = None
+    business_context_text = system_description or None
+    dfd_result = None
     rag_context_text = None
     retrieval = None
     rerank_fn = None
 
     try:
-        # Parse diagram based on input method and format
-        if input_method == "Text":
+        if has_text_diagram:
             graph, metrics = load_input(
                 diagram_format,
                 diagram_path,
@@ -503,7 +514,7 @@ def _generate_report(
             status_lines.append(
                 f"Parsed {diagram_format} diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
             )
-        else:  # Image
+        elif has_image_diagram:
             graph, metrics = load_input(
                 "image",
                 diagram_path,
@@ -516,6 +527,38 @@ def _generate_report(
             status_lines.append(
                 f"Parsed image diagram: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
             )
+        else:
+            payload = llm_generate_dfd_from_description(
+                system_description,
+                llm_api,
+                llm_model,
+                aws_profile,
+                aws_region,
+                ollama_host,
+                prompt_token_limit_val,
+                lang=lang,
+            )
+            dfd_result = dfd_result_from_payload(payload)
+            dfd_result.metrics.total_lines = len(system_description.splitlines())
+            graph = dfd_result.graph
+            metrics = dfd_result.metrics
+            status_lines.append(
+                f"Generated DFD from system description: {len(graph.nodes)} nodes, {len(graph.edges)} edges."
+            )
+            if dfd_result.summary:
+                status_lines.append(f"DFD summary: {dfd_result.summary}")
+            if dfd_result.assumptions:
+                status_lines.append("Assumptions: " + "; ".join(dfd_result.assumptions))
+            if dfd_result.clarifying_questions:
+                status_lines.append(
+                    "Clarifying questions: "
+                    + "; ".join(dfd_result.clarifying_questions)
+                )
+            if not graph.nodes:
+                raise gr.Error(
+                    "System description is too vague to generate a useful DFD. "
+                    "Answer the clarifying questions and retry."
+                )
 
         status_lines.append(
             f"Import success ~{metrics.import_success_rate * 100:.1f}% "
@@ -523,7 +566,7 @@ def _generate_report(
             f"labels {metrics.node_labels_parsed}/{metrics.node_label_candidates})"
         )
 
-        if infer_hints:
+        if has_diagram and infer_hints:
             skeleton = json.dumps(
                 {
                     "nodes": [
@@ -554,7 +597,12 @@ def _generate_report(
             try:
                 context_docs = load_context_documents(context_paths, llm_model)
                 doc_count, token_count, sources = context_summary(context_docs)
-                business_context_text = format_context_documents(context_docs)
+                context_text = format_context_documents(context_docs)
+                business_context_text = "\n\n".join(
+                    text
+                    for text in [business_context_text, context_text]
+                    if text and text.strip()
+                )
                 status_lines.append(
                     f"Loaded {doc_count} business context document(s), approximately {token_count} tokens: {', '.join(sources)}."
                 )
@@ -663,20 +711,28 @@ def _generate_report(
         download_md_path = _write_temp_file(md_report, ".md")
         download_json_path = _write_temp_file(json_report, ".json")
         download_html_path = _write_temp_file(html_report, ".html")
+        dfd_download_path = None
+        if dfd_result:
+            dfd_download_path = _write_temp_file(
+                dfd_result_to_sidecar_json(dfd_result), ".dfd.json"
+            )
         download_paths = {download_md_path, download_json_path, download_html_path}
         if td_download_path:
             download_paths.add(td_download_path)
+        if dfd_download_path:
+            download_paths.add(dfd_download_path)
         _DOWNLOAD_PATHS.update(download_paths)
 
+        status_lines.append("Report generated successfully.")
+        status_text = "\n".join(status_lines)
         report_text = (
+            f"Status:\n{status_text}\n\n"
             f"JSON Report:\n{json_report}\n\n"
             f"Markdown Report:\n{md_report}\n\n"
             f"HTML Report:\n{html_report}"
         )
         if td_report:
             report_text += f"\n\nThreat Dragon Report:\n{td_report}"
-
-        status_lines.append("Report generated successfully.")
 
         markdown_report = md_report
 
@@ -687,6 +743,7 @@ def _generate_report(
             download_json_path,
             download_html_path,
             td_download_path,
+            dfd_download_path,
         )
     except gr.Error:
         raise
@@ -696,7 +753,7 @@ def _generate_report(
     finally:
         # clean up intermediate files; keep the report download file around
         cleanup_paths = []
-        if input_method == "Text" and diagram_path:
+        if has_text_diagram and diagram_path:
             cleanup_paths.append(diagram_path)
 
         for path in cleanup_paths:
@@ -718,52 +775,61 @@ def _build_webui() -> gr.Blocks:
 
         with gr.Tabs():
             with gr.Tab("Think - Threat Analysis"):
-                # Input method selection
-                input_method = gr.Radio(
-                    label="Input Method - Choose whether to input diagram as text or upload an image file",
-                    choices=["Text", "Image"],
-                    value="Text",
-                )
-
-                # Text input (visible by default)
-                diagram_input = gr.TextArea(
-                    label="Diagram Content",
-                    placeholder="Paste your diagram content here (Mermaid, Draw.io XML, Threat Dragon JSON, or native IR JSON)...",
-                    lines=20,
+                system_description_input = gr.TextArea(
+                    label="System Description",
+                    placeholder=(
+                        "Describe the system, users, data, deployment, and external services. "
+                        "Example: Customers use a web app to manage orders. The app runs on AWS behind a load balancer, stores PII in Postgres, and sends emails through a third-party provider."
+                    ),
+                    lines=10,
                     autofocus=True,
-                    visible=True,
-                )
-                diagram_format_input = gr.Radio(
-                    label="Diagram Format",
-                    choices=[
-                        INPUT_FORMAT_MERMAID,
-                        INPUT_FORMAT_DRAWIO,
-                        INPUT_FORMAT_THREAT_DRAGON,
-                        INPUT_FORMAT_IR,
-                    ],
-                    value=INPUT_FORMAT_MERMAID,
-                    visible=True,
-                )
-                drawio_page_input = gr.Textbox(
-                    label="Draw.io Page (optional)",
-                    placeholder="Page id, name, or 0-based index",
-                    visible=False,
-                )
-
-                # Image input (hidden by default)
-                image_input = gr.File(
-                    label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
-                    file_types=["image"],
-                    type="filepath",
-                    visible=False,
                 )
 
                 context_files_input = gr.File(
-                    label="Business Context (PDF, Markdown, Text)",
+                    label="Business Context (supplemental PDF, Markdown, Text)",
                     file_types=sorted(SUPPORTED_CONTEXT_EXTENSIONS),
                     type="filepath",
                     file_count="multiple",
                 )
+
+                with gr.Accordion(
+                    "Advanced: provide an existing DFD or diagram", open=False
+                ):
+                    input_method = gr.Radio(
+                        label="Diagram Input Method",
+                        choices=["Text", "Image"],
+                        value="Text",
+                    )
+
+                    diagram_input = gr.TextArea(
+                        label="Diagram Content",
+                        placeholder="Paste Mermaid, Draw.io XML, Threat Dragon JSON, or native IR JSON...",
+                        lines=16,
+                        visible=True,
+                    )
+                    diagram_format_input = gr.Radio(
+                        label="Diagram Format",
+                        choices=[
+                            INPUT_FORMAT_MERMAID,
+                            INPUT_FORMAT_DRAWIO,
+                            INPUT_FORMAT_THREAT_DRAGON,
+                            INPUT_FORMAT_IR,
+                        ],
+                        value=INPUT_FORMAT_MERMAID,
+                        visible=True,
+                    )
+                    drawio_page_input = gr.Textbox(
+                        label="Draw.io Page (optional)",
+                        placeholder="Page id, name, or 0-based index",
+                        visible=False,
+                    )
+
+                    image_input = gr.File(
+                        label="Upload Diagram Image (JPG, PNG, GIF, BMP, WebP)",
+                        file_types=["image"],
+                        type="filepath",
+                        visible=False,
+                    )
 
                 with gr.Row():
                     llm_api_input = gr.Dropdown(
@@ -912,16 +978,20 @@ def _build_webui() -> gr.Blocks:
                     download_td_output = gr.File(
                         label="Download Threat Dragon JSON (Threat Dragon inputs only)",
                     )
+                    download_dfd_output = gr.File(
+                        label="Download generated DFD JSON (description inputs only)",
+                    )
 
                 generate_button.click(
                     fn=_generate_report,
                     inputs=[
+                        system_description_input,
+                        context_files_input,
                         input_method,
                         diagram_input,
                         diagram_format_input,
                         drawio_page_input,
                         image_input,
-                        context_files_input,
                         infer_hints_input,
                         llm_api_input,
                         llm_model_input,
@@ -948,6 +1018,7 @@ def _build_webui() -> gr.Blocks:
                         download_json_output,
                         download_html_output,
                         download_td_output,
+                        download_dfd_output,
                     ],
                     api_name=False,
                 )
