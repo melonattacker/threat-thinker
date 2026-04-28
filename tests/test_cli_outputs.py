@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import threat_thinker.main as cli
 from threat_thinker.main import (
+    _default_report_base_name,
     _prepare_diff_output_paths,
     _prepare_dfd_sidecar_path,
     _prepare_output_paths,
@@ -49,6 +50,14 @@ def test_prepare_output_paths_with_override(tmp_path: Path):
     assert json_path.name == "custom-base_report.json"
     assert md_path.name == "custom-base_report.md"
     assert html_path.name == "custom-base_report.html"
+
+
+def test_default_report_base_name_prefers_description_file_stem():
+    assert _default_report_base_name(None, ["docs/drone-system.txt"]) == "drone-system"
+
+
+def test_default_report_base_name_falls_back_to_description():
+    assert _default_report_base_name(None, []) == "description"
 
 
 def test_prepare_diff_output_paths_use_after_stem(tmp_path: Path):

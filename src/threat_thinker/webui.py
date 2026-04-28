@@ -117,6 +117,23 @@ def _write_temp_file(content: str, suffix: str) -> str:
     return tmp.name
 
 
+def _build_incomplete_dfd_markdown(result) -> str:
+    lines = [
+        "## System Description Needs More Detail",
+        "",
+        "Threat inference did not run because the generated DFD was empty.",
+    ]
+    if result.summary:
+        lines.extend(["", f"Summary: {result.summary}"])
+    if result.assumptions:
+        lines.extend(["", "### Assumptions"])
+        lines.extend(f"- {item}" for item in result.assumptions)
+    if result.clarifying_questions:
+        lines.extend(["", "### Clarifying Questions"])
+        lines.extend(f"- {item}" for item in result.clarifying_questions)
+    return "\n".join(lines)
+
+
 def _validate_text_input_format(diagram_format: str) -> str:
     value = (diagram_format or INPUT_FORMAT_MERMAID).strip().lower()
     if value not in TEXT_INPUT_FORMATS:
@@ -555,9 +572,28 @@ def _generate_report(
                     + "; ".join(dfd_result.clarifying_questions)
                 )
             if not graph.nodes:
-                raise gr.Error(
-                    "System description is too vague to generate a useful DFD. "
-                    "Answer the clarifying questions and retry."
+                status_lines.append(
+                    "Threat inference skipped because the generated DFD is empty. "
+                    "Expand the system description and retry."
+                )
+                _cleanup_downloads()
+                dfd_download_path = _write_temp_file(
+                    dfd_result_to_sidecar_json(dfd_result), ".dfd.json"
+                )
+                _DOWNLOAD_PATHS.add(dfd_download_path)
+                status_text = "\n".join(status_lines)
+                report_text = (
+                    f"Status:\n{status_text}\n\n"
+                    f"Generated DFD JSON:\n{dfd_result_to_sidecar_json(dfd_result)}"
+                )
+                return (
+                    _build_incomplete_dfd_markdown(dfd_result),
+                    report_text,
+                    None,
+                    None,
+                    None,
+                    None,
+                    dfd_download_path,
                 )
 
         status_lines.append(

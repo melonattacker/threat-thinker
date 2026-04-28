@@ -164,6 +164,16 @@ def _prepare_output_paths(
     return target_dir, json_path, md_path, html_path
 
 
+def _default_report_base_name(
+    diagram_file: str | None, description_files: list[str] | None = None
+) -> str:
+    if diagram_file:
+        return Path(diagram_file).stem or "threat"
+    if description_files:
+        return Path(description_files[0]).stem or "description"
+    return "description"
+
+
 def _prepare_dfd_sidecar_path(report_json_path: Path) -> Path:
     return report_json_path.with_name(f"{report_json_path.stem}_dfd.json")
 
@@ -943,8 +953,12 @@ def main():
 
         # 6) Export
         ui.step("Generating reports")
+        base_name = args.out_name or _default_report_base_name(
+            diagram_file,
+            getattr(args, "description_file", None) or [],
+        )
         out_dir, out_json, out_md, out_html = _prepare_output_paths(
-            diagram_file or "description", args.out_dir, args.out_name
+            diagram_file or base_name, args.out_dir, base_name
         )
         ui.info(
             f"Exporting reports to {out_dir} "
