@@ -20,7 +20,7 @@ from .response_utils import safe_json_loads
 
 # Token budgets tuned for the JSON-heavy responses we expect from each flow.
 HINT_INFERENCE_MAX_TOKENS = 4096
-DFD_GENERATION_MAX_TOKENS = 8000
+DFD_GENERATION_MAX_TOKENS = 16000
 THREAT_INFERENCE_MAX_TOKENS = (
     10000  # Headroom for 10-12 verbose multilingual threats with evidence metadata
 )
