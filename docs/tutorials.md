@@ -1,4 +1,22 @@
 # Tutorials
+## Tutorial 0: Start from a system description
+Use this flow when you do not have a DFD yet. Threat Thinker generates an intermediate Graph IR DFD from the description, runs threat inference, and writes the normal Markdown/JSON/HTML reports.
+
+### Command
+
+```bash
+threat-thinker think \
+    --description "Customers use a web app to manage orders. The frontend calls an API hosted on AWS. The API stores customer PII and order history in Postgres and sends transactional email through a third-party provider." \
+    --topn 5 \
+    --llm-api openai \
+    --llm-model gpt-4.1 \
+    --out-dir reports/
+```
+
+The generated DFD is written next to the reports as `description_report_dfd.json`. If the description is too vague, Threat Thinker returns clarifying questions instead of guessing a large speculative graph.
+
+When you already have a diagram, keep using `--mermaid`, `--drawio`, `--threat-dragon`, `--ir`, `--image`, or `--diagram`. In that mode `--description` is optional extra context for threat inference, and `--context` remains the file-based supplemental context input.
+
 ## Tutorial 1: Analyze simple web application
 In this example, we will analyze the architecture diagram of a simple web application.  written in mermaid and identify potential threats.
 

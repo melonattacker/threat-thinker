@@ -7,6 +7,8 @@ from typing import Callable, Dict, List, Optional
 
 from threat_thinker.models import Graph, Threat
 from threat_thinker.constants import (
+    DFD_SYSTEM,
+    DFD_INSTRUCTIONS,
     HINT_SYSTEM,
     HINT_INSTRUCTIONS,
     LLM_SYSTEM,
@@ -18,6 +20,7 @@ from .response_utils import safe_json_loads
 
 # Token budgets tuned for the JSON-heavy responses we expect from each flow.
 HINT_INFERENCE_MAX_TOKENS = 4096
+DFD_GENERATION_MAX_TOKENS = 16000
 THREAT_INFERENCE_MAX_TOKENS = (
     10000  # Headroom for 10-12 verbose multilingual threats with evidence metadata
 )
@@ -31,6 +34,24 @@ HINT_JSON_SCHEMA: Dict = {
         "edges": {"type": "array", "items": {"type": "object"}},
         "policies": {"type": "object"},
     },
+}
+DFD_JSON_SCHEMA: Dict = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "graph": {
+            "type": "object",
+            "properties": {
+                "nodes": {"type": "object"},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "zones": {"type": "object"},
+            },
+            "required": ["nodes", "edges", "zones"],
+        },
+        "assumptions": {"type": "array", "items": {"type": "string"}},
+        "clarifying_questions": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["summary", "graph", "assumptions", "clarifying_questions"],
 }
 THREAT_JSON_SCHEMA: Dict = {
     "type": "object",
@@ -101,6 +122,62 @@ def _validate_hints_payload(payload: dict) -> None:
     policies = payload.get("policies")
     if policies is not None and not isinstance(policies, dict):
         raise ValueError("'policies' must be an object when present")
+
+
+def _validate_dfd_payload(payload: dict) -> None:
+    if not isinstance(payload, dict):
+        raise ValueError("DFD payload must be a JSON object")
+    graph = payload.get("graph")
+    if not isinstance(graph, dict):
+        raise ValueError("DFD payload missing 'graph' object")
+    nodes = graph.get("nodes")
+    edges = graph.get("edges")
+    zones = graph.get("zones")
+    if not isinstance(nodes, dict):
+        raise ValueError("DFD graph.nodes must be an object keyed by node id")
+    if not isinstance(edges, list):
+        raise ValueError("DFD graph.edges must be an array")
+    if not isinstance(zones, dict):
+        raise ValueError("DFD graph.zones must be an object keyed by zone id")
+    node_ids = set()
+    for node_key, node in nodes.items():
+        if not isinstance(node, dict):
+            raise ValueError(f"DFD node '{node_key}' must be an object")
+        node_id = str(node.get("id") or node_key).strip()
+        if not node_id:
+            raise ValueError("DFD node id cannot be empty")
+        if not str(node.get("label") or "").strip():
+            raise ValueError(f"DFD node '{node_id}' must include label")
+        if node.get("confidence") not in {"stated", "implied", "assumed"}:
+            raise ValueError(f"DFD node '{node_id}' must include valid confidence")
+        node_ids.add(node_id)
+    for zone_key, zone in zones.items():
+        if not isinstance(zone, dict):
+            raise ValueError(f"DFD zone '{zone_key}' must be an object")
+        zone_id = str(zone.get("id") or zone_key).strip()
+        if not zone_id:
+            raise ValueError("DFD zone id cannot be empty")
+        if not str(zone.get("name") or "").strip():
+            raise ValueError(f"DFD zone '{zone_id}' must include name")
+        if zone.get("confidence") not in {"stated", "implied", "assumed"}:
+            raise ValueError(f"DFD zone '{zone_id}' must include valid confidence")
+    for index, edge in enumerate(edges):
+        if not isinstance(edge, dict):
+            raise ValueError(f"DFD edge at index {index} must be an object")
+        src = str(edge.get("src") or "").strip()
+        dst = str(edge.get("dst") or "").strip()
+        if not src or not dst:
+            raise ValueError(f"DFD edge at index {index} must include src and dst")
+        if src not in node_ids or dst not in node_ids:
+            raise ValueError(
+                f"DFD edge at index {index} references unknown nodes '{src}' -> '{dst}'"
+            )
+        if edge.get("confidence") not in {"stated", "implied", "assumed"}:
+            raise ValueError(f"DFD edge at index {index} must include valid confidence")
+    if not isinstance(payload.get("assumptions"), list):
+        raise ValueError("DFD assumptions must be an array")
+    if not isinstance(payload.get("clarifying_questions"), list):
+        raise ValueError("DFD clarifying_questions must be an array")
 
 
 def _validate_threats_payload(payload: dict) -> None:
@@ -297,6 +374,73 @@ def llm_infer_hints(
         _validate_hints_payload,
     )
     return data
+
+
+def llm_generate_dfd_from_description(
+    description: str,
+    api: str,
+    model: str,
+    aws_profile: str = None,
+    aws_region: str = None,
+    ollama_host: str = None,
+    prompt_token_limit: Optional[int] = None,
+    lang: str = "en",
+) -> dict:
+    """
+    Use LLM to generate a native Graph IR DFD from a natural-language system description.
+    """
+    description = (description or "").strip()
+    if not description:
+        raise ValueError("description is required")
+
+    if lang == "en":
+        lang_instruction = ""
+    else:
+        lang_name = _get_language_name(lang)
+        lang_instruction = (
+            f"Write human-readable DFD content in {lang_name}: graph node labels, "
+            "zone names, edge labels, summary, assumptions, clarifying questions, "
+            "and notes. Keep JSON field names, node ids, zone ids, protocol values, "
+            "and confidence enum values in English/ASCII exactly as specified.\n\n"
+        )
+
+    user_prompt = (
+        "Here is the system description:\n\n"
+        "<system_description>\n"
+        f"{description}\n"
+        "</system_description>\n\n"
+        f"{lang_instruction}"
+        "Build a DFD per the rules. Mark each element's confidence honestly. "
+        "If the description is too vague, return clarifying questions rather than guessing.\n\n"
+        f"{DFD_INSTRUCTIONS}"
+    )
+
+    _validate_prompt_token_limit(
+        system_prompt=DFD_SYSTEM,
+        user_prompt=user_prompt,
+        api=api,
+        model=model,
+        prompt_token_limit=prompt_token_limit,
+    )
+
+    llm_client = LLMClient(
+        api=api,
+        model=model,
+        aws_profile=aws_profile,
+        aws_region=aws_region,
+        ollama_host=ollama_host,
+    )
+    return _call_llm_json_with_retry(
+        lambda: llm_client.call_llm(
+            system_prompt=DFD_SYSTEM,
+            user_prompt=user_prompt,
+            response_format={"type": "json_object"},
+            json_schema=DFD_JSON_SCHEMA,
+            temperature=0.1,
+            max_tokens=DFD_GENERATION_MAX_TOKENS,
+        ),
+        _validate_dfd_payload,
+    )
 
 
 def llm_rerank_chunks(

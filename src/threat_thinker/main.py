@@ -58,8 +58,14 @@ from threat_thinker.input_loader import (
     detect_input_format,
     load_input,
 )
+from threat_thinker.business_context import (
+    BusinessContextDfdResult,
+    dfd_result_from_payload,
+    dfd_result_to_sidecar_json,
+)
 from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.llm.inference import (
+    llm_generate_dfd_from_description,
     llm_infer_hints,
     llm_infer_threats,
     llm_rerank_chunks,
@@ -158,6 +164,20 @@ def _prepare_output_paths(
     return target_dir, json_path, md_path, html_path
 
 
+def _default_report_base_name(
+    diagram_file: str | None, description_files: list[str] | None = None
+) -> str:
+    if diagram_file:
+        return Path(diagram_file).stem or "threat"
+    if description_files:
+        return Path(description_files[0]).stem or "description"
+    return "description"
+
+
+def _prepare_dfd_sidecar_path(report_json_path: Path) -> Path:
+    return report_json_path.with_name(f"{report_json_path.stem}_dfd.json")
+
+
 def _prepare_diff_output_paths(
     after_report: str, out_dir: str
 ) -> tuple[Path, Path, Path]:
@@ -170,7 +190,7 @@ def _prepare_diff_output_paths(
     return target_dir, json_path, md_path
 
 
-def _select_think_input(args) -> tuple[str, str]:
+def _select_think_input(args) -> tuple[str | None, str | None]:
     if args.diagram:
         diagram_file = args.diagram
         diagram_format = detect_input_format(diagram_file)
@@ -198,11 +218,63 @@ def _select_think_input(args) -> tuple[str, str]:
     if args.ir:
         return args.ir, INPUT_FORMAT_IR
 
-    ui.error(
-        "No diagram file specified",
-        "Please specify a diagram file using --diagram, --mermaid, --drawio, --threat-dragon, --image, or --ir",
+    return None, None
+
+
+def _combine_text_blocks(*blocks: str | None) -> str | None:
+    combined = "\n\n".join(block.strip() for block in blocks if block and block.strip())
+    return combined or None
+
+
+def _load_document_text(paths: list[str], model: str, *, label: str) -> str | None:
+    if not paths:
+        return None
+    try:
+        docs = load_context_documents(paths, model)
+        doc_count, token_count, sources = context_summary(docs)
+        ui.success(
+            f"Loaded {doc_count} {label} document(s), approximately {token_count} tokens"
+        )
+        ui.info(f"{label.title()} documents: {', '.join(sources)}")
+        return format_context_documents(docs)
+    except ContextDocumentError as e:
+        ui.error(f"Failed to load {label} documents", str(e))
+        sys.exit(2)
+
+
+def _load_description_text(args) -> str | None:
+    inline = "\n\n".join(
+        text.strip()
+        for text in (getattr(args, "description", None) or [])
+        if text.strip()
     )
-    sys.exit(2)
+    file_text = _load_document_text(
+        getattr(args, "description_file", None) or [],
+        args.llm_model,
+        label="description",
+    )
+    return _combine_text_blocks(inline, file_text)
+
+
+def _load_context_text(args) -> str | None:
+    context_paths = list(getattr(args, "context", None) or [])
+    context_paths.extend(getattr(args, "context_file", None) or [])
+    return _load_document_text(context_paths, args.llm_model, label="context")
+
+
+def _show_dfd_notes(result: BusinessContextDfdResult) -> None:
+    if result.summary:
+        ui.info("Generated DFD summary", result.summary)
+    if result.assumptions:
+        ui.warning(
+            "Generated DFD assumptions",
+            "\n".join(f"- {item}" for item in result.assumptions),
+        )
+    if result.clarifying_questions:
+        ui.warning(
+            "Generated DFD clarifying questions",
+            "\n".join(f"- {item}" for item in result.clarifying_questions),
+        )
 
 
 def main():
@@ -247,6 +319,27 @@ def main():
         action="append",
         default=[],
         help="Business context document path to inject into the threat prompt. Repeat for multiple PDF, Markdown, or text files.",
+    )
+    p_think.add_argument(
+        "--context-file",
+        type=str,
+        action="append",
+        default=[],
+        help="Alias for --context. Business context document path to inject into the threat prompt.",
+    )
+    p_think.add_argument(
+        "--description",
+        type=str,
+        action="append",
+        default=[],
+        help="Natural-language system description. Used to generate a DFD when no diagram input is provided; also injected into the threat prompt.",
+    )
+    p_think.add_argument(
+        "--description-file",
+        type=str,
+        action="append",
+        default=[],
+        help="System description document path. Repeat for multiple PDF, Markdown, or text files.",
     )
     p_think.add_argument(
         "--infer-hints",
@@ -493,14 +586,26 @@ def main():
         # Set verbose mode
         set_verbose(args.verbose)
 
-        # Set up progress tracking
-        total_steps = 5 + (1 if args.rag else 0) + (1 if args.context else 0)
-        ui.set_total_steps(
-            total_steps
-        )  # Parse, Infer hints, (Context), (Retrieve), Analyze threats, Denoise, Export
+        has_context_files = bool(args.context or args.context_file)
+        has_description_input = bool(args.description or args.description_file)
 
-        # Determine diagram file and format
+        # Set up progress tracking
+        total_steps = (
+            5
+            + (1 if args.rag else 0)
+            + (1 if has_context_files else 0)
+            + (1 if has_description_input else 0)
+        )
+        ui.set_total_steps(total_steps)
+
+        # Determine optional diagram file and format
         diagram_file, diagram_format = _select_think_input(args)
+        if not diagram_file and not has_description_input:
+            ui.error(
+                "No input specified",
+                "Provide a diagram with --diagram/--mermaid/--drawio/--threat-dragon/--image/--ir, or provide --description/--description-file to generate a DFD.",
+            )
+            sys.exit(2)
 
         supported_apis = ["openai", "anthropic", "bedrock", "ollama"]
         if args.llm_api.lower() not in supported_apis:
@@ -589,37 +694,90 @@ def main():
             ui.error("--prompt-token-limit must be a positive integer.")
             sys.exit(2)
 
-        # 1) Parse diagram to skeleton graph (+ metrics)
-        ui.step("Parsing architecture diagram")
-        ui.info(f"Loading {diagram_format} diagram: {diagram_file}")
+        description_text = None
+        if has_description_input:
+            ui.step("Loading system description")
+            description_text = _load_description_text(args)
+            if not description_text:
+                ui.error(
+                    "System description is empty",
+                    "Provide text with --description or readable files with --description-file.",
+                )
+                sys.exit(2)
 
-        thinking = ui.create_thinking_indicator("Parsing diagram structure")
-        thinking.start()
+        dfd_result = None
+        if diagram_file and diagram_format:
+            # 1) Parse diagram to skeleton graph (+ metrics)
+            ui.step("Parsing architecture diagram")
+            ui.info(f"Loading {diagram_format} diagram: {diagram_file}")
 
-        try:
-            g, metrics = load_input(
-                diagram_format,
-                diagram_file,
-                drawio_page=args.drawio_page,
-                api=args.llm_api,
-                model=args.llm_model,
-                aws_profile=args.aws_profile,
-                aws_region=args.aws_region,
-                ollama_host=ollama_host,
+            thinking = ui.create_thinking_indicator("Parsing diagram structure")
+            thinking.start()
+
+            try:
+                g, metrics = load_input(
+                    diagram_format,
+                    diagram_file,
+                    drawio_page=args.drawio_page,
+                    api=args.llm_api,
+                    model=args.llm_model,
+                    aws_profile=args.aws_profile,
+                    aws_region=args.aws_region,
+                    ollama_host=ollama_host,
+                )
+
+                thinking.stop()
+                ui.success("Successfully parsed diagram")
+                ui.show_metrics_summary(metrics)
+                ui.debug("Parsed graph details", str(g))
+
+            except Exception as e:
+                thinking.stop()
+                ui.error("Failed to parse diagram", str(e))
+                sys.exit(2)
+        else:
+            ui.step("Generating DFD from system description")
+            thinking = ui.create_thinking_indicator(
+                "AI is reconstructing the architecture graph"
             )
-
-            thinking.stop()
-            ui.success("Successfully parsed diagram")
-            ui.show_metrics_summary(metrics)
-            ui.debug("Parsed graph details", str(g))
-
-        except Exception as e:
-            thinking.stop()
-            ui.error("Failed to parse diagram", str(e))
-            sys.exit(2)
+            thinking.start()
+            try:
+                payload = llm_generate_dfd_from_description(
+                    description_text or "",
+                    args.llm_api,
+                    args.llm_model,
+                    args.aws_profile,
+                    args.aws_region,
+                    ollama_host,
+                    args.prompt_token_limit,
+                    lang=args.lang,
+                )
+                dfd_result = dfd_result_from_payload(payload)
+                dfd_result.metrics.total_lines = len(
+                    (description_text or "").splitlines()
+                )
+                g = dfd_result.graph
+                metrics = dfd_result.metrics
+                thinking.stop()
+                ui.success(
+                    f"Generated DFD with {len(g.nodes)} nodes and {len(g.edges)} edges"
+                )
+                ui.show_metrics_summary(metrics)
+                _show_dfd_notes(dfd_result)
+                ui.debug("Generated DFD graph details", str(g))
+                if not g.nodes:
+                    ui.error(
+                        "System description is too vague to generate a useful DFD",
+                        "Answer the clarifying questions and rerun with a more specific --description.",
+                    )
+                    sys.exit(2)
+            except Exception as e:
+                thinking.stop()
+                ui.error("Failed to generate DFD from system description", str(e))
+                sys.exit(2)
 
         # 2) (Optional) LLM-based attribute inference from skeleton
-        if args.infer_hints:
+        if args.infer_hints and diagram_file:
             ui.step("Inferring node and edge attributes")
             ui.thinking(
                 "AI is analyzing diagram components to infer security-relevant attributes"
@@ -660,24 +818,15 @@ def main():
                 thinking.stop()
                 ui.error("Failed to infer hints", str(e))
                 sys.exit(2)
-        else:
+        elif diagram_file:
             ui.step("Skipping attribute inference")
             ui.info("Using basic component attributes from diagram")
 
-        business_context_text = None
-        if args.context:
+        context_text = None
+        if has_context_files:
             ui.step("Loading business context")
-            try:
-                context_docs = load_context_documents(args.context, args.llm_model)
-                doc_count, token_count, sources = context_summary(context_docs)
-                business_context_text = format_context_documents(context_docs)
-                ui.success(
-                    f"Loaded {doc_count} business context document(s), approximately {token_count} tokens"
-                )
-                ui.info(f"Context documents: {', '.join(sources)}")
-            except ContextDocumentError as e:
-                ui.error("Failed to load business context", str(e))
-                sys.exit(2)
+            context_text = _load_context_text(args)
+        business_context_text = _combine_text_blocks(description_text, context_text)
 
         rag_context_text = None
         retrieval = None
@@ -804,8 +953,12 @@ def main():
 
         # 6) Export
         ui.step("Generating reports")
+        base_name = args.out_name or _default_report_base_name(
+            diagram_file,
+            getattr(args, "description_file", None) or [],
+        )
         out_dir, out_json, out_md, out_html = _prepare_output_paths(
-            diagram_file, args.out_dir, args.out_name
+            diagram_file or base_name, args.out_dir, base_name
         )
         ui.info(
             f"Exporting reports to {out_dir} "
@@ -829,6 +982,12 @@ def main():
             ui.success(f"JSON report saved to: {out_json}")
             ui.success(f"Markdown report saved to: {out_md}")
             ui.success(f"HTML report saved to: {out_html}")
+            if dfd_result:
+                dfd_path = _prepare_dfd_sidecar_path(out_json)
+                dfd_path.write_text(
+                    dfd_result_to_sidecar_json(dfd_result), encoding="utf-8"
+                )
+                ui.success(f"Generated DFD sidecar saved to: {dfd_path}")
 
             if args.verbose:
                 print("\nJSON Output:")

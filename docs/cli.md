@@ -10,10 +10,13 @@ threat-thinker version
 
 | Flag | Purpose | Notes |
 | --- | --- | --- |
+| `--description <text>` | Provide a natural-language system description | Used to generate a DFD when no diagram is supplied. Also injected into the threat prompt. Repeat to append multiple blocks. |
+| `--description-file <path>` | Load the system description from a file | Supports PDF, Markdown, and text files via the context loader. Repeat for multiple files. |
 | `--mermaid / --drawio / --threat-dragon / --ir / --image / --diagram` | Choose input format | Mermaid `.mmd/.mermaid`, Draw.io `.xml`, Threat Dragon v2 `.json`, native Graph IR `.json`, image files, or generic `--diagram` autodetect (recognizes Threat Dragon JSON when version is 2.x). |
 | `--drawio-page <id|name|index>` | Select Draw.io page to parse | Optional; supports page id, page name, or 0-based index for multi-page `.drawio` files. |
 | `--infer-hints` | Ask LLM to infer node/edge attributes | Useful when diagrams omit component roles, protocols, or data sensitivity. |
 | `--context <path>` | Inject business context into the threat prompt | Repeat for multiple PDF, Markdown, or text files. Unlike RAG, each file's extracted full text is included directly. |
+| `--context-file <path>` | Alias for `--context` | Added for clarity when scripts already use `--description-file`. |
 | `--prompt-token-limit <n>` | Fail before analysis if the assembled prompt is too large | Applies to graph, context documents, RAG snippets, and instructions. No truncation is performed. |
 | `--rag --kb <name>` | Enable local KB retrieval | Requires a built KB; pairs with `--rag-topk`. |
 | `--rag-topk <n>` | Set number of KB chunks to inject | Typical 5–10. |
@@ -30,12 +33,22 @@ threat-thinker version
 | `--out-name <basename>` | Override base filename | Affects `*_report.{json,md,html}` and diff outputs. |
 
 Notes:
+- If no diagram input is provided, `--description` or `--description-file` is required. Threat Thinker generates an intermediate Graph IR DFD and writes it as `<basename>_report_dfd.json` next to the reports.
+- If a diagram is provided, `--description` is not used to generate a DFD; it is included as additional threat-analysis context.
+- Use `--description` for the system shape. Use `--context` for supplemental business rules, assumptions, policies, or constraints that should inform threat inference.
 - Ollama backend does not support image inputs; use Mermaid/Draw.io/Threat Dragon files with `--llm-api ollama`.
 - Native IR JSON is explicit-only in v1; use `--ir` or API/UI `type=ir`, not `--diagram`.
 - RAG requires OpenAI embeddings; set `OPENAI_API_KEY` when using `--rag`.
 - Use `--context` for scope, actors, assets, and business assumptions that should always be visible to the LLM. Use `--rag` for optional supporting references retrieved from larger KBs. They can be combined:
 
 ```bash
+# Description-only analysis
+threat-thinker think \
+    --description-file examples/diagrams/web/business-context.md \
+    --llm-api openai --llm-model gpt-4.1 \
+    --out-dir reports/
+
+# Diagram plus supplemental context
 threat-thinker think \
     --mermaid examples/diagrams/web/system.mmd \
     --context examples/diagrams/web/business-context.md \

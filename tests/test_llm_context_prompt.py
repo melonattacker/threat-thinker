@@ -89,3 +89,89 @@ def test_llm_infer_threats_does_not_request_rag_sources_for_context_only(
     )
 
     assert "include `rag_sources`" not in captured["user_prompt"]
+
+
+def test_llm_generate_dfd_from_description_requests_native_graph_ir(monkeypatch):
+    captured = {}
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def call_llm(self, *, system_prompt, user_prompt, **kwargs):
+            captured["system_prompt"] = system_prompt
+            captured["user_prompt"] = user_prompt
+            captured["json_schema"] = kwargs.get("json_schema")
+            return """
+            {
+              "summary": "A web app stores customer data.",
+              "graph": {
+                "nodes": {
+                  "user": {"id": "user", "label": "User", "confidence": "stated"},
+                  "web": {"id": "web", "label": "Web App", "confidence": "stated"}
+                },
+                "edges": [
+                  {"src": "user", "dst": "web", "label": "uses", "confidence": "implied"}
+                ],
+                "zones": {}
+              },
+              "assumptions": [],
+              "clarifying_questions": []
+            }
+            """
+
+    monkeypatch.setattr(inference, "LLMClient", _Client)
+
+    payload = inference.llm_generate_dfd_from_description(
+        "Users sign in to a web app.",
+        "openai",
+        "gpt-4.1",
+        prompt_token_limit=60000,
+        lang="ja",
+    )
+
+    assert payload["graph"]["nodes"]["web"]["label"] == "Web App"
+    assert "nodes, edges, and zones" in captured["user_prompt"]
+    assert "components, data_flows, or trust_boundaries" in captured["user_prompt"]
+    assert "Write human-readable DFD content in Japanese" in captured["user_prompt"]
+    assert "Keep JSON field names, node ids, zone ids" in captured["user_prompt"]
+    assert captured["json_schema"]["required"] == [
+        "summary",
+        "graph",
+        "assumptions",
+        "clarifying_questions",
+    ]
+
+
+def test_llm_generate_dfd_from_description_rejects_unknown_edge(monkeypatch):
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def call_llm(self, *, system_prompt, user_prompt, **kwargs):
+            return """
+            {
+              "summary": "Bad graph.",
+              "graph": {
+                "nodes": {
+                  "user": {"id": "user", "label": "User", "confidence": "stated"}
+                },
+                "edges": [
+                  {"src": "user", "dst": "missing", "confidence": "implied"}
+                ],
+                "zones": {}
+              },
+              "assumptions": [],
+              "clarifying_questions": []
+            }
+            """
+
+    monkeypatch.setattr(inference, "LLMClient", _Client)
+
+    with pytest.raises(RuntimeError, match="references unknown nodes"):
+        inference.llm_generate_dfd_from_description(
+            "Users sign in.",
+            "openai",
+            "gpt-4.1",
+            prompt_token_limit=60000,
+        )

@@ -8,7 +8,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import threat_thinker.main as cli
 from threat_thinker.main import (
+    _default_report_base_name,
     _prepare_diff_output_paths,
+    _prepare_dfd_sidecar_path,
     _prepare_output_paths,
     _select_think_input,
 )
@@ -50,6 +52,14 @@ def test_prepare_output_paths_with_override(tmp_path: Path):
     assert html_path.name == "custom-base_report.html"
 
 
+def test_default_report_base_name_prefers_description_file_stem():
+    assert _default_report_base_name(None, ["docs/drone-system.txt"]) == "drone-system"
+
+
+def test_default_report_base_name_falls_back_to_description():
+    assert _default_report_base_name(None, []) == "description"
+
+
 def test_prepare_diff_output_paths_use_after_stem(tmp_path: Path):
     out_dir, json_path, md_path = _prepare_diff_output_paths(
         "results/new-report.json", tmp_path / "diffs"
@@ -59,6 +69,12 @@ def test_prepare_diff_output_paths_use_after_stem(tmp_path: Path):
     assert json_path.parent == out_dir
     assert json_path.name == "new-report_diff.json"
     assert md_path.name == "new-report_diff.md"
+
+
+def test_prepare_dfd_sidecar_path_uses_report_stem(tmp_path: Path):
+    report_path = tmp_path / "description_report.json"
+
+    assert _prepare_dfd_sidecar_path(report_path).name == "description_report_dfd.json"
 
 
 def test_version_command_prints_installed_version(monkeypatch, capsys):
@@ -134,3 +150,19 @@ def test_select_think_input_keeps_json_autodetect_as_threat_dragon():
 
     assert diagram_file == str(fixture_path)
     assert diagram_format == INPUT_FORMAT_THREAT_DRAGON
+
+
+def test_select_think_input_allows_description_without_diagram():
+    args = SimpleNamespace(
+        diagram=None,
+        mermaid=None,
+        drawio=None,
+        threat_dragon=None,
+        image=None,
+        ir=None,
+    )
+
+    diagram_file, diagram_format = _select_think_input(args)
+
+    assert diagram_file is None
+    assert diagram_format is None

@@ -86,3 +86,73 @@ def test_build_webui_smoke():
     assert isinstance(demo, gr.Blocks)
     assert demo.title == "Threat Thinker WebUI"
     assert len(demo.blocks) > 0
+
+
+def test_build_webui_has_system_description_entrypoint():
+    demo = webui._build_webui()
+    labels = {
+        getattr(block, "label", None)
+        for block in demo.blocks.values()
+        if getattr(block, "label", None)
+    }
+
+    assert "System Description" in labels
+    assert "Business Context (supplemental PDF, Markdown, Text)" in labels
+    assert "Diagram Content" in labels
+    assert "Download generated DFD JSON (description inputs only)" in labels
+
+
+def test_generate_report_returns_clarifying_questions_for_empty_dfd(monkeypatch):
+    monkeypatch.setattr(
+        webui,
+        "llm_generate_dfd_from_description",
+        lambda *args, **kwargs: {
+            "summary": "A drone delivery service.",
+            "graph": {"nodes": {}, "edges": [], "zones": {}},
+            "assumptions": ["The service has a backend API."],
+            "clarifying_questions": [
+                "Who places orders?",
+                "How are payments processed?",
+            ],
+        },
+    )
+
+    markdown_report, report_text, md_path, json_path, html_path, td_path, dfd_path = (
+        webui._generate_report(
+            system_description="Drone food delivery.",
+            context_files=[],
+            input_method="Text",
+            diagram_text="",
+            diagram_format="mermaid",
+            drawio_page="",
+            image_file="",
+            infer_hints=False,
+            llm_api="openai",
+            llm_model="gpt-4.1",
+            aws_profile="",
+            aws_region="",
+            ollama_host="",
+            topn=10,
+            min_confidence=0.5,
+            require_asvs=False,
+            lang="en",
+            use_rag=False,
+            kb_names=[],
+            rag_topk=5,
+            rag_strategy=webui.DEFAULT_RAG_STRATEGY,
+            rag_reranker=webui.DEFAULT_RAG_RERANKER,
+            rag_candidates=webui.DEFAULT_RAG_CANDIDATES,
+            rag_min_score=webui.DEFAULT_RAG_MIN_SCORE,
+            prompt_token_limit=1000,
+        )
+    )
+
+    assert "System Description Needs More Detail" in markdown_report
+    assert "Clarifying Questions" in markdown_report
+    assert "Who places orders?" in report_text
+    assert "Threat inference skipped because the generated DFD is empty." in report_text
+    assert md_path is None
+    assert json_path is None
+    assert html_path is None
+    assert td_path is None
+    assert dfd_path is not None

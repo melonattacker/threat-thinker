@@ -51,6 +51,55 @@ HINT_INSTRUCTIONS = (
     "- Return ONLY the JSON object, no other text or formatting.\n"
 )
 
+# LLM-driven DFD generation from a system description
+DFD_SYSTEM = (
+    "You are a senior security architect who builds Data Flow Diagrams (DFDs) "
+    "from natural-language descriptions of systems. Produce a conservative "
+    "Threat Thinker native Graph IR that a threat modeler can reason against."
+)
+
+DFD_INSTRUCTIONS = (
+    "Return ONLY a valid JSON object (no markdown formatting, no code blocks, no ```json markers).\n\n"
+    "Required JSON structure:\n"
+    "{\n"
+    '  "summary": "One-paragraph restatement of the system.",\n'
+    '  "graph": {\n'
+    '    "nodes": {\n'
+    '      "<nodeId>": {\n'
+    '        "id": "<nodeId>",\n'
+    '        "label": "string",\n'
+    '        "zone": "optional zone name",\n'
+    '        "zones": ["outer_zone_id","inner_zone_id"],\n'
+    '        "type": "actor|service|pod|database|s3|elb|ingress|queue|cache|lambda|external|unknown",\n'
+    '        "data": ["PII","Credentials","Internal","Secrets"],\n'
+    '        "auth": true,\n'
+    '        "notes": "optional short rationale",\n'
+    '        "confidence": "stated|implied|assumed"\n'
+    "      }\n"
+    "    },\n"
+    '    "edges": [\n'
+    '      {"src":"<nodeId>","dst":"<nodeId>","label":"string","protocol":"HTTPS|HTTP|TCP|gRPC|AMQP|unknown","data":["PII"],"id":"optional","confidence":"stated|implied|assumed"}\n'
+    "    ],\n"
+    '    "zones": {\n'
+    '      "<zoneId>": {"id":"<zoneId>","name":"string","parent_id":null,"confidence":"stated|implied|assumed"}\n'
+    "    }\n"
+    "  },\n"
+    '  "assumptions": ["..."],\n'
+    '  "clarifying_questions": ["..."]\n'
+    "}\n\n"
+    "Rules:\n"
+    "- Use Threat Thinker's native Graph IR names: nodes, edges, and zones. Do not use components, data_flows, or trust_boundaries keys.\n"
+    "- Do NOT invent components that are not reasonably implied by the description.\n"
+    '- Every node, edge, and zone must include confidence: "stated", "implied", or "assumed".\n'
+    "- Put ambiguity you resolved in assumptions. Put missing information the user should answer in clarifying_questions.\n"
+    "- Draw zones where the description implies a change in control: internet to internal, tenant to tenant, user device to server, or first-party to third-party SaaS.\n"
+    "- If the description is too thin to build a useful DFD, return an empty graph with clarifying_questions instead of guessing.\n"
+    "- Prefer a small correct DFD over a large speculative one.\n"
+    "- Node ids and zone ids must be stable ASCII identifiers using lowercase letters, digits, underscores, or hyphens.\n"
+    "- Edges must reference existing node ids with src and dst.\n"
+    "- Return ONLY the JSON object, no other text or formatting.\n"
+)
+
 # LLM-driven threat inference prompts
 LLM_SYSTEM = (
     "You are Threat Thinker, an expert security analyst. "
