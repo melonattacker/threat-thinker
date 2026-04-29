@@ -104,21 +104,24 @@ export AWS_SESSION_TOKEN=...
 
 Choose one of the following methods:
 
-#### Using [pipx](https://pipx.pypa.io/) 
+#### Using [pipx](https://pipx.pypa.io/)
 ```bash
-pipx install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+pipx install threat-thinker
 ```
 
 #### Using [uv](https://docs.astral.sh/uv/)
 ```bash
-uv tool install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+uv tool install threat-thinker
 ```
 
 #### Using pip
 ```bash
+pip install threat-thinker
+
+# Or install from a GitHub Release wheel
 pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
 
-# Or install latest from main
+# Or install the latest from main
 pip install git+https://github.com/melonattacker/threat-thinker.git
 ```
 
