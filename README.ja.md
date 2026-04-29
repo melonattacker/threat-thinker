@@ -119,7 +119,7 @@ uv tool install threat-thinker
 pip install threat-thinker
 
 # または GitHub Release の wheel からインストール
-pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.8.0/threat_thinker-0.8.0-py3-none-any.whl
 
 # または main ブランチの最新をインストール
 pip install git+https://github.com/melonattacker/threat-thinker.git
