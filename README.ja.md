@@ -106,17 +106,20 @@ export AWS_SESSION_TOKEN=...
 
 #### [pipx](https://pipx.pypa.io/) を使う
 ```bash
-pipx install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+pipx install threat-thinker
 ```
 
 #### [uv](https://docs.astral.sh/uv/) を使う
 ```bash
-uv tool install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+uv tool install threat-thinker
 ```
 
 #### pip を使う
 ```bash
-pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.7.0/threat_thinker-0.7.0-py3-none-any.whl
+pip install threat-thinker
+
+# または GitHub Release の wheel からインストール
+pip install https://github.com/melonattacker/threat-thinker/releases/download/v0.8.0/threat_thinker-0.8.0-py3-none-any.whl
 
 # または main ブランチの最新をインストール
 pip install git+https://github.com/melonattacker/threat-thinker.git
