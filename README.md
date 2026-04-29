@@ -1,5 +1,7 @@
 # Threat Thinker
-AI-powered threat modeling that turns architecture diagrams and business context into actionable risks.
+AI-powered threat modeling that turns architecture diagrams and business context into actionable threats.
+
+**English** | [日本語](./README.ja.md)
 
 **Public Demo**: [https://threat-thinker.melonattacker.com](https://threat-thinker.melonattacker.com/)
 

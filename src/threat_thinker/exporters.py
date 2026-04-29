@@ -10,13 +10,145 @@ from typing import Any, Dict, List, Optional, Tuple
 from threat_thinker.constants import (
     AI_OUTPUT_DISCLAIMER_EN,
     AI_OUTPUT_DISCLAIMER_JA,
-    AI_OUTPUT_DISCLAIMER_MD,
 )
 from threat_thinker.models import Edge, Graph, ImportMetrics, Node, Threat
 from threat_thinker.zone_utils import zone_path_names
 
 # Token budget sized for multi-section narrative diff explanations.
 DIFF_EXPLANATION_MAX_TOKENS = 1800
+_DEFAULT_REPORT_LOCALE = "en"
+_REPORT_TEXT = {
+    "en": {
+        "report_title": "Threat Analysis Report",
+        "no_threats": "No threats identified.",
+        "threat_summary": "Threat Summary",
+        "threat_details": "Threat Details",
+        "threat": "Threat",
+        "severity": "Severity",
+        "score": "Score",
+        "stride": "STRIDE",
+        "affected_components": "Affected Components",
+        "why": "Why",
+        "references": "References",
+        "rag_sources": "RAG Sources",
+        "recommended_actions": "Recommended Actions",
+        "not_specified": "Not specified",
+        "architecture_graph": "Architecture Graph",
+        "architecture_mapping": "Architecture Mapping",
+        "nodes_to_threats": "Nodes to Threats",
+        "edges_to_threats": "Edges to Threats",
+        "node": "Node",
+        "zone": "Zone",
+        "type": "Type",
+        "threats": "Threats",
+        "edge": "Edge",
+        "protocol": "Protocol",
+        "evidence_mapping": "Evidence Mapping",
+        "nodes": "Nodes",
+        "edges": "Edges",
+        "no_evidence_mapping": "No evidence mapping provided.",
+        "generated": "Generated",
+        "before": "Before",
+        "after": "After",
+        "diff_title": "System Architecture and Threat Model Diff Report",
+        "graph_changes_summary": "Graph Changes Summary",
+        "nodes_added": "Nodes Added",
+        "nodes_removed": "Nodes Removed",
+        "edges_added": "Edges Added",
+        "edges_removed": "Edges Removed",
+        "threat_changes_summary": "Threat Changes Summary",
+        "threats_added": "Threats Added",
+        "threats_removed": "Threats Removed",
+        "analysis": "Analysis",
+        "added_nodes": "Added Nodes",
+        "removed_nodes": "Removed Nodes",
+        "added_edges": "Added Edges",
+        "removed_edges": "Removed Edges",
+        "added_threats_summary": "Added Threats Summary",
+        "added_threat_details": "Added Threat Details",
+        "removed_threats_summary": "Removed Threats Summary",
+        "removed_threat_details": "Removed Threat Details",
+        "error_generating_explanation": "Error generating LLM explanation: {error}",
+    },
+    "ja": {
+        "report_title": "脅威分析レポート",
+        "no_threats": "脅威は特定されませんでした。",
+        "threat_summary": "脅威サマリー",
+        "threat_details": "脅威詳細",
+        "threat": "脅威",
+        "severity": "深刻度",
+        "score": "スコア",
+        "stride": "STRIDE",
+        "affected_components": "影響コンポーネント",
+        "why": "理由",
+        "references": "参照",
+        "rag_sources": "RAG ソース",
+        "recommended_actions": "推奨対応",
+        "not_specified": "未指定",
+        "architecture_graph": "アーキテクチャグラフ",
+        "architecture_mapping": "アーキテクチャマッピング",
+        "nodes_to_threats": "ノードと脅威の対応",
+        "edges_to_threats": "エッジと脅威の対応",
+        "node": "ノード",
+        "zone": "ゾーン",
+        "type": "種類",
+        "threats": "脅威",
+        "edge": "エッジ",
+        "protocol": "プロトコル",
+        "evidence_mapping": "根拠マッピング",
+        "nodes": "ノード",
+        "edges": "エッジ",
+        "no_evidence_mapping": "根拠マッピングはありません。",
+        "generated": "生成日時",
+        "before": "変更前",
+        "after": "変更後",
+        "diff_title": "システムアーキテクチャと脅威モデルの差分レポート",
+        "graph_changes_summary": "グラフ変更サマリー",
+        "nodes_added": "追加ノード数",
+        "nodes_removed": "削除ノード数",
+        "edges_added": "追加エッジ数",
+        "edges_removed": "削除エッジ数",
+        "threat_changes_summary": "脅威変更サマリー",
+        "threats_added": "追加脅威数",
+        "threats_removed": "削除脅威数",
+        "analysis": "分析",
+        "added_nodes": "追加ノード",
+        "removed_nodes": "削除ノード",
+        "added_edges": "追加エッジ",
+        "removed_edges": "削除エッジ",
+        "added_threats_summary": "追加脅威サマリー",
+        "added_threat_details": "追加脅威の詳細",
+        "removed_threats_summary": "削除脅威サマリー",
+        "removed_threat_details": "削除脅威の詳細",
+        "error_generating_explanation": "LLM による説明生成中にエラーが発生しました: {error}",
+    },
+}
+
+
+def _normalize_report_locale(lang: Optional[str]) -> str:
+    return (
+        "ja"
+        if (lang or "").strip().lower().startswith("ja")
+        else _DEFAULT_REPORT_LOCALE
+    )
+
+
+def _report_t(lang: Optional[str], key: str, **kwargs) -> str:
+    locale = _normalize_report_locale(lang)
+    template = _REPORT_TEXT[locale][key]
+    return template.format(**kwargs) if kwargs else template
+
+
+def _report_disclaimer(lang: Optional[str]) -> str:
+    return (
+        AI_OUTPUT_DISCLAIMER_JA
+        if _normalize_report_locale(lang) == "ja"
+        else AI_OUTPUT_DISCLAIMER_EN
+    )
+
+
+def _report_disclaimer_md(lang: Optional[str]) -> str:
+    return f"> [!IMPORTANT]\n> {_report_disclaimer(lang)}"
 
 
 def export_json(
@@ -111,40 +243,42 @@ def export_json(
     return s
 
 
-def export_md(threats: List[Threat], output_file: str = None) -> str:
+def export_md(threats: List[Threat], output_file: str = None, lang: str = "en") -> str:
     """
     Export threats to Markdown format
     """
-    md_content = f"# Threat Analysis Report\n\n{AI_OUTPUT_DISCLAIMER_MD}\n\n"
+    md_content = (
+        f"# {_report_t(lang, 'report_title')}\n\n{_report_disclaimer_md(lang)}\n\n"
+    )
 
     if not threats:
-        md_content += "No threats identified.\n"
+        md_content += f"{_report_t(lang, 'no_threats')}\n"
         return md_content
 
     # Threat Summary Table
-    md_content += "## Threat Summary\n\n"
-    md_content += "| ID | Threat | Severity | Score |\n"
+    md_content += f"## {_report_t(lang, 'threat_summary')}\n\n"
+    md_content += f"| ID | {_report_t(lang, 'threat')} | {_report_t(lang, 'severity')} | {_report_t(lang, 'score')} |\n"
     md_content += "|----|---------|---------|-------|\n"
 
     for threat in threats:
         md_content += f"| {threat.id} | {threat.title} | {threat.severity} | {threat.score:.1f} |\n"
 
     # Threat Details
-    md_content += "\n## Threat Details\n\n"
+    md_content += f"\n## {_report_t(lang, 'threat_details')}\n\n"
 
     for threat in threats:
         md_content += f"### {threat.id}: {threat.title}\n\n"
-        md_content += f"**Severity:** {threat.severity}\n\n"
-        md_content += f"**Score:** {threat.score:.1f}\n\n"
-        md_content += f"**STRIDE:** {', '.join(threat.stride)}\n\n"
-        md_content += f"**Affected Components:** {', '.join(threat.affected)}\n\n"
-        md_content += f"**Why:** {threat.why}\n\n"
+        md_content += f"**{_report_t(lang, 'severity')}:** {threat.severity}\n\n"
+        md_content += f"**{_report_t(lang, 'score')}:** {threat.score:.1f}\n\n"
+        md_content += f"**{_report_t(lang, 'stride')}:** {', '.join(threat.stride)}\n\n"
+        md_content += f"**{_report_t(lang, 'affected_components')}:** {', '.join(threat.affected)}\n\n"
+        md_content += f"**{_report_t(lang, 'why')}:** {threat.why}\n\n"
 
         if threat.references:
-            md_content += f"**References:** {', '.join(threat.references)}\n\n"
+            md_content += f"**{_report_t(lang, 'references')}:** {', '.join(threat.references)}\n\n"
         rag_sources = getattr(threat, "rag_sources", []) or []
         if rag_sources:
-            md_content += "**RAG Sources:**\n\n"
+            md_content += f"**{_report_t(lang, 'rag_sources')}:**\n\n"
             for src in rag_sources:
                 kb = src.get("kb") or ""
                 source = src.get("source") or ""
@@ -157,8 +291,12 @@ def export_md(threats: List[Threat], output_file: str = None) -> str:
                 md_content += f"- kb={kb}, source={source}, chunk={chunk_id}, score={score_text}, method={method}\n"
             md_content += "\n"
 
-        recommended_action = getattr(threat, "recommended_action", "Not specified")
-        md_content += f"**Recommended Actions:**\n\n{recommended_action}\n\n"
+        recommended_action = getattr(
+            threat, "recommended_action", _report_t(lang, "not_specified")
+        )
+        md_content += (
+            f"**{_report_t(lang, 'recommended_actions')}:**\n\n{recommended_action}\n\n"
+        )
         md_content += "---\n\n"
 
     if output_file:
@@ -200,6 +338,7 @@ def export_html(
     threats: List[Threat],
     output_file: Optional[str] = None,
     graph: Optional[Graph] = None,
+    lang: str = "en",
 ) -> str:
     """
     Export threats to HTML format with diagram mapping details.
@@ -207,14 +346,14 @@ def export_html(
     """
 
     has_graph = bool(graph and (graph.nodes or graph.edges))
-    disclaimer_en = _safe(AI_OUTPUT_DISCLAIMER_EN)
-    disclaimer_ja = _safe(AI_OUTPUT_DISCLAIMER_JA)
+    locale = _normalize_report_locale(lang)
+    disclaimer = _safe(_report_disclaimer(locale))
     if not threats and not has_graph:
         content = f"""<!DOCTYPE html>
-<html lang=\"en\">
+<html lang=\"{locale}\">
 <head>
   <meta charset=\"UTF-8\" />
-  <title>Threat Analysis Report</title>
+  <title>{_safe(_report_t(locale, "report_title"))}</title>
   <style>
     body {{ font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }}
     .empty {{ font-style: italic; color: #475569; }}
@@ -223,12 +362,11 @@ def export_html(
   </style>
 </head>
 <body>
-  <h1>Threat Analysis Report</h1>
+  <h1>{_safe(_report_t(locale, "report_title"))}</h1>
   <div class=\"disclaimer\">
-    <p>{disclaimer_en}</p>
-    <p>{disclaimer_ja}</p>
+    <p>{disclaimer}</p>
   </div>
-  <p class=\"empty\">No threats identified.</p>
+  <p class=\"empty\">{_safe(_report_t(locale, "no_threats"))}</p>
 </body>
 </html>"""
         if output_file:
@@ -249,9 +387,11 @@ def export_html(
             extra = []
             zone_path = _node_zone_path(node, graph)
             if zone_path:
-                extra.append(f"zone={_safe(' > '.join(zone_path))}")
+                extra.append(
+                    f"{_safe(_report_t(locale, 'zone'))}={_safe(' > '.join(zone_path))}"
+                )
             if node.type:
-                extra.append(f"type={_safe(node.type)}")
+                extra.append(f"{_safe(_report_t(locale, 'type'))}={_safe(node.type)}")
             suffix = f" ({', '.join(extra)})" if extra else ""
             return f"{_safe(node.label)} [{_safe(node_id)}]{suffix}"
         return _safe(node_id)
@@ -323,10 +463,10 @@ def export_html(
 
     html_parts: List[str] = []
     html_parts.append("<!DOCTYPE html>")
-    html_parts.append('<html lang="en">')
+    html_parts.append(f'<html lang="{locale}">')
     html_parts.append("<head>")
     html_parts.append('  <meta charset="UTF-8" />')
-    html_parts.append("  <title>Threat Analysis Report</title>")
+    html_parts.append(f"  <title>{_safe(_report_t(locale, 'report_title'))}</title>")
     html_parts.append("  <style>")
     html_parts.append(
         "    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }"
@@ -372,19 +512,23 @@ def export_html(
     html_parts.append("  </style>")
     html_parts.append("</head>")
     html_parts.append("<body>")
-    html_parts.append("  <h1>Threat Analysis Report</h1>")
+    html_parts.append(f"  <h1>{_safe(_report_t(locale, 'report_title'))}</h1>")
     html_parts.append('  <div class="disclaimer">')
-    html_parts.append(f"    <p>{disclaimer_en}</p>")
-    html_parts.append(f"    <p>{disclaimer_ja}</p>")
+    html_parts.append(f"    <p>{disclaimer}</p>")
     html_parts.append("  </div>")
     if not threats:
-        html_parts.append('  <p class="meta">No threats identified.</p>')
+        html_parts.append(
+            f'  <p class="meta">{_safe(_report_t(locale, "no_threats"))}</p>'
+        )
 
     # Summary table
-    html_parts.append("  <h2>Threat Summary</h2>")
+    html_parts.append(f"  <h2>{_safe(_report_t(locale, 'threat_summary'))}</h2>")
     html_parts.append("  <table>")
     html_parts.append(
-        "    <tr><th>ID</th><th>Threat</th><th>Severity</th><th>Score</th></tr>"
+        "    <tr><th>ID</th>"
+        f"<th>{_safe(_report_t(locale, 'threat'))}</th>"
+        f"<th>{_safe(_report_t(locale, 'severity'))}</th>"
+        f"<th>{_safe(_report_t(locale, 'score'))}</th></tr>"
     )
     for threat in threats:
         severity_class = f"sev-{_safe(threat.severity)}"
@@ -401,17 +545,23 @@ def export_html(
 
     # Graph visualization
     html_parts.append('  <div id="graph-container">')
-    html_parts.append("    <h2>Architecture Graph</h2>")
+    html_parts.append(f"    <h2>{_safe(_report_t(locale, 'architecture_graph'))}</h2>")
     html_parts.append('    <div id="graph"></div>')
     html_parts.append("  </div>")
 
     # Architecture mapping tables
     if nodes:
-        html_parts.append("  <h2>Architecture Mapping</h2>")
-        html_parts.append("  <h3>Nodes to Threats</h3>")
+        html_parts.append(
+            f"  <h2>{_safe(_report_t(locale, 'architecture_mapping'))}</h2>"
+        )
+        html_parts.append(f"  <h3>{_safe(_report_t(locale, 'nodes_to_threats'))}</h3>")
         html_parts.append("  <table>")
         html_parts.append(
-            "    <tr><th>Node</th><th>Zone</th><th>Type</th><th>Threats</th></tr>"
+            "    <tr>"
+            f"<th>{_safe(_report_t(locale, 'node'))}</th>"
+            f"<th>{_safe(_report_t(locale, 'zone'))}</th>"
+            f"<th>{_safe(_report_t(locale, 'type'))}</th>"
+            f"<th>{_safe(_report_t(locale, 'threats'))}</th></tr>"
         )
         for node_id, node in nodes.items():
             threats_for_node = node_threats.get(node_id) or []
@@ -435,9 +585,14 @@ def export_html(
         html_parts.append("  </table>")
 
     if edges:
-        html_parts.append("  <h3>Edges to Threats</h3>")
+        html_parts.append(f"  <h3>{_safe(_report_t(locale, 'edges_to_threats'))}</h3>")
         html_parts.append("  <table>")
-        html_parts.append("    <tr><th>Edge</th><th>Protocol</th><th>Threats</th></tr>")
+        html_parts.append(
+            "    <tr>"
+            f"<th>{_safe(_report_t(locale, 'edge'))}</th>"
+            f"<th>{_safe(_report_t(locale, 'protocol'))}</th>"
+            f"<th>{_safe(_report_t(locale, 'threats'))}</th></tr>"
+        )
         for key, edge in edge_lookup.items():
             # Deduplicate rows by using only canonical (with label if present)
             if key[2] is None and edge.label:
@@ -463,7 +618,7 @@ def export_html(
         html_parts.append("  </table>")
 
     # Threat details with evidence mapping
-    html_parts.append("  <h2>Threat Details</h2>")
+    html_parts.append(f"  <h2>{_safe(_report_t(locale, 'threat_details'))}</h2>")
     for threat in threats:
         html_parts.append(
             f'  <div class="section" id="{_safe(threat.id)}" data-threat-id="{_safe(threat.id)}">'
@@ -471,22 +626,28 @@ def export_html(
         html_parts.append(f"    <h3>{_safe(threat.id)}: {_safe(threat.title)}</h3>")
         html_parts.append('    <div class="meta">')
         html_parts.append(
-            f'      Severity: <span class="severity sev-{_safe(threat.severity)}">{_safe(threat.severity)}</span> | '
-            f"Score: {threat.score:.1f} | STRIDE: {', '.join(_safe(s) for s in threat.stride)}"
+            f"      {_safe(_report_t(locale, 'severity'))}: "
+            f'<span class="severity sev-{_safe(threat.severity)}">{_safe(threat.severity)}</span> | '
+            f"{_safe(_report_t(locale, 'score'))}: {threat.score:.1f} | "
+            f"{_safe(_report_t(locale, 'stride'))}: {', '.join(_safe(s) for s in threat.stride)}"
         )
         html_parts.append("    </div>")
         html_parts.append(
-            f"    <p><strong>Affected Components:</strong> {_safe(', '.join(threat.affected))}</p>"
+            f"    <p><strong>{_safe(_report_t(locale, 'affected_components'))}:</strong> {_safe(', '.join(threat.affected))}</p>"
         )
-        html_parts.append(f"    <p><strong>Why:</strong> {format_text(threat.why)}</p>")
+        html_parts.append(
+            f"    <p><strong>{_safe(_report_t(locale, 'why'))}:</strong> {format_text(threat.why)}</p>"
+        )
 
         if threat.references:
             html_parts.append(
-                f"    <p><strong>References:</strong> {_safe(', '.join(threat.references))}</p>"
+                f"    <p><strong>{_safe(_report_t(locale, 'references'))}:</strong> {_safe(', '.join(threat.references))}</p>"
             )
         rag_sources = getattr(threat, "rag_sources", []) or []
         if rag_sources:
-            html_parts.append("    <p><strong>RAG Sources:</strong></p>")
+            html_parts.append(
+                f"    <p><strong>{_safe(_report_t(locale, 'rag_sources'))}:</strong></p>"
+            )
             html_parts.append('    <ul class="mapping-list">')
             for src in rag_sources:
                 score = src.get("score")
@@ -502,30 +663,40 @@ def export_html(
                 html_parts.append(f"      <li>{_safe(line)}</li>")
             html_parts.append("    </ul>")
 
-        recommended_action = getattr(threat, "recommended_action", "Not specified")
+        recommended_action = getattr(
+            threat, "recommended_action", _report_t(locale, "not_specified")
+        )
         html_parts.append(
-            "    <p><strong>Recommended Actions:</strong><br>"
+            f"    <p><strong>{_safe(_report_t(locale, 'recommended_actions'))}:</strong><br>"
             + format_text(recommended_action)
             + "</p>"
         )
 
         # Evidence mapping
         html_parts.append('    <div class="section">')
-        html_parts.append("      <h4>Evidence Mapping</h4>")
+        html_parts.append(
+            f"      <h4>{_safe(_report_t(locale, 'evidence_mapping'))}</h4>"
+        )
         if threat.evidence_nodes:
-            html_parts.append("      <p><em>Nodes:</em></p>")
+            html_parts.append(
+                f"      <p><em>{_safe(_report_t(locale, 'nodes'))}:</em></p>"
+            )
             html_parts.append('      <ul class="mapping-list">')
             for nid in threat.evidence_nodes:
                 html_parts.append(f"        <li>{resolve_node(nid)}</li>")
             html_parts.append("      </ul>")
         if threat.evidence_edges:
-            html_parts.append("      <p><em>Edges:</em></p>")
+            html_parts.append(
+                f"      <p><em>{_safe(_report_t(locale, 'edges'))}:</em></p>"
+            )
             html_parts.append('      <ul class="mapping-list">')
             for edge_id in threat.evidence_edges:
                 html_parts.append(f"        <li>{resolve_edge(edge_id)}</li>")
             html_parts.append("      </ul>")
         if not threat.evidence_nodes and not threat.evidence_edges:
-            html_parts.append('      <p class="meta">No evidence mapping provided.</p>')
+            html_parts.append(
+                f'      <p class="meta">{_safe(_report_t(locale, "no_evidence_mapping"))}</p>'
+            )
         html_parts.append("    </div>")
 
         html_parts.append("  </div>")
@@ -1186,7 +1357,7 @@ Format your response as a clear, professional analysis. Focus on the security im
             max_tokens=DIFF_EXPLANATION_MAX_TOKENS,
         )
     except Exception as e:
-        explanation = f"Error generating LLM explanation: {str(e)}"
+        explanation = _report_t(lang, "error_generating_explanation", error=str(e))
 
     return {
         "graph_changes": {
@@ -1215,7 +1386,9 @@ Format your response as a clear, professional analysis. Focus on the security im
     }
 
 
-def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
+def export_diff_md(
+    diff_data: Dict, out_path: Optional[str] = None, lang: str = "en"
+) -> str:
     """
     Export diff data to Markdown format.
 
@@ -1227,46 +1400,60 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
         Markdown string representation
     """
     lines = []
-    lines.append("# System Architecture and Threat Model Diff Report")
+    lines.append(f"# {_report_t(lang, 'diff_title')}")
     lines.append("")
-    lines.append(AI_OUTPUT_DISCLAIMER_MD)
+    lines.append(_report_disclaimer_md(lang))
     lines.append("")
-    lines.append(f"**Generated:** {diff_data.get('generated_at', '')}")
+    lines.append(
+        f"**{_report_t(lang, 'generated')}:** {diff_data.get('generated_at', '')}"
+    )
     lines.append("")
-    lines.append(f"**Before:** {diff_data.get('before_file', '')}")
+    lines.append(f"**{_report_t(lang, 'before')}:** {diff_data.get('before_file', '')}")
     lines.append("")
-    lines.append(f"**After:** {diff_data.get('after_file', '')}")
+    lines.append(f"**{_report_t(lang, 'after')}:** {diff_data.get('after_file', '')}")
     lines.append("")
 
     # Graph changes summary
     graph_changes = diff_data.get("graph_changes", {})
-    lines.append("## Graph Changes Summary")
+    lines.append(f"## {_report_t(lang, 'graph_changes_summary')}")
     lines.append("")
-    lines.append(f"- **Nodes Added:** {graph_changes.get('count_nodes_added', 0)}")
-    lines.append(f"- **Nodes Removed:** {graph_changes.get('count_nodes_removed', 0)}")
-    lines.append(f"- **Edges Added:** {graph_changes.get('count_edges_added', 0)}")
-    lines.append(f"- **Edges Removed:** {graph_changes.get('count_edges_removed', 0)}")
+    lines.append(
+        f"- **{_report_t(lang, 'nodes_added')}:** {graph_changes.get('count_nodes_added', 0)}"
+    )
+    lines.append(
+        f"- **{_report_t(lang, 'nodes_removed')}:** {graph_changes.get('count_nodes_removed', 0)}"
+    )
+    lines.append(
+        f"- **{_report_t(lang, 'edges_added')}:** {graph_changes.get('count_edges_added', 0)}"
+    )
+    lines.append(
+        f"- **{_report_t(lang, 'edges_removed')}:** {graph_changes.get('count_edges_removed', 0)}"
+    )
     lines.append("")
 
     # Threat changes summary
     threat_changes = diff_data.get("threat_changes", {})
-    lines.append("## Threat Changes Summary")
+    lines.append(f"## {_report_t(lang, 'threat_changes_summary')}")
     lines.append("")
-    lines.append(f"- **Threats Added:** {threat_changes.get('count_added', 0)}")
-    lines.append(f"- **Threats Removed:** {threat_changes.get('count_removed', 0)}")
+    lines.append(
+        f"- **{_report_t(lang, 'threats_added')}:** {threat_changes.get('count_added', 0)}"
+    )
+    lines.append(
+        f"- **{_report_t(lang, 'threats_removed')}:** {threat_changes.get('count_removed', 0)}"
+    )
     lines.append("")
 
     # LLM explanation
     explanation = diff_data.get("explanation", "")
     if explanation:
-        lines.append("## Analysis")
+        lines.append(f"## {_report_t(lang, 'analysis')}")
         lines.append("")
         lines.append(explanation)
         lines.append("")
 
     # Detailed changes
     if graph_changes.get("nodes_added"):
-        lines.append("## Added Nodes")
+        lines.append(f"## {_report_t(lang, 'added_nodes')}")
         lines.append("")
         for node in graph_changes["nodes_added"]:
             lines.append(
@@ -1275,7 +1462,7 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
         lines.append("")
 
     if graph_changes.get("nodes_removed"):
-        lines.append("## Removed Nodes")
+        lines.append(f"## {_report_t(lang, 'removed_nodes')}")
         lines.append("")
         for node in graph_changes["nodes_removed"]:
             lines.append(
@@ -1284,7 +1471,7 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
         lines.append("")
 
     if graph_changes.get("edges_added"):
-        lines.append("## Added Edges")
+        lines.append(f"## {_report_t(lang, 'added_edges')}")
         lines.append("")
         for edge in graph_changes["edges_added"]:
             label = f" ({edge['label']})" if edge.get("label") else ""
@@ -1292,7 +1479,7 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
         lines.append("")
 
     if graph_changes.get("edges_removed"):
-        lines.append("## Removed Edges")
+        lines.append(f"## {_report_t(lang, 'removed_edges')}")
         lines.append("")
         for edge in graph_changes["edges_removed"]:
             label = f" ({edge['label']})" if edge.get("label") else ""
@@ -1300,9 +1487,11 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
         lines.append("")
 
     if threat_changes.get("added"):
-        lines.append("## Added Threats Summary")
+        lines.append(f"## {_report_t(lang, 'added_threats_summary')}")
         lines.append("")
-        lines.append("| ID | Severity | Title |")
+        lines.append(
+            f"| ID | {_report_t(lang, 'severity')} | {_report_t(lang, 'threat')} |"
+        )
         lines.append("|---|---|---|")
         for threat in threat_changes["added"]:
             lines.append(
@@ -1310,18 +1499,20 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
             )
         lines.append("")
 
-        lines.append("### Added Threat Details")
+        lines.append(f"### {_report_t(lang, 'added_threat_details')}")
         lines.append("")
         for threat in threat_changes["added"]:
             lines.append(f"#### {threat['id']}: {threat['title']}")
             lines.append("")
-            lines.append(f"**Severity:** {threat['severity']}")
+            lines.append(f"**{_report_t(lang, 'severity')}:** {threat['severity']}")
             lines.append("")
             if threat.get("why"):
-                lines.append(f"**Why:** {threat['why']}")
+                lines.append(f"**{_report_t(lang, 'why')}:** {threat['why']}")
                 lines.append("")
-            recommended_action = threat.get("recommended_action", "Not specified")
-            lines.append("**Recommended Actions:**")
+            recommended_action = threat.get(
+                "recommended_action", _report_t(lang, "not_specified")
+            )
+            lines.append(f"**{_report_t(lang, 'recommended_actions')}:**")
             lines.append("")
             lines.append(recommended_action)
             lines.append("")
@@ -1329,9 +1520,11 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
             lines.append("")
 
     if threat_changes.get("removed"):
-        lines.append("## Removed Threats Summary")
+        lines.append(f"## {_report_t(lang, 'removed_threats_summary')}")
         lines.append("")
-        lines.append("| ID | Severity | Title |")
+        lines.append(
+            f"| ID | {_report_t(lang, 'severity')} | {_report_t(lang, 'threat')} |"
+        )
         lines.append("|---|---|---|")
         for threat in threat_changes["removed"]:
             lines.append(
@@ -1339,18 +1532,20 @@ def export_diff_md(diff_data: Dict, out_path: Optional[str] = None) -> str:
             )
         lines.append("")
 
-        lines.append("### Removed Threat Details")
+        lines.append(f"### {_report_t(lang, 'removed_threat_details')}")
         lines.append("")
         for threat in threat_changes["removed"]:
             lines.append(f"#### {threat['id']}: {threat['title']}")
             lines.append("")
-            lines.append(f"**Severity:** {threat['severity']}")
+            lines.append(f"**{_report_t(lang, 'severity')}:** {threat['severity']}")
             lines.append("")
             if threat.get("why"):
-                lines.append(f"**Why:** {threat['why']}")
+                lines.append(f"**{_report_t(lang, 'why')}:** {threat['why']}")
                 lines.append("")
-            recommended_action = threat.get("recommended_action", "Not specified")
-            lines.append("**Recommended Actions:**")
+            recommended_action = threat.get(
+                "recommended_action", _report_t(lang, "not_specified")
+            )
+            lines.append(f"**{_report_t(lang, 'recommended_actions')}:**")
             lines.append("")
             lines.append(recommended_action)
             lines.append("")

@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from threat_thinker.constants import (
     AI_OUTPUT_DISCLAIMER_EN,
     AI_OUTPUT_DISCLAIMER_JA,
-    AI_OUTPUT_DISCLAIMER_MD,
 )
 from threat_thinker.exporters import (
     diff_reports,
@@ -135,8 +134,38 @@ class TestExportMd:
 
         assert "# Threat Analysis Report" in result
         assert AI_OUTPUT_DISCLAIMER_EN in result
-        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_JA not in result
         assert "No threats identified" in result
+
+    def test_export_empty_threats_markdown_in_japanese(self):
+        threats = []
+
+        result = export_md(threats, None, "ja")
+
+        assert "# 脅威分析レポート" in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_EN not in result
+        assert "脅威は特定されませんでした" in result
+
+    def test_export_single_threat_markdown_uses_japanese_severity_label(self):
+        threat = Threat(
+            id="T001",
+            title="XSS Attack",
+            stride=["T"],
+            severity="Medium",
+            score=6.0,
+            affected=["Frontend"],
+            why="No input sanitization",
+            references=[],
+            recommended_action="Sanitize input",
+            evidence_nodes=[],
+            evidence_edges=[],
+        )
+
+        result = export_md([threat], None, "ja")
+
+        assert "深刻度" in result
+        assert "重大度" not in result
 
     def test_export_single_threat_markdown(self):
         """Test exporting single threat to markdown"""
@@ -169,7 +198,7 @@ class TestExportMd:
 
         assert "XSS Attack" in result
         assert AI_OUTPUT_DISCLAIMER_EN in result
-        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_JA not in result
         assert "Medium" in result
         assert "No input sanitization" in result
         assert "Frontend" in result
@@ -222,8 +251,19 @@ class TestExportHtml:
 
         assert "Threat Analysis Report" in result
         assert "AI can make mistakes" in result
-        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_JA not in result
         assert "No threats identified" in result
+
+    def test_export_empty_threats_html_in_japanese(self):
+        threats = []
+
+        result = export_html(threats, None, None, "ja")
+
+        assert '<html lang="ja">' in result
+        assert "<title>脅威分析レポート</title>" in result
+        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_EN not in result
+        assert "脅威は特定されませんでした" in result
 
     def test_export_empty_threats_keeps_graph_when_available(self):
         graph = Graph(
@@ -280,7 +320,7 @@ class TestExportHtml:
 
         assert "SQL Injection" in result
         assert "AI can make mistakes" in result
-        assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_JA not in result
         assert "API Service" in result  # node mapping
         assert "Database" in result
         assert "queries" in result  # edge label mapping
@@ -334,9 +374,41 @@ class TestDiffReports:
 
         result = export_diff_md(diff_data)
 
-        assert AI_OUTPUT_DISCLAIMER_MD in result
         assert AI_OUTPUT_DISCLAIMER_EN in result
+        assert AI_OUTPUT_DISCLAIMER_JA not in result
+
+    def test_export_diff_markdown_in_japanese(self):
+        diff_data = {
+            "generated_at": "2026-04-15T00:00:00Z",
+            "before_file": "before.json",
+            "after_file": "after.json",
+            "graph_changes": {"count_nodes_added": 1},
+            "threat_changes": {
+                "count_added": 1,
+                "added": [
+                    {
+                        "id": "T100",
+                        "title": "New threat",
+                        "severity": "High",
+                        "why": "理由",
+                        "recommended_action": "対応",
+                    }
+                ],
+            },
+            "explanation": "分析本文",
+        }
+
+        result = export_diff_md(diff_data, lang="ja")
+
+        assert "# システムアーキテクチャと脅威モデルの差分レポート" in result
         assert AI_OUTPUT_DISCLAIMER_JA in result
+        assert AI_OUTPUT_DISCLAIMER_EN not in result
+        assert "**生成日時:** 2026-04-15T00:00:00Z" in result
+        assert "## グラフ変更サマリー" in result
+        assert "## 脅威変更サマリー" in result
+        assert "## 分析" in result
+        assert "深刻度" in result
+        assert "重大度" not in result
 
     def test_diff_identical_reports(self):
         """Test diffing identical reports"""

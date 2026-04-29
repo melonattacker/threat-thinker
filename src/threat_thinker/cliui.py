@@ -9,6 +9,56 @@ from typing import Optional, List, Dict, Any
 from enum import Enum
 
 
+_DEFAULT_LOCALE = "en"
+_CLI_TEXT = {
+    "en": {
+        "step": "Step",
+        "analysis_complete": "Analysis Complete!",
+        "identified_threats": "Identified {count} threats",
+        "processing_time": "Processing time: {seconds}s",
+        "parsing_metrics": "Parsing metrics:",
+        "file_size": "File size: {size_kb:.1f} KB",
+        "processed_lines": "Processed {count} lines",
+        "found_nodes": "Found {count} nodes",
+        "found_edges": "Found {count} edges",
+        "success_rate": "Success rate: {rate}%",
+        "metrics_details": "Metrics details",
+        "ai_is_analyzing": "AI is analyzing",
+        "no_threats": "No threats identified",
+        "preview_threats": "Preview of identified threats (showing {shown} of {total}):",
+        "score": "Score",
+        "more_threats": "... and {count} more threats",
+    },
+    "ja": {
+        "step": "ステップ",
+        "analysis_complete": "分析が完了しました",
+        "identified_threats": "{count} 件の脅威を特定しました",
+        "processing_time": "処理時間: {seconds}秒",
+        "parsing_metrics": "解析メトリクス:",
+        "file_size": "ファイルサイズ: {size_kb:.1f} KB",
+        "processed_lines": "{count} 行を処理しました",
+        "found_nodes": "{count} 個のノードを検出しました",
+        "found_edges": "{count} 本のエッジを検出しました",
+        "success_rate": "成功率: {rate}%",
+        "metrics_details": "メトリクス詳細",
+        "ai_is_analyzing": "AI が分析中",
+        "no_threats": "脅威は特定されませんでした",
+        "preview_threats": "特定された脅威のプレビュー ({total} 件中 {shown} 件を表示):",
+        "score": "スコア",
+        "more_threats": "... 他 {count} 件の脅威",
+    },
+}
+
+
+def _normalize_locale(locale: Optional[str]) -> str:
+    return "ja" if (locale or "").strip().lower().startswith("ja") else _DEFAULT_LOCALE
+
+
+def _t(locale: Optional[str], key: str, **kwargs) -> str:
+    template = _CLI_TEXT[_normalize_locale(locale)][key]
+    return template.format(**kwargs) if kwargs else template
+
+
 class LogLevel(Enum):
     DEBUG = "debug"
     INFO = "info"
@@ -154,6 +204,11 @@ class ModernCLI:
         self.verbose = verbose
         self.current_step = 0
         self.total_steps = 0
+        self.locale = _DEFAULT_LOCALE
+
+    def set_locale(self, locale: str):
+        """Set locale for CLI display strings."""
+        self.locale = _normalize_locale(locale)
 
     def set_total_steps(self, total: int):
         """Set total number of steps for progress tracking"""
@@ -172,7 +227,10 @@ class ModernCLI:
         else:
             progress = f"({self.current_step})"
 
-        print(f"\n{Colors.BOLD}{Colors.BLUE}▶ Step {progress}: {title}{Colors.RESET}")
+        step_label = _t(self.locale, "step")
+        print(
+            f"\n{Colors.BOLD}{Colors.BLUE}▶ {step_label} {progress}: {title}{Colors.RESET}"
+        )
 
     def log(self, level: LogLevel, message: str, details: Optional[str] = None):
         """Log a message with appropriate styling"""
@@ -237,17 +295,21 @@ class ModernCLI:
 
     def show_summary(self, threats_count: int, processing_time: float):
         """Show final summary"""
-        print(f"\n{Colors.BOLD}{Colors.GREEN}🎯 Analysis Complete!{Colors.RESET}")
         print(
-            f"  {Colors.CYAN}•{Colors.RESET} Identified {Colors.BOLD}{threats_count}{Colors.RESET} threats"
+            f"\n{Colors.BOLD}{Colors.GREEN}🎯 {_t(self.locale, 'analysis_complete')}{Colors.RESET}"
         )
         print(
-            f"  {Colors.CYAN}•{Colors.RESET} Processing time: {Colors.BOLD}{processing_time:.1f}s{Colors.RESET}"
+            f"  {Colors.CYAN}•{Colors.RESET} "
+            f"{_t(self.locale, 'identified_threats', count=f'{Colors.BOLD}{threats_count}{Colors.RESET}')}"
+        )
+        print(
+            f"  {Colors.CYAN}•{Colors.RESET} "
+            f"{_t(self.locale, 'processing_time', seconds=processing_time).replace(f'{processing_time:.1f}', f'{Colors.BOLD}{processing_time:.1f}{Colors.RESET}', 1)}"
         )
 
     def show_metrics_summary(self, metrics: Dict[str, Any]):
         """Show parsing metrics in a user-friendly way"""
-        self.info("Parsing metrics:")
+        self.info(_t(self.locale, "parsing_metrics"))
 
         # Handle different metric types
         if hasattr(metrics, "total_lines"):
@@ -255,20 +317,23 @@ class ModernCLI:
 
             # For image files, total_lines represents file size
             if total_lines > 10000:  # Likely file size in bytes
-                self.debug(f"File size: {total_lines / 1024:.1f} KB")
+                self.debug(_t(self.locale, "file_size", size_kb=total_lines / 1024))
             else:
                 print(
-                    f"  {Colors.CYAN}•{Colors.RESET} Processed {Colors.BOLD}{total_lines}{Colors.RESET} lines"
+                    f"  {Colors.CYAN}•{Colors.RESET} "
+                    f"{_t(self.locale, 'processed_lines', count=f'{Colors.BOLD}{total_lines}{Colors.RESET}')}"
                 )
 
             # Show parsing success rates if available
             if hasattr(metrics, "nodes_parsed"):
                 print(
-                    f"  {Colors.CYAN}•{Colors.RESET} Found {Colors.BOLD}{metrics.nodes_parsed}{Colors.RESET} nodes"
+                    f"  {Colors.CYAN}•{Colors.RESET} "
+                    f"{_t(self.locale, 'found_nodes', count=f'{Colors.BOLD}{metrics.nodes_parsed}{Colors.RESET}')}"
                 )
             if hasattr(metrics, "edges_parsed"):
                 print(
-                    f"  {Colors.CYAN}•{Colors.RESET} Found {Colors.BOLD}{metrics.edges_parsed}{Colors.RESET} edges"
+                    f"  {Colors.CYAN}•{Colors.RESET} "
+                    f"{_t(self.locale, 'found_edges', count=f'{Colors.BOLD}{metrics.edges_parsed}{Colors.RESET}')}"
                 )
             if hasattr(metrics, "import_success_rate"):
                 rate = metrics.import_success_rate * 100
@@ -280,39 +345,46 @@ class ModernCLI:
                     else Colors.RED
                 )
                 print(
-                    f"  {Colors.CYAN}•{Colors.RESET} Success rate: {color}{Colors.BOLD}{rate:.1f}%{Colors.RESET}"
+                    f"  {Colors.CYAN}•{Colors.RESET} "
+                    f"{_t(self.locale, 'success_rate', rate=f'{color}{Colors.BOLD}{rate:.1f}{Colors.RESET}')}"
                 )
         elif isinstance(metrics, dict):
             # Handle dict-type metrics
             if "total_lines" in metrics:
                 lines = metrics["total_lines"]
                 if lines > 10000:
-                    self.debug(f"File size: {lines / 1024:.1f} KB")
+                    self.debug(_t(self.locale, "file_size", size_kb=lines / 1024))
                 else:
                     print(
-                        f"  {Colors.CYAN}•{Colors.RESET} Processed {Colors.BOLD}{lines}{Colors.RESET} lines"
+                        f"  {Colors.CYAN}•{Colors.RESET} "
+                        f"{_t(self.locale, 'processed_lines', count=f'{Colors.BOLD}{lines}{Colors.RESET}')}"
                     )
         else:
-            self.debug("Metrics details", str(metrics))
+            self.debug(_t(self.locale, "metrics_details"), str(metrics))
 
     def create_progress_bar(self, total: int) -> ProgressBar:
         """Create a new progress bar"""
         return ProgressBar(total)
 
     def create_thinking_indicator(
-        self, message: str = "AI is analyzing"
+        self, message: Optional[str] = None
     ) -> ThinkingIndicator:
         """Create a new thinking indicator"""
-        return ThinkingIndicator(message)
+        return ThinkingIndicator(message or _t(self.locale, "ai_is_analyzing"))
 
     def show_threats_preview(self, threats: List[Any], max_show: int = 3):
         """Show a preview of the first few threats"""
         if not threats:
-            self.warning("No threats identified")
+            self.warning(_t(self.locale, "no_threats"))
             return
 
         self.info(
-            f"Preview of identified threats (showing {min(len(threats), max_show)} of {len(threats)}):"
+            _t(
+                self.locale,
+                "preview_threats",
+                shown=min(len(threats), max_show),
+                total=len(threats),
+            )
         )
 
         for i, threat in enumerate(threats[:max_show]):
@@ -321,11 +393,15 @@ class ModernCLI:
                 f"  {Colors.BOLD}{i + 1}.{Colors.RESET} {severity_color}{threat.severity}{Colors.RESET} - {threat.title}"
             )
             if hasattr(threat, "score"):
-                print(f"     Score: {Colors.BOLD}{threat.score:.1f}{Colors.RESET}")
+                print(
+                    f"     {_t(self.locale, 'score')}: {Colors.BOLD}{threat.score:.1f}{Colors.RESET}"
+                )
 
         if len(threats) > max_show:
             remaining = len(threats) - max_show
-            print(f"  {Colors.DIM}... and {remaining} more threats{Colors.RESET}")
+            print(
+                f"  {Colors.DIM}{_t(self.locale, 'more_threats', count=remaining)}{Colors.RESET}"
+            )
 
     def _get_severity_color(self, severity: str) -> str:
         """Get color for threat severity"""
@@ -348,3 +424,9 @@ def set_verbose(verbose: bool):
     """Set verbose mode globally"""
     global ui
     ui.verbose = verbose
+
+
+def set_locale(locale: str):
+    """Set locale globally for think/diff CLI output."""
+    global ui
+    ui.set_locale(locale)

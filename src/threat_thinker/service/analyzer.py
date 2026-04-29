@@ -320,6 +320,7 @@ def analyze_job(
         )
 
         formats = request.report_formats or [engine.report.default_format]
+        report_language = request.language or engine.report.default_language
         reports: list[ReportEntry] = []
         for fmt in formats:
             if fmt == "threat-dragon" and job_input.type != "threat-dragon":
@@ -327,9 +328,9 @@ def analyze_job(
                     "Threat Dragon report is only available for Threat Dragon inputs."
                 )
             if fmt == "markdown":
-                content = export_md(threats)
+                content = export_md(threats, lang=report_language)
             elif fmt == "html":
-                content = export_html(threats, graph=graph)
+                content = export_html(threats, graph=graph, lang=report_language)
             elif fmt == "json":
                 content = export_json(
                     threats, out_path=None, metrics=metrics, graph=graph
