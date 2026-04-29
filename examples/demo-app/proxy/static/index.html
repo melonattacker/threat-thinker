@@ -7,12 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
         color-scheme: light;
+        --font-sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+        --font-code: "JetBrains Mono", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", ui-monospace, SFMono-Regular,
+          Menlo, Monaco, Consolas, monospace;
         --bg: #f7f3ed;
         --bg-alt: #efe8de;
         --ink: #151515;
@@ -31,7 +34,7 @@
 
       body {
         margin: 0;
-        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-family: var(--font-sans);
         background: radial-gradient(circle at top, #fff6e6 0%, var(--bg) 55%, #f0e4d2 100%);
         color: var(--ink);
       }
@@ -112,7 +115,7 @@
         border: 1px solid var(--border);
         padding: 10px 12px;
         font-size: 14px;
-        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-family: var(--font-sans);
         background: #fffdf9;
         color: var(--ink);
       }
@@ -120,8 +123,7 @@
       textarea {
         min-height: 220px;
         resize: vertical;
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        font-family: var(--font-code);
         font-size: 12.5px;
         line-height: 1.5;
       }
@@ -216,9 +218,9 @@
         min-width: 0;
         overflow: auto;
         overscroll-behavior: contain;
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        font-family: var(--font-code);
         font-size: 12px;
+        line-height: 1.65;
       }
 
       .preview {
