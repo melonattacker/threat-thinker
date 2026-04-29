@@ -1,5 +1,6 @@
 import gradio as gr
 import pytest
+from types import SimpleNamespace
 
 import threat_thinker.webui as webui
 
@@ -28,6 +29,18 @@ def test_validate_text_input_format_supports_ir():
     assert webui._validate_text_input_format("ir") == "ir"
     with pytest.raises(gr.Error):
         webui._validate_text_input_format("unknown")
+
+
+def test_translate_lookup_returns_expected_copy():
+    assert webui._t("en", "system_description_label") == "System Description"
+    assert webui._t("ja", "system_description_label") == "システム説明"
+
+
+def test_output_language_sync_respects_manual_override():
+    assert webui._sync_output_language_with_locale("ja", "en", False) == ("ja", False)
+    assert webui._sync_output_language_with_locale("ja", "fr", True) == ("fr", True)
+    assert webui._output_language_is_manual("fr", "en") is True
+    assert webui._output_language_is_manual("en", "en") is False
 
 
 def test_copy_uploaded_files_to_kb(tmp_path, monkeypatch):
@@ -74,9 +87,9 @@ def test_delete_kb(tmp_path, monkeypatch):
     # create minimal meta to appear in listings
     (kb_dir / "meta.json").write_text("{}", encoding="utf-8")
 
-    status, _, _, _ = webui._delete_kb("kb-del")
+    status, _, _, _ = webui._delete_kb("kb-del", "ja")
 
-    assert "Removed knowledge base" in status
+    assert "削除しました" in status
     assert not kb_dir.exists()
 
 
@@ -102,6 +115,112 @@ def test_build_webui_has_system_description_entrypoint():
     assert "Download generated DFD JSON (description inputs only)" in labels
 
 
+def test_build_webui_supports_japanese_initial_locale():
+    demo = webui._build_webui("ja")
+    labels = {
+        getattr(block, "label", None)
+        for block in demo.blocks.values()
+        if getattr(block, "label", None)
+    }
+
+    assert "システム説明" in labels
+    assert "図の内容" in labels
+    assert "生成された DFD JSON をダウンロード（説明入力時のみ）" in labels
+
+
+def test_build_incomplete_dfd_markdown_localizes():
+    result = SimpleNamespace(
+        summary="Summary text",
+        assumptions=["Assumption A"],
+        clarifying_questions=["Question A"],
+    )
+
+    markdown = webui._build_incomplete_dfd_markdown(result, "ja")
+
+    assert "システム説明の詳細が不足しています" in markdown
+    assert "前提" in markdown
+    assert "確認したい点" in markdown
+
+
+def test_localize_webui_updates_labels_and_preserves_manual_output_language():
+    updates = webui._localize_webui(
+        "ja",
+        webui._INPUT_METHOD_TEXT,
+        "en",
+        False,
+        "fr",
+        True,
+        [],
+        None,
+        webui._t("en", "report_preview_default"),
+        webui._t("en", "kb_status_default"),
+        webui._t("en", "diff_report_preview_default"),
+    )
+
+    assert updates[0] == "ja"
+    assert updates[1] is False
+    assert updates[2] is True
+    assert updates[7]["label"] == "システム説明"
+    assert updates[10]["choices"][0][0] == "テキスト"
+    assert updates[24]["value"] == "ja"
+    assert updates[38]["value"] == "レポートを生成すると、ここにプレビューが表示されます..."
+    assert updates[53]["value"] == "文書をアップロードし、構築をクリックしてナレッジベースを作成してください。"
+    assert updates[66]["value"] == "fr"
+
+
+def test_kb_list_markdown_localizes(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        webui,
+        "list_kbs",
+        lambda: [
+            {
+                "name": "secure-web",
+                "updated_at": "2026-04-29",
+                "num_chunks": 12,
+                "num_documents": 3,
+                "embedding_model": "text-embedding-3-small",
+            }
+        ],
+    )
+    monkeypatch.setattr(webui, "get_kb_root", lambda: tmp_path)
+
+    markdown = webui._kb_list_markdown("ja")
+
+    assert "利用可能なナレッジベース" in markdown
+    assert "3 件の文書から 12 チャンク" in markdown
+    assert "保存先" in markdown
+
+
+def test_build_kb_from_uploads_localizes_missing_openai_key(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(gr.Error, match="OPENAI_API_KEY"):
+        webui._build_kb_from_uploads(
+            "kb1",
+            [],
+            f"openai:{webui.DEFAULT_EMBED_MODEL}",
+            webui.DEFAULT_CHUNK_TOKENS,
+            webui.DEFAULT_CHUNK_OVERLAP,
+            True,
+            "ja",
+        )
+
+
+def test_generate_diff_report_localizes_missing_files():
+    with pytest.raises(gr.Error, match="JSON ファイル"):
+        webui._generate_diff_report(
+            "",
+            "",
+            "openai",
+            "gpt-4.1",
+            "",
+            "",
+            "",
+            "ja",
+            "ja",
+        )
+
+
 def test_generate_report_returns_clarifying_questions_for_empty_dfd(monkeypatch):
     monkeypatch.setattr(
         webui,
@@ -121,7 +240,7 @@ def test_generate_report_returns_clarifying_questions_for_empty_dfd(monkeypatch)
         webui._generate_report(
             system_description="Drone food delivery.",
             context_files=[],
-            input_method="Text",
+            input_method=webui._INPUT_METHOD_TEXT,
             diagram_text="",
             diagram_format="mermaid",
             drawio_page="",
@@ -144,13 +263,14 @@ def test_generate_report_returns_clarifying_questions_for_empty_dfd(monkeypatch)
             rag_candidates=webui.DEFAULT_RAG_CANDIDATES,
             rag_min_score=webui.DEFAULT_RAG_MIN_SCORE,
             prompt_token_limit=1000,
+            ui_locale="ja",
         )
     )
 
-    assert "System Description Needs More Detail" in markdown_report
-    assert "Clarifying Questions" in markdown_report
+    assert "システム説明の詳細が不足しています" in markdown_report
+    assert "確認したい点" in markdown_report
     assert "Who places orders?" in report_text
-    assert "Threat inference skipped because the generated DFD is empty." in report_text
+    assert "生成された DFD が空のため、脅威推論をスキップしました" in report_text
     assert md_path is None
     assert json_path is None
     assert html_path is None
