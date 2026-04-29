@@ -46,6 +46,53 @@ def test_llm_infer_threats_includes_business_context_and_rag(monkeypatch):
     assert "chunk_id=kb-0001" in prompt
 
 
+def test_llm_infer_threats_keeps_rag_sources_only_with_rag_context(monkeypatch):
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def call_llm(self, *, system_prompt, user_prompt, **kwargs):
+            return """
+            {
+              "threats": [
+                {
+                  "title": "Grounded threat",
+                  "severity": "High",
+                  "rag_sources": [
+                    {
+                      "kb": "secure",
+                      "source": "asvs.md",
+                      "chunk_id": "kb-0001",
+                      "score": 0.9
+                    }
+                  ]
+                }
+              ]
+            }
+            """
+
+    monkeypatch.setattr(inference, "LLMClient", _Client)
+
+    graph = Graph(nodes={"api": Node(id="api", label="Menu API")}, edges=[])
+    threats = inference.llm_infer_threats(
+        graph,
+        "openai",
+        "gpt-4.1",
+        rag_context="Retrieved ASVS guidance.",
+        rag_candidates=[{"chunk_id": "kb-0001", "kb": "secure", "source": "asvs.md"}],
+        prompt_token_limit=60000,
+    )
+
+    assert threats[0].rag_sources == [
+        {
+            "kb": "secure",
+            "source": "asvs.md",
+            "chunk_id": "kb-0001",
+            "score": 0.9,
+        }
+    ]
+
+
 def test_llm_infer_threats_rejects_prompt_over_limit(monkeypatch):
     class _Client:
         def __init__(self, *args, **kwargs):
@@ -89,6 +136,45 @@ def test_llm_infer_threats_does_not_request_rag_sources_for_context_only(
     )
 
     assert "include `rag_sources`" not in captured["user_prompt"]
+
+
+def test_llm_infer_threats_discards_rag_sources_without_rag_context(monkeypatch):
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def call_llm(self, *, system_prompt, user_prompt, **kwargs):
+            return """
+            {
+              "threats": [
+                {
+                  "title": "Context threat",
+                  "severity": "Medium",
+                  "rag_sources": [
+                    {
+                      "kb": "secure",
+                      "source": "asvs.md",
+                      "chunk_id": "kb-0001",
+                      "score": 0.9
+                    }
+                  ]
+                }
+              ]
+            }
+            """
+
+    monkeypatch.setattr(inference, "LLMClient", _Client)
+    graph = Graph(nodes={"api": Node(id="api", label="Menu API")}, edges=[])
+
+    threats = inference.llm_infer_threats(
+        graph,
+        "openai",
+        "gpt-4.1",
+        business_context="Business context documents:\nAllergy data",
+        prompt_token_limit=60000,
+    )
+
+    assert threats[0].rag_sources == []
 
 
 def test_llm_generate_dfd_from_description_requests_native_graph_ir(monkeypatch):

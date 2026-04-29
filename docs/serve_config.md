@@ -145,6 +145,8 @@ engine:
     - "drawio"
     - "threat-dragon"
     - "image"
+    - "ir"
+    - "description"
   autodetect: true
   report:
     default_format: "markdown"    # markdown | json | html | both
@@ -164,6 +166,9 @@ Notes:
 - `allowed_inputs` supports YAML arrays or comma-separated strings.
 - `report.default_language` mirrors the CLI `--lang` option.
 - `model.params` is passed directly to the provider adapter.
+- `description` accepts natural-language system text and generates a DFD before
+  threat analysis. Request `report_formats: ["dfd"]` to receive the generated
+  DFD sidecar JSON.
 
 ### 3.4.1 Analyze Request RAG Options
 RAG is controlled per request (not in YAML config) via `/v1/analyze` JSON body or multipart `options` JSON.
@@ -293,7 +298,7 @@ queue:
   job_ttl_seconds: 900
 
 engine:
-  allowed_inputs: "mermaid,drawio,threat-dragon,image"
+  allowed_inputs: "mermaid,drawio,threat-dragon,image,ir,description"
   autodetect: true
   report:
     default_format: "markdown"

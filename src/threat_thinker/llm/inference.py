@@ -642,7 +642,7 @@ def llm_infer_threats(
             conf = float(conf)
         else:
             conf = None
-        raw_sources = t.get("rag_sources") or []
+        raw_sources = (t.get("rag_sources") or []) if rag_context else []
         rag_sources = []
         if isinstance(raw_sources, list):
             for src in raw_sources:

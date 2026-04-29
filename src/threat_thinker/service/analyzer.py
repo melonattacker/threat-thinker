@@ -16,6 +16,11 @@ from threat_thinker.exporters import (
     export_md,
     export_threat_dragon,
 )
+from threat_thinker.business_context import (
+    BusinessContextDfdResult,
+    dfd_result_from_payload,
+    dfd_result_to_sidecar_json,
+)
 from threat_thinker.hint_processor import merge_llm_hints
 from threat_thinker.input_loader import INPUT_FORMAT_IR, load_input
 from threat_thinker.context_loader import (
@@ -26,6 +31,7 @@ from threat_thinker.context_loader import (
     read_context_text,
 )
 from threat_thinker.llm.inference import (
+    llm_generate_dfd_from_description,
     llm_infer_hints,
     llm_infer_threats,
     llm_rerank_chunks,
@@ -139,6 +145,21 @@ def _load_context_documents(
     return documents
 
 
+def _combine_text_blocks(*blocks: str | None) -> str | None:
+    combined = "\n\n".join(block.strip() for block in blocks if block and block.strip())
+    return combined or None
+
+
+def _empty_dfd_error(result: BusinessContextDfdResult) -> str:
+    questions = "; ".join(result.clarifying_questions)
+    if questions:
+        return (
+            "Generated DFD is empty. The system description is too vague. "
+            f"Clarifying questions: {questions}"
+        )
+    return "Generated DFD is empty. The system description is too vague."
+
+
 def _assert_provider_ready(
     provider: str, input_type: str, aws_profile: Optional[str] = None
 ) -> None:
@@ -164,16 +185,17 @@ def analyze_job(
 ) -> AnalysisResult:
     request = AnalyzeRequest.model_validate(payload)
     job_input = request.input
+    input_type = getattr(job_input.type, "value", job_input.type)
 
-    if job_input.type not in engine.allowed_inputs:
-        raise AnalysisError(f"Input type '{job_input.type}' is not allowed.")
+    if input_type not in engine.allowed_inputs:
+        raise AnalysisError(f"Input type '{input_type}' is not allowed.")
 
     provider = (engine.model.provider or "openai").lower()
     model_name = engine.model.name or "gpt-4.1-mini"
     ollama_host = (
         engine.model.ollama_host or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
     )
-    _assert_provider_ready(provider, job_input.type, engine.model.aws_profile)
+    _assert_provider_ready(provider, input_type, engine.model.aws_profile)
 
     start_time = time.time()
     temp_paths: list[str] = []
@@ -181,32 +203,58 @@ def analyze_job(
     try:
         suffix = _suffix_for_input(job_input)
         diagram_path = ""
+        description_text = None
+        dfd_result: BusinessContextDfdResult | None = None
 
-        if job_input.type == "image":
+        if input_type == "description":
+            description_text = (job_input.content or "").strip()
+            if not description_text:
+                raise AnalysisError("Description content is empty.")
+            try:
+                payload = llm_generate_dfd_from_description(
+                    description_text,
+                    provider,
+                    model_name,
+                    engine.model.aws_profile,
+                    engine.model.aws_region,
+                    ollama_host,
+                    request.prompt_token_limit,
+                    lang=request.language or engine.report.default_language,
+                )
+                dfd_result = dfd_result_from_payload(payload)
+                dfd_result.metrics.total_lines = len(description_text.splitlines())
+                graph = dfd_result.graph
+                metrics = dfd_result.metrics
+            except Exception as exc:
+                raise AnalysisError(
+                    f"Failed to generate DFD from description: {exc}"
+                ) from exc
+        elif input_type == "image":
             data = _decode_bytes(job_input.data_b64)
             if not data:
                 raise AnalysisError("Image payload is empty.")
             diagram_path = _write_temp_bytes(data, suffix or ".png")
+            temp_paths.append(diagram_path)
         else:
             content = (job_input.content or "").strip()
             if not content:
                 raise AnalysisError("Diagram content is empty.")
             diagram_path = _write_temp_text(content, suffix or ".txt")
+            temp_paths.append(diagram_path)
 
-        temp_paths.append(diagram_path)
+        if input_type != "description":
+            graph, metrics = load_input(
+                input_type,
+                diagram_path,
+                drawio_page=request.drawio_page,
+                api=provider,
+                model=model_name,
+                aws_profile=engine.model.aws_profile,
+                aws_region=engine.model.aws_region,
+                ollama_host=ollama_host,
+            )
 
-        graph, metrics = load_input(
-            getattr(job_input.type, "value", job_input.type),
-            diagram_path,
-            drawio_page=request.drawio_page,
-            api=provider,
-            model=model_name,
-            aws_profile=engine.model.aws_profile,
-            aws_region=engine.model.aws_region,
-            ollama_host=ollama_host,
-        )
-
-        if request.infer_hints:
+        if request.infer_hints and input_type != "description":
             skeleton = json.dumps(
                 {
                     "nodes": [
@@ -235,15 +283,32 @@ def analyze_job(
             except Exception as exc:
                 raise AnalysisError(f"Failed to infer hints: {exc}") from exc
 
-        business_context_text = None
+        context_text = None
         if request.contexts:
             try:
                 context_docs = _load_context_documents(
                     request.contexts, model_name, temp_paths
                 )
-                business_context_text = format_context_documents(context_docs)
+                context_text = format_context_documents(context_docs)
             except ContextDocumentError as exc:
                 raise AnalysisError(f"Failed to load business context: {exc}") from exc
+        business_context_text = _combine_text_blocks(description_text, context_text)
+
+        formats = request.report_formats or [engine.report.default_format]
+        if input_type == "description" and dfd_result and not graph.nodes:
+            if "dfd" in formats:
+                duration_ms = int((time.time() - start_time) * 1000)
+                return AnalysisResult(
+                    reports=[
+                        ReportEntry(
+                            report_format="dfd",
+                            content=dfd_result_to_sidecar_json(dfd_result),
+                        )
+                    ],
+                    duration_ms=duration_ms,
+                    model=model_name,
+                )
+            raise AnalysisError(_empty_dfd_error(dfd_result))
 
         rag_context_text = None
         retrieval = None
@@ -319,13 +384,16 @@ def analyze_job(
             topn=request.topn,
         )
 
-        formats = request.report_formats or [engine.report.default_format]
         report_language = request.language or engine.report.default_language
         reports: list[ReportEntry] = []
         for fmt in formats:
-            if fmt == "threat-dragon" and job_input.type != "threat-dragon":
+            if fmt == "threat-dragon" and input_type != "threat-dragon":
                 raise AnalysisError(
                     "Threat Dragon report is only available for Threat Dragon inputs."
+                )
+            if fmt == "dfd" and dfd_result is None:
+                raise AnalysisError(
+                    "DFD report is only available for description inputs."
                 )
             if fmt == "markdown":
                 content = export_md(threats, lang=report_language)
@@ -337,6 +405,8 @@ def analyze_job(
                 )
             elif fmt == "threat-dragon":
                 content = export_threat_dragon(threats, graph, None)
+            elif fmt == "dfd":
+                content = dfd_result_to_sidecar_json(dfd_result)
             else:
                 raise AnalysisError(f"Unsupported report format: {fmt}")
             reports.append(ReportEntry(report_format=fmt, content=content))

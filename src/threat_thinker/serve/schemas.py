@@ -24,6 +24,7 @@ class InputType(str, Enum):
     THREAT_DRAGON = "threat-dragon"
     IMAGE = "image"
     IR = "ir"
+    DESCRIPTION = "description"
 
 
 class InputPayload(BaseModel):
@@ -50,6 +51,7 @@ class ReportFormat(str, Enum):
     HTML = "html"
     JSON = "json"
     THREAT_DRAGON = "threat-dragon"
+    DFD = "dfd"
 
 
 class AnalyzeOptions(BaseModel):

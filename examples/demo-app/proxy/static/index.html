@@ -7,12 +7,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
         color-scheme: light;
+        --font-sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+        --font-code: "JetBrains Mono", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", ui-monospace, SFMono-Regular,
+          Menlo, Monaco, Consolas, monospace;
         --bg: #f7f3ed;
         --bg-alt: #efe8de;
         --ink: #151515;
@@ -31,7 +34,7 @@
 
       body {
         margin: 0;
-        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-family: var(--font-sans);
         background: radial-gradient(circle at top, #fff6e6 0%, var(--bg) 55%, #f0e4d2 100%);
         color: var(--ink);
       }
@@ -79,6 +82,7 @@
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 22px;
         align-items: start;
+        min-width: 0;
       }
 
       .card {
@@ -87,6 +91,7 @@
         border: 1px solid var(--border);
         box-shadow: var(--shadow);
         padding: 22px;
+        min-width: 0;
       }
 
       .card h2 {
@@ -110,7 +115,7 @@
         border: 1px solid var(--border);
         padding: 10px 12px;
         font-size: 14px;
-        font-family: "Space Grotesk", system-ui, sans-serif;
+        font-family: var(--font-sans);
         background: #fffdf9;
         color: var(--ink);
       }
@@ -118,10 +123,13 @@
       textarea {
         min-height: 220px;
         resize: vertical;
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        font-family: var(--font-code);
         font-size: 12.5px;
         line-height: 1.5;
+      }
+
+      textarea.compact {
+        min-height: 120px;
       }
 
       .controls {
@@ -133,6 +141,7 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 12px;
+        min-width: 0;
       }
 
       button {
@@ -178,15 +187,24 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+        min-width: 0;
       }
 
       .status strong {
         color: var(--ink);
       }
 
+      #jobId {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .output {
         display: grid;
         gap: 12px;
+        min-width: 0;
       }
 
       pre {
@@ -196,10 +214,13 @@
         background: #111111;
         color: #f4f0e8;
         max-height: 320px;
+        max-width: 100%;
+        min-width: 0;
         overflow: auto;
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        overscroll-behavior: contain;
+        font-family: var(--font-code);
         font-size: 12px;
+        line-height: 1.65;
       }
 
       .preview {
@@ -238,23 +259,25 @@
       <div class="shell">
         <header>
           <div class="eyebrow">Threat Thinker Demo</div>
-          <h1>Turn diagrams into security insights.</h1>
+          <h1>Turn system context into security insights.</h1>
           <p class="subcopy">
-            Paste Mermaid, draw.io XML, or Threat Dragon JSON. Get a detailed threat analysis report in Markdown and HTML.
+            Start with a system description, diagram, or IR JSON.<br>Add business context to sharpen the analysis.
           </p>
         </header>
 
         <section class="grid">
           <div class="card">
-            <h2>Diagram Input</h2>
+            <h2>Analysis Input</h2>
             <div class="controls">
               <div class="row">
                 <div>
-                  <label for="diagramType">Diagram type</label>
+                  <label for="diagramType">Input type</label>
                   <select id="diagramType">
+                    <option value="description">System Description</option>
                     <option value="mermaid">Mermaid</option>
                     <option value="drawio">draw.io</option>
                     <option value="threat_dragon">Threat Dragon</option>
+                    <option value="ir">IR JSON</option>
                   </select>
                 </div>
                 <div>
@@ -266,8 +289,16 @@
                 </div>
               </div>
               <div>
-                <label for="diagramContent">Diagram content</label>
+                <label for="diagramContent" id="inputLabel">Diagram content</label>
                 <textarea id="diagramContent" placeholder="Paste your diagram text here..."></textarea>
+              </div>
+              <div>
+                <label for="businessContext">Business context</label>
+                <textarea
+                  class="compact"
+                  id="businessContext"
+                  placeholder="Optional: business rules, compliance scope, sensitive workflows, assumptions..."
+                ></textarea>
               </div>
               <button class="primary" id="runButton">Run analysis</button>
               <div class="status">
@@ -304,12 +335,47 @@
   api --> app[App Service]
   app --> db[(Customer DB)]`;
 
+      const DEFAULT_DESCRIPTION = `Customers use a web app to manage orders.
+The frontend calls an API hosted in AWS.
+The API stores customer PII and order history in Postgres.
+The system sends transactional email through a third-party provider.`;
+
+      const DEFAULT_CONTENT = {
+        mermaid: DEFAULT_MERMAID,
+        description: DEFAULT_DESCRIPTION,
+      };
+
+      const INPUT_METADATA = {
+        mermaid: {
+          label: "Diagram content",
+          placeholder: "Paste Mermaid diagram text here...",
+        },
+        drawio: {
+          label: "draw.io XML",
+          placeholder: "Paste draw.io XML here...",
+        },
+        threat_dragon: {
+          label: "Threat Dragon JSON",
+          placeholder: "Paste Threat Dragon JSON here...",
+        },
+        ir: {
+          label: "IR JSON",
+          placeholder: "Paste Threat Thinker Graph IR JSON here...",
+        },
+        description: {
+          label: "System description",
+          placeholder: "Describe users, services, data stores, trust boundaries, and third-party integrations...",
+        },
+      };
+
       const runButton = document.getElementById("runButton");
       const previewButton = document.getElementById("previewButton");
       const downloadButton = document.getElementById("downloadButton");
       const diagramType = document.getElementById("diagramType");
       const language = document.getElementById("language");
       const diagramContent = document.getElementById("diagramContent");
+      const inputLabel = document.getElementById("inputLabel");
+      const businessContext = document.getElementById("businessContext");
       const statusText = document.getElementById("statusText");
       const jobIdEl = document.getElementById("jobId");
       const markdownOutput = document.getElementById("markdownOutput");
@@ -318,17 +384,25 @@
 
       let lastResult = null;
 
-      function applyMermaidDefault() {
-        if (diagramType.value !== "mermaid") {
-          return;
-        }
-        if (!diagramContent.value.trim()) {
-          diagramContent.value = DEFAULT_MERMAID;
+      function applyInputState(previousType = null) {
+        const metadata = INPUT_METADATA[diagramType.value] || INPUT_METADATA.mermaid;
+        inputLabel.textContent = metadata.label;
+        diagramContent.placeholder = metadata.placeholder;
+        const previousDefault = previousType ? DEFAULT_CONTENT[previousType] : "";
+        const hasOnlyPreviousDefault =
+          previousDefault && diagramContent.value.trim() === previousDefault.trim();
+        if (!diagramContent.value.trim() || hasOnlyPreviousDefault) {
+          diagramContent.value = DEFAULT_CONTENT[diagramType.value] || "";
         }
       }
 
-      applyMermaidDefault();
-      diagramType.addEventListener("change", applyMermaidDefault);
+      applyInputState();
+      let currentInputType = diagramType.value;
+      diagramType.addEventListener("change", () => {
+        const previousType = currentInputType;
+        currentInputType = diagramType.value;
+        applyInputState(previousType);
+      });
 
       function setStatus(text, jobId = "") {
         statusText.textContent = text;
@@ -375,9 +449,10 @@
       runButton.addEventListener("click", async () => {
         const content = diagramContent.value.trim();
         if (!content) {
-          showToast("Please paste diagram content first.");
+          showToast("Please provide input content first.");
           return;
         }
+        const businessContextText = businessContext.value.trim();
 
         runButton.disabled = true;
         previewButton.disabled = true;
@@ -393,6 +468,7 @@
             body: JSON.stringify({
               input: { type: diagramType.value, content },
               options: { language: language.value },
+              business_context: businessContextText,
             }),
           });
 
@@ -409,8 +485,8 @@
           const resultData = await fetchResult(jobId);
           lastResult = resultData;
           markdownOutput.textContent = resultData.reports.markdown || "";
-          previewButton.disabled = false;
-          downloadButton.disabled = false;
+          previewButton.disabled = !resultData.reports.markdown;
+          downloadButton.disabled = !resultData.reports.html;
           setStatus("succeeded", jobId);
         } catch (error) {
           setStatus("error");

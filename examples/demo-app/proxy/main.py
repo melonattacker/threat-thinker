@@ -25,6 +25,7 @@ class AnalyzeOptions(BaseModel):
 class AnalyzeRequest(BaseModel):
     input: AnalyzeInput
     options: AnalyzeOptions
+    business_context: str = ""
 
 
 app = FastAPI(title="Threat Thinker Demo Proxy", docs_url=None, redoc_url=None)
@@ -47,6 +48,7 @@ ALLOWED_INPUT_TYPES = {
     "drawio": "drawio",
     "threat_dragon": "threat-dragon",
     "ir": "ir",
+    "description": "description",
 }
 
 ALLOWED_LANGUAGES = {"en", "ja"}
@@ -105,14 +107,18 @@ async def analyze(payload: AnalyzeRequest) -> JSONResponse:
         raise HTTPException(status_code=500, detail="Backend API key is not set.")
 
     if payload.input.type not in ALLOWED_INPUT_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported diagram type.")
+        raise HTTPException(status_code=400, detail="Unsupported input type.")
 
     if payload.options.language not in ALLOWED_LANGUAGES:
         raise HTTPException(status_code=400, detail="Unsupported language.")
 
     content = payload.input.content or ""
     if len(content) > MAX_INPUT_CHARS:
-        raise HTTPException(status_code=413, detail="Diagram input is too large.")
+        raise HTTPException(status_code=413, detail="Input is too large.")
+
+    business_context = (payload.business_context or "").strip()
+    if len(business_context) > MAX_INPUT_CHARS:
+        raise HTTPException(status_code=413, detail="Business context is too large.")
 
     backend_payload = {
         "input": {
@@ -123,6 +129,13 @@ async def analyze(payload: AnalyzeRequest) -> JSONResponse:
         "language": payload.options.language,
         "topn": 5,
     }
+    if business_context:
+        backend_payload["contexts"] = [
+            {
+                "filename": "business-context.txt",
+                "content": business_context,
+            }
+        ]
 
     response = _backend_request(
         "post",

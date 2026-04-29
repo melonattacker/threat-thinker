@@ -3,8 +3,9 @@
 This demo app provides a simple, modern UI for Threat Thinker that keeps backend API keys server-side. It runs a demo proxy (FastAPI), the Threat Thinker `serve` API, a worker, and Redis via Docker Compose.
 
 ## What it does
-- Browser UI for Mermaid, draw.io XML, or Threat Dragon JSON (text-only).
-- Proxy adds the backend API key and forces reports to `markdown` + `html`.
+- Browser UI for Mermaid, draw.io XML, Threat Dragon JSON, Graph IR JSON, or natural-language system descriptions.
+- Optional Business Context text is passed through the proxy to the backend threat prompt.
+- Proxy adds the backend API key and requests `markdown` + `html` reports.
 - Markdown is shown on-screen with a sanitized HTML preview.
 - HTML report can be downloaded as a file.
 
@@ -49,6 +50,8 @@ This demo app provides a simple, modern UI for Threat Thinker that keeps backend
 ## Usage notes
 - Only the proxy is exposed on port 8081. The backend server/worker/redis are internal to the compose network.
 - The UI fetches Markdown/HTML from the proxy and sanitizes HTML previews with DOMPurify.
+- Select `System Description` when you do not have a diagram yet. The backend generates a DFD first, then runs threat analysis.
+- Use `Business context` for required business rules, sensitive workflows, compliance scope, or assumptions that should influence threat inference.
 - The UI loads `marked` and `dompurify` from a CDN. If you need an air-gapped demo, vendor these files and update `index.html`.
 
 ## Troubleshooting

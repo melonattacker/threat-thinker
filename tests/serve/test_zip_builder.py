@@ -8,6 +8,7 @@ def test_build_zip_bytes_includes_reports():
     reports = [
         ReportContent(report_format="markdown", content="# hello"),
         ReportContent(report_format="json", content='{"ok":true}'),
+        ReportContent(report_format="dfd", content='{"summary":"ok"}'),
     ]
     data = _build_zip_bytes("abc123", reports)
     buf = BytesIO(data)
@@ -15,4 +16,5 @@ def test_build_zip_bytes_includes_reports():
         names = set(zf.namelist())
         assert "threat-thinker-abc123.md" in names
         assert "threat-thinker-abc123.json" in names
+        assert "threat-thinker-abc123.dfd.json" in names
         assert zf.read("threat-thinker-abc123.md").decode() == "# hello"

@@ -48,16 +48,15 @@ engine:
     - "drawio"
     - "threat-dragon"
     - "image"
+    - "ir"
+    - "description"
   autodetect: true
   report:
     default_format: "markdown"
     default_language: "ja"
   model:
     provider: "openai"
-    name: "gpt-4.1-nano"
-    params:
-      temperature: 0.2
-      max_output_tokens: 1200
+    name: "gpt-4.1"
 
 observability:
   log_level: "info"
