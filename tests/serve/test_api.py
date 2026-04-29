@@ -47,6 +47,33 @@ def test_analyze_json_defaults_apply_config_language_and_format(monkeypatch):
     assert payload["kb_names"] == []
 
 
+def test_analyze_json_accepts_description_and_dfd_format(monkeypatch):
+    cfg = _base_config()
+    cfg.engine.report.default_language = "ja"
+
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={
+            "input": {
+                "type": "description",
+                "content": "Customers use a web app to manage orders.",
+            },
+            "report_formats": ["dfd"],
+        },
+    )
+
+    assert response.status_code == 202
+    payload = captured["payload"]
+    assert payload["input"]["type"] == "description"
+    assert payload["input"]["content"] == "Customers use a web app to manage orders."
+    assert payload["language"] == "ja"
+    assert payload["report_formats"] == ["dfd"]
+
+
 def test_analyze_multipart_options_are_used(monkeypatch):
     cfg = _base_config()
     captured = _capture_enqueue(monkeypatch)
@@ -92,6 +119,52 @@ def test_analyze_multipart_options_are_used(monkeypatch):
     assert payload["rag_candidates"] == 25
     assert payload["rag_min_score"] == 0.2
     assert payload["drawio_page"] == "Page-1"
+
+
+def test_analyze_multipart_accepts_explicit_description(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        files={
+            "file": (
+                "system.md",
+                "A customer orders through a web app.",
+                "text/markdown",
+            )
+        },
+        data={"type": "description"},
+    )
+
+    assert response.status_code == 202
+    payload = captured["payload"]
+    assert payload["input"]["type"] == "description"
+    assert payload["input"]["filename"] == "system.md"
+    assert payload["input"]["content"] == "A customer orders through a web app."
+
+
+def test_analyze_multipart_autodetects_description_text(monkeypatch):
+    cfg = _base_config()
+    captured = _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        files={
+            "file": (
+                "system.txt",
+                "A customer orders through a web app.",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 202
+    assert captured["payload"]["input"]["type"] == "description"
 
 
 def test_analyze_autodetect_respects_server_config(monkeypatch):
@@ -260,6 +333,27 @@ def test_analyze_ir_rejects_when_not_allowed(monkeypatch):
     response = client.post(
         "/v1/analyze",
         json={"input": {"type": "ir", "content": '{"nodes": {}, "edges": []}'}},
+    )
+
+    assert response.status_code == 400
+    assert "not allowed" in response.json()["detail"]
+
+
+def test_analyze_description_rejects_when_not_allowed(monkeypatch):
+    cfg = _base_config()
+    cfg.engine.allowed_inputs = ["mermaid"]
+    _capture_enqueue(monkeypatch)
+    app = create_app(cfg)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/analyze",
+        json={
+            "input": {
+                "type": "description",
+                "content": "Customers use a web app.",
+            }
+        },
     )
 
     assert response.status_code == 400

@@ -48,6 +48,8 @@ engine:
     - "drawio"
     - "threat-dragon"
     - "image"
+    - "ir"
+    - "description"
   autodetect: true
   report:
     default_format: "markdown"

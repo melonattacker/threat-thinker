@@ -22,6 +22,7 @@ queue:
     assert cfg.security.auth.api_keys == ["key1", "key2"]
     assert cfg.queue.redis_url == "redis://example:6379/1"
     assert "mermaid" in cfg.engine.allowed_inputs
+    assert "description" in cfg.engine.allowed_inputs
 
 
 def test_load_config_single_api_key_env(tmp_path: Path, monkeypatch):

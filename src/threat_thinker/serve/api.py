@@ -57,6 +57,7 @@ def _extension_for_format(fmt: str) -> str:
         "html": ".html",
         "json": ".json",
         "threat-dragon": ".threat-dragon.json",
+        "dfd": ".dfd.json",
     }.get(fmt, ".txt")
 
 
@@ -119,6 +120,8 @@ def _detect_input_type(filename: Optional[str]) -> Optional[InputType]:
         return InputType(INPUT_FORMAT_THREAT_DRAGON)
     if name.endswith((".png", ".jpg", ".jpeg", ".webp")):
         return InputType(INPUT_FORMAT_IMAGE)
+    if name.endswith((".txt", ".md", ".markdown")):
+        return InputType.DESCRIPTION
     return None
 
 
@@ -167,7 +170,7 @@ def _validate_context_payloads(
 
 
 def _normalize_request(req: AnalyzeRequest, config: ServeConfig) -> AnalyzeRequest:
-    allowed: set[str] = {"markdown", "html", "json", "threat-dragon"}
+    allowed: set[str] = {"markdown", "html", "json", "threat-dragon", "dfd"}
 
     def _format_value(fmt: object) -> str:
         if isinstance(fmt, ReportFormat):
