@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -7,6 +8,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import threat_thinker.main as cli
+from threat_thinker.cliui import ModernCLI
 from threat_thinker.main import (
     _default_report_base_name,
     _prepare_diff_output_paths,
@@ -166,3 +168,57 @@ def test_select_think_input_allows_description_without_diagram():
 
     assert diagram_file is None
     assert diagram_format is None
+
+
+def test_lang_help_text_matches_new_behavior(monkeypatch, capsys):
+    for subcommand in ("think", "diff"):
+        monkeypatch.setattr(sys, "argv", ["threat-thinker", subcommand, "--help"])
+        try:
+            cli.main()
+        except SystemExit as exc:
+            assert exc.code == 0
+
+        captured = capsys.readouterr()
+        assert "Report and CLI output language code" in captured.out
+        assert "translate UI elements" not in captured.out
+
+
+def test_modern_cli_uses_japanese_locale(capsys):
+    ui = ModernCLI()
+    ui.set_locale("ja")
+
+    ui.show_summary(3, 1.2)
+    ui.show_threats_preview([], max_show=3)
+
+    captured = capsys.readouterr()
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", captured.out)
+    assert "分析が完了しました" in plain
+    assert "3 件の脅威を特定しました" in plain
+    assert "脅威は特定されませんでした" in plain
+
+
+def test_think_missing_openai_key_uses_japanese_error(monkeypatch, capsys, tmp_path):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "threat-thinker",
+            "think",
+            "--mermaid",
+            "diagram.mmd",
+            "--out-dir",
+            str(tmp_path),
+            "--lang",
+            "ja",
+        ],
+    )
+
+    try:
+        cli.main()
+    except SystemExit as exc:
+        assert exc.code == 2
+
+    captured = capsys.readouterr()
+    assert "OPENAI_API_KEY が設定されていません" in captured.out
+    assert "環境変数に OpenAI API キーを設定してください" in captured.out

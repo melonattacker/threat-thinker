@@ -163,8 +163,14 @@ def test_localize_webui_updates_labels_and_preserves_manual_output_language():
     assert updates[7]["label"] == "システム説明"
     assert updates[10]["choices"][0][0] == "テキスト"
     assert updates[24]["value"] == "ja"
-    assert updates[38]["value"] == "レポートを生成すると、ここにプレビューが表示されます..."
-    assert updates[53]["value"] == "文書をアップロードし、構築をクリックしてナレッジベースを作成してください。"
+    assert (
+        updates[38]["value"]
+        == "レポートを生成すると、ここにプレビューが表示されます..."
+    )
+    assert (
+        updates[53]["value"]
+        == "文書をアップロードし、構築をクリックしてナレッジベースを作成してください。"
+    )
     assert updates[66]["value"] == "fr"
 
 

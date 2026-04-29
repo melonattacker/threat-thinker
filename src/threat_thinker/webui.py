@@ -818,7 +818,7 @@ def _generate_diff_report(
         )
 
         # Generate markdown report
-        md_report = export_diff_md(diff_data)
+        md_report = export_diff_md(diff_data, lang=lang)
 
         # Generate JSON report
         json_report = json.dumps(diff_data, ensure_ascii=False, indent=2)
@@ -1255,17 +1255,15 @@ def _generate_report(
         _cleanup_downloads()
 
         json_report = cli.export_json(filtered, None, metrics, graph)
-        md_report = cli.export_md(filtered, None)
-        html_report = cli.export_html(filtered, None, graph)
+        md_report = cli.export_md(filtered, None, lang)
+        html_report = cli.export_html(filtered, None, graph, lang)
         td_report = None
         td_download_path = None
         if graph.source_format == "threat-dragon" and graph.threat_dragon:
             try:
                 td_report = cli.export_threat_dragon(filtered, graph, None)
                 td_download_path = _write_temp_file(td_report, ".threat-dragon.json")
-                status_lines.append(
-                    _t(ui_locale, "status_td_generated")
-                )
+                status_lines.append(_t(ui_locale, "status_td_generated"))
             except Exception as exc:
                 status_lines.append(
                     _t(ui_locale, "status_td_export_skipped", error=exc)
@@ -1706,7 +1704,9 @@ def _build_webui(ui_locale: str = _DEFAULT_UI_LOCALE) -> gr.Blocks:
                 )
 
                 with gr.Tabs():
-                    with gr.Tab(_t(locale, "markdown_preview_tab")) as report_markdown_tab:
+                    with gr.Tab(
+                        _t(locale, "markdown_preview_tab")
+                    ) as report_markdown_tab:
                         report_markdown_output = gr.Markdown(
                             label=_t(locale, "report_preview_markdown_label"),
                             value=_t(locale, "report_preview_default"),
@@ -1878,7 +1878,9 @@ def _build_webui(ui_locale: str = _DEFAULT_UI_LOCALE) -> gr.Blocks:
                         value=DEFAULT_CHUNK_OVERLAP,
                     )
 
-                kb_build_button = gr.Button(_t(locale, "build_kb_button"), variant="primary")
+                kb_build_button = gr.Button(
+                    _t(locale, "build_kb_button"), variant="primary"
+                )
                 kb_status_md = gr.Markdown(
                     value=_t(locale, "kb_status_default"),
                     sanitize_html=True,
@@ -1952,7 +1954,9 @@ def _build_webui(ui_locale: str = _DEFAULT_UI_LOCALE) -> gr.Blocks:
                 )
 
                 with gr.Tabs():
-                    with gr.Tab(_t(locale, "markdown_preview_tab")) as diff_markdown_tab:
+                    with gr.Tab(
+                        _t(locale, "markdown_preview_tab")
+                    ) as diff_markdown_tab:
                         diff_markdown_output = gr.Markdown(
                             label=_t(locale, "diff_report_preview_markdown_label"),
                             value=_t(locale, "diff_report_preview_default"),
