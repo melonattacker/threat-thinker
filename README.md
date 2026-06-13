@@ -3,8 +3,6 @@ AI-powered threat modeling that turns architecture diagrams and business context
 
 **English** | [日本語](./README.ja.md)
 
-**Public Demo**: [https://threat-thinker.melonattacker.com](https://threat-thinker.melonattacker.com/)
-
 > [!IMPORTANT]
 > This is a public demo environment. Please do not upload sensitive or confidential architecture diagrams.
 > For sensitive use cases, use the local CLI or Web UI.
