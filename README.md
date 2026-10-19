@@ -4,10 +4,11 @@ AI-powered threat modeling that turns architecture diagrams and business context
 **English** | [日本語](./README.ja.md)
 
 > [!IMPORTANT]
-> This is a public demo environment. Please do not upload sensitive or confidential architecture diagrams.
-> For sensitive use cases, use the local CLI or Web UI.
+> **Maintenance Status: Paused**
+>
+> Active development of Threat Thinker is currently paused. The repository remains available for reference and use, but updates, bug fixes, and support are not guaranteed.
 
-> [!IMPORTANT]
+> [!NOTE]
 > AI can make mistakes. Do not trust Threat Thinker's output as-is; review the results and judge their correctness before using them.
 
 <img width="360" alt="threat-thinker-logo" src="./docs/images/threat-thinker-logo.png" />
